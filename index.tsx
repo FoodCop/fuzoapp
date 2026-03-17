@@ -561,7 +561,7 @@ const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friend
 
   return (
     <div className="fixed inset-0 z-[120] bg-stone-900/60 backdrop-blur-xl flex items-end md:items-center justify-center p-0 md:p-10 animate-in fade-in duration-300">
-      <div className="bg-white w-full max-w-lg rounded-t-[4rem] md:rounded-[4rem] shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-20 duration-500">
+      <div className="bg-white w-full max-w-lg max-h-[90vh] rounded-t-[4rem] md:rounded-[4rem] shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-20 duration-500">
         <header className="p-10 border-b flex justify-between items-center bg-stone-50">
           <div>
             <Badge color="yellow">Studio Share</Badge>
@@ -923,7 +923,7 @@ const BitesRecipeModal = ({
   if (!selectedRecipe) return null;
 
   return (
-    <div className="fixed inset-0 z-[110] bg-stone-900/60 backdrop-blur-xl flex items-center justify-center p-4 md:p-10 overflow-y-auto">
+    <div className="fixed inset-0 z-[110] bg-stone-900/60 backdrop-blur-xl flex items-start justify-center p-4 md:p-10 overflow-y-auto">
       <div className="bg-white w-full max-w-4xl rounded-[4rem] shadow-2xl overflow-hidden flex flex-col md:flex-row relative animate-in zoom-in duration-300">
         <button onClick={onClose} className="absolute top-6 right-6 z-20 p-4 bg-stone-900 text-white rounded-3xl active:scale-90 transition-transform"><X size={24} /></button>
         <div className="w-full md:w-1/2 h-64 md:h-auto overflow-hidden"><img src={selectedRecipe.image} alt={selectedRecipe.title || 'Selected recipe'} className="w-full h-full object-cover" /></div>
@@ -3198,32 +3198,6 @@ const ScoutView = ({ onSave, onShareRequest, savedItems }: { onSave: (item: AppI
     }
   };
 
-  const refreshUsingCurrentGps = () => {
-    if (!globalThis.navigator?.geolocation) {
-      setPlacesError('GPS unavailable in this browser.');
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const nextCoords = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        };
-        if (!Number.isFinite(nextCoords.lat) || !Number.isFinite(nextCoords.lng)) {
-          setPlacesError('GPS returned invalid coordinates. Try again.');
-          return;
-        }
-        setCoords(nextCoords);
-        fetchNearbyPlaces(nextCoords, true);
-      },
-      () => {
-        setPlacesError('Unable to fetch current GPS. Check location permission.');
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-  };
-
   useEffect(() => {
     let disposed = false;
 
@@ -3467,12 +3441,6 @@ const ScoutView = ({ onSave, onShareRequest, savedItems }: { onSave: (item: AppI
 
           <div className="absolute top-6 right-6 md:top-8 md:right-8 flex flex-col gap-3">
             <button onClick={() => fetchNearbyPlaces(coords, true)} className="p-3 md:p-4 bg-white rounded-2xl shadow-xl hover:bg-stone-50 transition-colors"><RefreshCw size={20} className={isRefreshing ? 'animate-spin' : ''} /></button>
-            <button
-              onClick={refreshUsingCurrentGps}
-              className="px-3 py-2 md:px-4 md:py-3 bg-white rounded-2xl shadow-xl hover:bg-stone-50 transition-colors text-[9px] md:text-[10px] font-black uppercase tracking-widest"
-            >
-              Use current GPS again
-            </button>
             <button className="p-3 md:p-4 bg-white rounded-2xl shadow-xl hover:bg-stone-50 transition-colors"><LayoutGrid size={20} /></button>
           </div>
           
@@ -3528,7 +3496,7 @@ const ScoutView = ({ onSave, onShareRequest, savedItems }: { onSave: (item: AppI
 
       {/* Place Details Modal */}
       {selectedPlace && (
-        <div className="fixed inset-0 z-[110] bg-stone-900/60 backdrop-blur-xl flex items-center justify-center p-4 md:p-10 overflow-y-auto">
+        <div className="fixed inset-0 z-[110] bg-stone-900/60 backdrop-blur-xl flex items-start justify-center p-4 md:p-10 overflow-y-auto">
           <div className="bg-white w-full max-w-4xl rounded-[4rem] shadow-2xl overflow-hidden flex flex-col md:flex-row relative animate-in zoom-in duration-300">
             <button 
               onClick={handleCloseModal} 
