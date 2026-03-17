@@ -6407,9 +6407,9 @@ const App = () => {
         
         <button 
           onClick={() => setShowSnap(true)} 
-          className="w-20 h-20 -mt-16 bg-stone-900 rounded-[2.5rem] flex items-center justify-center text-yellow-400 shadow-[0_20px_40px_rgba(0,0,0,0.3)] border-4 border-white active:scale-90 transition-transform"
+          className="w-[72px] h-[72px] -mt-14 bg-stone-900 rounded-[2.5rem] flex items-center justify-center text-yellow-400 shadow-[0_20px_40px_rgba(0,0,0,0.3)] border-4 border-white active:scale-90 transition-transform"
         >
-          <Camera size={32} strokeWidth={3} />
+          <Camera size={29} strokeWidth={3} />
         </button>
 
         <NavIcon icon={PlayCircle} active={tab === 'trims'} onClick={() => setTab('trims')} label="Trims" />
