@@ -47,6 +47,9 @@ export const persistSnapData = async ({
   cuisine,
   rating,
   description,
+  locationName,
+  address,
+  tags,
   location,
 }: {
   snapId: string;
@@ -55,6 +58,9 @@ export const persistSnapData = async ({
   cuisine: string;
   rating: number;
   description: string;
+  locationName: string;
+  address: string;
+  tags: string[];
   location?: { lat: number; lng: number } | null;
 }) => {
   const imageUrl = await uploadSnapImage(imageData);
@@ -65,10 +71,15 @@ export const persistSnapData = async ({
     cat: cuisine || 'Studio Post',
     image: imageUrl,
     image_url: imageUrl,
+    photos: [imageUrl],
     rating,
     description,
+    notes: description,
+    location_name: locationName || restaurant,
+    address: address || '',
     latitude: location?.lat ?? null,
     longitude: location?.lng ?? null,
+    tags: Array.isArray(tags) ? tags : [],
     source: 'snap_feature',
   };
 
@@ -76,20 +87,46 @@ export const persistSnapData = async ({
     try {
       const { data: authData } = await supabase.auth.getUser();
       const userId = authData?.user?.id;
+      let sourcePostId: string | null = null;
 
       if (userId) {
         const contentParts = [`${metadata.title} - ${metadata.cat}`];
         if (description) contentParts.push(description);
         if (rating > 0) contentParts.push(`Rating: ${'★'.repeat(rating)}${'☆'.repeat(5 - rating)}`);
 
-        await supabase.from('posts').insert({
+        const { data: createdPost, error: postInsertError } = await supabase.from('posts').insert({
           user_id: userId,
           content: contentParts.join('\n'),
           image_url: imageUrl,
           latitude: location?.lat ?? null,
           longitude: location?.lng ?? null,
           created_at: new Date().toISOString(),
+        }).select('id').single();
+
+        if (postInsertError) {
+          console.warn('SNAP posts persistence skipped:', postInsertError.message);
+        } else {
+          sourcePostId = typeof createdPost?.id === 'string' ? createdPost.id : null;
+        }
+
+        const { error: datasetInsertError } = await supabase.from('fuzo_locations').insert({
+          user_id: userId,
+          source_snap_id: snapId,
+          source_post_id: sourcePostId,
+          location_name: metadata.location_name,
+          restaurant_name: metadata.name,
+          cuisine: metadata.cat,
+          latitude: metadata.latitude,
+          longitude: metadata.longitude,
+          address: metadata.address,
+          photos: metadata.photos,
+          notes: metadata.notes,
+          tags: metadata.tags,
         });
+
+        if (datasetInsertError) {
+          console.warn('SNAP FUZO dataset persistence failed:', datasetInsertError.message);
+        }
       }
     } catch (error) {
       console.warn('SNAP posts persistence skipped:', error);
@@ -113,6 +150,10 @@ export const persistSnapData = async ({
     name: metadata.title,
     cat: metadata.cat,
     img: imageUrl,
+    address: metadata.address,
+    lat: metadata.latitude ?? undefined,
+    lng: metadata.longitude ?? undefined,
+    photos: metadata.photos,
     metadata,
   };
 };

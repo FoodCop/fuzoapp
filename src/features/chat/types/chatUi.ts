@@ -7,6 +7,7 @@ export interface ChatFriend {
   name: string;
   avatar: string;
   username?: string;
+  email?: string;
   time?: string;
   isOnline?: boolean;
   online?: boolean;

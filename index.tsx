@@ -136,6 +136,298 @@ const parseAiJson = (raw: string | undefined | null) => {
   }
 };
 
+const BITES_AI_TAG_OPTIONS = ['Recipe Card', 'Food Hacks', 'Kitchen Tricks', 'Weird Combos'] as const;
+type BitesAiTag = (typeof BITES_AI_TAG_OPTIONS)[number];
+
+const CHEF_SUGGESTED_PROMPTS = [
+  'Would you like a recipe?',
+  'Show me food hacks',
+  'Any kitchen tricks?',
+  'Suggest weird food combos',
+] as const;
+
+const isYouTubeUrl = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  return /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i.test(trimmed);
+};
+
+const filterFriendsByQuery = (friends: ChatFriend[], query: string) => {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return friends;
+
+  return friends.filter((friend) => {
+    const username = String(friend.username || '').toLowerCase();
+    const displayName = String(friend.name || '').toLowerCase();
+    const email = String(friend.email || '').toLowerCase();
+    return username.includes(normalized) || displayName.includes(normalized) || email.includes(normalized);
+  });
+};
+
+const TRIM_RESPONSE_SCHEMA = {
+  type: 'object',
+  properties: {
+    title: { type: 'string' },
+    author: { type: 'string' },
+    caption: { type: 'string' },
+    likes: { type: 'string' },
+    sourceUrl: { type: 'string' },
+    summary: { type: 'string' },
+    keyFoodItem: { type: 'string' },
+    location: { type: 'string' },
+    cuisineTags: { type: 'array', items: { type: 'string' } },
+    thumbnailUrl: { type: 'string' },
+    nutrition: {
+      type: 'object',
+      properties: {
+        calories: { type: 'number' },
+        protein: { type: 'number' },
+        fat: { type: 'number' },
+        carbs: { type: 'number' },
+      },
+      required: ['calories', 'protein', 'fat', 'carbs'],
+    },
+  },
+  required: ['title', 'author', 'caption', 'likes', 'summary', 'keyFoodItem', 'cuisineTags', 'nutrition'],
+};
+
+const fetchYouTubeOEmbedContext = async (url: string) => {
+  if (!isYouTubeUrl(url)) return '';
+
+  try {
+    const oEmbed = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+    if (!oEmbed.ok) return '';
+    const oEmbedJson = await oEmbed.json();
+    const title = typeof oEmbedJson?.title === 'string' ? oEmbedJson.title : '';
+    const author = typeof oEmbedJson?.author_name === 'string' ? oEmbedJson.author_name : '';
+    const thumbnail = typeof oEmbedJson?.thumbnail_url === 'string' ? oEmbedJson.thumbnail_url : '';
+    return `oEmbed title: ${title}\noEmbed author: ${author}\noEmbed thumbnail: ${thumbnail}`;
+  } catch {
+    return '';
+  }
+};
+
+const buildTrimPrompt = ({
+  description,
+  effectiveUrl,
+  hasYoutubeUrl,
+  oEmbedContext,
+}: {
+  description: string;
+  effectiveUrl: string;
+  hasYoutubeUrl: boolean;
+  oEmbedContext: string;
+}) => {
+  return `You are a culinary video editor assistant. Build one clean JSON object for a vertical trim card.
+Required fields: title, author, caption, likes, summary, keyFoodItem, location, cuisineTags (array of strings), thumbnailUrl, sourceUrl, nutrition { calories, protein, fat, carbs }.
+If YouTube URL is provided, prioritize extracting real metadata from the URL context.
+Keep response as raw JSON only.
+Context description: ${description || 'N/A'}
+YouTube URL: ${hasYoutubeUrl ? effectiveUrl : 'N/A'}
+${oEmbedContext}`;
+};
+
+const buildTrimPromptParts = ({
+  prompt,
+  video,
+  videoMimeType,
+}: {
+  prompt: string;
+  video: string | null;
+  videoMimeType: string;
+}) => {
+  const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [{ text: prompt }];
+  if (video?.includes(',')) {
+    parts.push({
+      inlineData: {
+        mimeType: videoMimeType,
+        data: video.split(',')[1],
+      },
+    });
+  }
+  return parts;
+};
+
+const buildMockTrimCard = (description: string) => {
+  const normalizedDescription = description.split(/#mock\b/gi).join('').trim();
+  return {
+    title: normalizedDescription || 'Mock Smoke Test Trim',
+    author: 'FUZO QA Mock Studio',
+    caption: normalizedDescription
+      ? `${normalizedDescription} (mock smoke test card)`
+      : 'Mock smoke test card generated from uploaded video context.',
+    likes: '1.2k',
+    nutrition: {
+      calories: 320,
+      protein: 18,
+      fat: 11,
+      carbs: 28,
+    },
+  };
+};
+
+type GeneratedTrimCard = {
+  title?: string;
+  author?: string;
+  caption?: string;
+  likes?: string;
+  sourceUrl?: string;
+  summary?: string;
+  keyFoodItem?: string;
+  location?: string;
+  cuisineTags?: string[];
+  thumbnailUrl?: string;
+  nutrition?: {
+    calories?: number;
+    protein?: number;
+    fat?: number;
+    carbs?: number;
+  };
+};
+
+const requestGeneratedTrimCard = async ({
+  description,
+  effectiveUrl,
+  video,
+  videoMimeType,
+}: {
+  description: string;
+  effectiveUrl: string;
+  video: string | null;
+  videoMimeType: string;
+}): Promise<GeneratedTrimCard> => {
+  const hasYoutubeUrl = isYouTubeUrl(effectiveUrl);
+
+  if (/#mock\b/i.test(description) && !hasYoutubeUrl) {
+    return buildMockTrimCard(description);
+  }
+
+  const oEmbedContext = await fetchYouTubeOEmbedContext(effectiveUrl);
+  const prompt = buildTrimPrompt({
+    description,
+    effectiveUrl,
+    hasYoutubeUrl,
+    oEmbedContext,
+  });
+  const parts = buildTrimPromptParts({ prompt, video, videoMimeType });
+
+  const response = await GeminiService.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: [{ role: 'user', parts }],
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: TRIM_RESPONSE_SCHEMA,
+    },
+  });
+
+  if (!response.success || !response.data?.text) {
+    throw new Error(response.error || 'Gemini generation failed');
+  }
+
+  const parsed = parseAiJson(response.data.text);
+  if (!parsed?.title) {
+    throw new Error('Invalid AI response format');
+  }
+
+  return {
+    ...parsed,
+    sourceUrl: parsed.sourceUrl || (hasYoutubeUrl ? effectiveUrl : undefined),
+    thumbnailUrl: parsed.thumbnailUrl || undefined,
+  };
+};
+
+const toStringOr = (value: unknown, fallback: string) => (typeof value === 'string' ? value : fallback);
+
+const toNumberOr = (value: unknown, fallback: number) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const sanitizeStringArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is string => typeof entry === 'string');
+};
+
+const toOptionalString = (value: unknown) => (typeof value === 'string' ? value : undefined);
+
+const toTimingsOr = (value: unknown, fallback: ScoutTimings): ScoutTimings => {
+  return value && typeof value === 'object' ? (value as ScoutTimings) : fallback;
+};
+
+const toMenuOr = (value: unknown, fallback: ScoutMenuSection[]): ScoutMenuSection[] => {
+  return Array.isArray(value) ? (value as ScoutMenuSection[]) : fallback;
+};
+
+const toUserReviewsOr = (value: unknown, fallback: ScoutUserReview[]): ScoutUserReview[] => {
+  return Array.isArray(value) ? (value as ScoutUserReview[]) : fallback;
+};
+
+const toNonEmptyStringArrayOr = (value: unknown, fallback: string[]) => {
+  const normalized = sanitizeStringArray(value);
+  return normalized.length > 0 ? normalized : fallback;
+};
+
+type ScoutMapTab = 'main' | 'fuzo' | 'my';
+
+const resolveScoutDisplayPlaces = (
+  tab: ScoutMapTab,
+  mainMapPlaces: ScoutPlace[],
+  communitySnapPlaces: ScoutPlace[],
+  myMapPlaces: ScoutPlace[],
+) => {
+  const byTab: Record<ScoutMapTab, ScoutPlace[]> = {
+    main: mainMapPlaces,
+    fuzo: communitySnapPlaces,
+    my: myMapPlaces,
+  };
+  return byTab[tab];
+};
+
+const resolveScoutCopy = (tab: ScoutMapTab, count: number, isLoading: boolean) => {
+  const headlineByTab: Record<ScoutMapTab, string> = {
+    main: `${count} FUZO Curated Locations`,
+    fuzo: `${count} Snap Locations`,
+    my: `${count} Personal Locations`,
+  };
+
+  const listTitleByTab: Record<ScoutMapTab, string> = {
+    main: 'Main FUZO Locations',
+    fuzo: 'FUZO Snap Locations',
+    my: 'My Saved + Snap Locations',
+  };
+
+  const emptyStateByTab: Record<ScoutMapTab, string> = {
+    main: 'No FUZO curated locations found right now.',
+    fuzo: 'No community Snap locations available yet.',
+    my: 'Save from Google Map cards or add Snap discoveries to populate My Map.',
+  };
+
+  return {
+    scoutHeadline: isLoading ? 'Refreshing FUZO Locations...' : headlineByTab[tab],
+    listTitle: listTitleByTab[tab],
+    emptyStateMessage: emptyStateByTab[tab],
+  };
+};
+
+const toRadians = (value: number) => (value * Math.PI) / 180;
+
+const getDistanceMeters = (
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+) => {
+  const earthRadius = 6371000;
+  const dLat = toRadians(b.lat - a.lat);
+  const dLng = toRadians(b.lng - a.lng);
+  const lat1 = toRadians(a.lat);
+  const lat2 = toRadians(b.lat);
+
+  const haversine = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+    + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+  const arc = 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+  return earthRadius * arc;
+};
+
 const ONBOARDING_V2_ENABLED = String(import.meta.env.VITE_ONBOARDING_V2_ENABLED || '').toLowerCase() === 'true';
 
 // --- SHARED UI COMPONENTS ---
@@ -258,6 +550,8 @@ const SwipeCard = ({ children, onSwipe, active }: { children: React.ReactNode; o
 
 const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friends: ChatFriend[], onShare: (friendId: string | number, item: AppItem) => void, onClose: () => void }) => {
   const [sentTo, setSentTo] = useState<Array<string | number>>([]);
+  const [friendSearch, setFriendSearch] = useState('');
+  const filteredFriends = useMemo(() => filterFriendsByQuery(friends, friendSearch), [friends, friendSearch]);
 
   const handleShareClick = (friendId: string | number) => {
     if (sentTo.includes(friendId)) return;
@@ -287,8 +581,17 @@ const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friend
         </div>
 
         <div className="p-8 max-h-[50vh] overflow-y-auto space-y-4">
+          <div className="relative">
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300" />
+            <input
+              value={friendSearch}
+              onChange={(e) => setFriendSearch(e.target.value)}
+              placeholder="Search username, name, or email"
+              className="w-full bg-stone-50 pl-12 pr-4 py-3 rounded-2xl text-xs font-black uppercase tracking-widest outline-none border border-stone-100 focus:ring-4 focus:ring-yellow-400/10"
+            />
+          </div>
           <h5 className="px-2 text-[10px] font-black uppercase tracking-widest text-stone-300">Active Contacts</h5>
-          {friends.map(friend => (
+          {filteredFriends.map(friend => (
             <button
               type="button"
               key={friend.id} 
@@ -304,7 +607,10 @@ const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friend
             >
               <div className="flex items-center gap-4">
                 <img src={friend.avatar} alt={friend.name || 'Friend avatar'} className="w-12 h-12 rounded-full border-2 border-stone-100" />
-                <span className="font-black uppercase text-xs tracking-widest">{friend.name}</span>
+                <div>
+                  <span className="font-black uppercase text-xs tracking-widest block">{friend.name}</span>
+                  {!!friend.username && <span className="text-[9px] font-bold uppercase tracking-widest text-stone-400">@{friend.username}</span>}
+                </div>
               </div>
               {sentTo.includes(friend.id) ? (
                 <div className="flex items-center gap-2 text-emerald-500">
@@ -317,6 +623,11 @@ const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friend
               )}
             </button>
           ))}
+          {filteredFriends.length === 0 && (
+            <div className="p-5 rounded-2xl bg-stone-50 border border-stone-100 text-[10px] font-black uppercase tracking-widest text-stone-400 text-center">
+              No friends found.
+            </div>
+          )}
         </div>
         
         <footer className="p-10 bg-stone-50 text-center">
@@ -810,6 +1121,7 @@ const AIRecipeStudio = ({
       fat?: number;
       carbs?: number;
     };
+    aiTag?: BitesAiTag;
   };
 
   const [image, setImage] = useState<string | null>(null);
@@ -817,6 +1129,7 @@ const AIRecipeStudio = ({
   const [description, setDescription] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedRecipe, setGeneratedRecipe] = useState<GeneratedRecipeCard | null>(null);
+  const [selectedTag, setSelectedTag] = useState<BitesAiTag>('Recipe Card');
   const [error, setError] = useState<string | null>(null);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -841,7 +1154,8 @@ const AIRecipeStudio = ({
 
     try {
       const prompt = `You are an expert chef and nutrition analyst. Build one clean JSON object for a recipe card.
-Fields required: title, category, readyInMinutes, servings, ingredients (array of strings), instructions (string), nutrition { calories, protein, fat, carbs }.
+    Fields required: title, category, readyInMinutes, servings, ingredients (array of strings), instructions (string), nutrition { calories, protein, fat, carbs }, aiTag.
+    aiTag must be one of: ${BITES_AI_TAG_OPTIONS.join(', ')}.
 Use the user description and optional image context. Keep response as raw JSON only.
 User description: ${description}`;
 
@@ -869,6 +1183,10 @@ User description: ${description}`;
               servings: { type: 'number' },
               ingredients: { type: 'array', items: { type: 'string' } },
               instructions: { type: 'string' },
+              aiTag: {
+                type: 'string',
+                enum: [...BITES_AI_TAG_OPTIONS],
+              },
               nutrition: {
                 type: 'object',
                 properties: {
@@ -880,7 +1198,7 @@ User description: ${description}`;
                 required: ['calories', 'protein', 'fat', 'carbs'],
               },
             },
-            required: ['title', 'readyInMinutes', 'servings', 'ingredients', 'instructions', 'nutrition'],
+            required: ['title', 'readyInMinutes', 'servings', 'ingredients', 'instructions', 'nutrition', 'aiTag'],
           },
         },
       });
@@ -894,6 +1212,11 @@ User description: ${description}`;
         throw new Error('Invalid AI response format');
       }
 
+      const aiTag = BITES_AI_TAG_OPTIONS.includes(parsed.aiTag as BitesAiTag)
+        ? (parsed.aiTag as BitesAiTag)
+        : 'Recipe Card';
+
+      setSelectedTag(aiTag);
       setGeneratedRecipe(parsed);
     } catch {
       setError('Failed to generate recipe card. Please try again.');
@@ -915,6 +1238,8 @@ User description: ${description}`;
         cat: generatedRecipe.category || 'AI Recipe',
         image: image || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?auto=format&fit=crop&w=400',
         generatedRecipe,
+        aiTag: selectedTag,
+        tags: [selectedTag],
       },
     };
   };
@@ -974,6 +1299,22 @@ User description: ${description}`;
               />
             </div>
 
+            <div className="space-y-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-stone-500">Card Tag</p>
+              <div className="flex flex-wrap gap-2">
+                {BITES_AI_TAG_OPTIONS.map((tag) => (
+                  <button
+                    type="button"
+                    key={tag}
+                    onClick={() => setSelectedTag(tag)}
+                    className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-colors ${selectedTag === tag ? 'bg-yellow-400 text-stone-900' : 'bg-stone-900 text-stone-300 border border-stone-700 hover:text-white'}`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <button
               onClick={handleGenerate}
               disabled={isGenerating || !description.trim()}
@@ -990,6 +1331,7 @@ User description: ${description}`;
               <div className="bg-white text-stone-950 rounded-[3.5rem] p-10 shadow-2xl space-y-8 h-fit sticky top-0">
                 <header className="space-y-2">
                   <Badge color="yellow">AI Generated</Badge>
+                  <Badge color="stone">{selectedTag}</Badge>
                   <h3 className="text-4xl font-black uppercase tracking-tighter leading-none">{generatedRecipe.title}</h3>
                   <div className="flex gap-4 text-[10px] font-black uppercase tracking-widest text-stone-400">
                     <span>{generatedRecipe.readyInMinutes || 20} Mins</span>
@@ -1429,26 +1771,15 @@ const AITrimStudio = ({
   onShareRequest: (item: AppItem) => void;
   onClose: () => void;
 }) => {
-  type GeneratedTrimCard = {
-    title?: string;
-    author?: string;
-    caption?: string;
-    likes?: string;
-    nutrition?: {
-      calories?: number;
-      protein?: number;
-      fat?: number;
-      carbs?: number;
-    };
-  };
-
   const [video, setVideo] = useState<string | null>(null);
   const [videoMimeType, setVideoMimeType] = useState('video/mp4');
+  const [linkURL, setLinkURL] = useState('');
   const [description, setDescription] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedTrim, setGeneratedTrim] = useState<GeneratedTrimCard | null>(null);
   const [error, setError] = useState<string | null>(null);
   const trimDraftIdRef = useRef<string | null>(null);
+  const autoGeneratedLinkRef = useRef('');
 
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1468,94 +1799,48 @@ const AITrimStudio = ({
     }
   };
 
-  const handleGenerate = async () => {
-    if (!description.trim()) return;
+  const handleGenerate = async (urlOverride?: string) => {
+    const effectiveUrl = (urlOverride ?? linkURL).trim();
+    const hasYoutubeUrl = isYouTubeUrl(effectiveUrl);
+    if (!description.trim() && !hasYoutubeUrl) return;
 
     setIsGenerating(true);
     setError(null);
 
     try {
-      const isMockSmokeTest = /#mock\b/i.test(description);
-      if (isMockSmokeTest) {
-        const normalizedDescription = description.split(/#mock\b/gi).join('').trim();
-        trimDraftIdRef.current = String(Date.now());
-        setGeneratedTrim({
-          title: normalizedDescription || 'Mock Smoke Test Trim',
-          author: 'FUZO QA Mock Studio',
-          caption: normalizedDescription
-            ? `${normalizedDescription} (mock smoke test card)`
-            : 'Mock smoke test card generated from uploaded video context.',
-          likes: '1.2k',
-          nutrition: {
-            calories: 320,
-            protein: 18,
-            fat: 11,
-            carbs: 28,
-          },
-        });
-        return;
-      }
-
-      const prompt = `You are a culinary video editor assistant. Build one clean JSON object for a vertical trim card.
-Required fields: title, author, caption, likes, nutrition { calories, protein, fat, carbs }.
-Keep response as raw JSON only.
-Context: ${description}`;
-
-      const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [{ text: prompt }];
-      if (video?.includes(',')) {
-        parts.push({
-          inlineData: {
-            mimeType: videoMimeType,
-            data: video.split(',')[1],
-          },
-        });
-      }
-
-      const response = await GeminiService.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [{ role: 'user', parts }],
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: 'object',
-            properties: {
-              title: { type: 'string' },
-              author: { type: 'string' },
-              caption: { type: 'string' },
-              likes: { type: 'string' },
-              nutrition: {
-                type: 'object',
-                properties: {
-                  calories: { type: 'number' },
-                  protein: { type: 'number' },
-                  fat: { type: 'number' },
-                  carbs: { type: 'number' },
-                },
-                required: ['calories', 'protein', 'fat', 'carbs'],
-              },
-            },
-            required: ['title', 'author', 'caption', 'likes', 'nutrition'],
-          },
-        },
+      const generated = await requestGeneratedTrimCard({
+        description,
+        effectiveUrl,
+        video,
+        videoMimeType,
       });
 
-      if (!response.success || !response.data?.text) {
-        throw new Error(response.error || 'Gemini generation failed');
-      }
-
-      const parsed = parseAiJson(response.data.text);
-      if (!parsed?.title) {
-        throw new Error('Invalid AI response format');
-      }
-
       trimDraftIdRef.current = String(Date.now());
-      setGeneratedTrim(parsed);
+      setGeneratedTrim(generated);
+      if (hasYoutubeUrl) {
+        autoGeneratedLinkRef.current = effectiveUrl;
+      }
     } catch {
       setError('Failed to generate trim card. Please try again.');
     } finally {
       setIsGenerating(false);
     }
   };
+
+  useEffect(() => {
+    const trimmed = linkURL.trim();
+    if (!isYouTubeUrl(trimmed)) return;
+    if (autoGeneratedLinkRef.current === trimmed) return;
+    if (isGenerating) return;
+
+    const timer = globalThis.setTimeout(() => {
+      handleGenerate(trimmed).catch(() => {
+        setError('Failed to analyze YouTube URL. You can still tap Generate Trim Card.');
+      });
+    }, 350);
+
+    return () => globalThis.clearTimeout(timer);
+  }, [linkURL, isGenerating]);
 
   const buildTrimItem = () => {
     if (!generatedTrim) return null;
@@ -1567,17 +1852,23 @@ Context: ${description}`;
       itemId: `ai-${draftId}`,
       name: generatedTrim.title || 'AI Studio Trim',
       cat: 'Studio Trim',
-      img: fallbackImage,
+      img: generatedTrim.thumbnailUrl || fallbackImage,
       video,
       metadata: {
         title: generatedTrim.title || 'AI Studio Trim',
         name: generatedTrim.title || 'AI Studio Trim',
-        image: fallbackImage,
+        image: generatedTrim.thumbnailUrl || fallbackImage,
         cat: 'Studio Trim',
         caption: generatedTrim.caption || 'AI generated Studio trim card ready to post.',
         likes: generatedTrim.likes || '0',
         nutrition: generatedTrim.nutrition,
         channelTitle: generatedTrim.author || 'FUZO AI Studio',
+        sourceUrl: generatedTrim.sourceUrl || linkURL.trim() || undefined,
+        summary: generatedTrim.summary || '',
+        keyFoodItem: generatedTrim.keyFoodItem || '',
+        location: generatedTrim.location || '',
+        cuisineTags: generatedTrim.cuisineTags || [],
+        thumbnailUrl: generatedTrim.thumbnailUrl || '',
         generatedTrim,
       },
       ...generatedTrim,
@@ -1629,6 +1920,23 @@ Context: ${description}`;
             </div>
 
             <div className="space-y-4">
+              <label htmlFor="ai-trim-link-url" className="text-[10px] font-black uppercase tracking-widest text-stone-500">YouTube URL (Optional)</label>
+              <input
+                id="ai-trim-link-url"
+                value={linkURL}
+                onChange={(e) => {
+                  setLinkURL(e.target.value);
+                  setError(null);
+                }}
+                placeholder="Paste YouTube link to auto-generate card"
+                className="w-full bg-stone-900 border-4 border-stone-800 rounded-[2rem] px-6 py-4 font-bold text-xs outline-none focus:border-emerald-400 transition-all"
+              />
+              {!!linkURL.trim() && !isYouTubeUrl(linkURL) && (
+                <p className="text-[10px] font-bold uppercase tracking-widest text-amber-500">Enter a valid YouTube URL.</p>
+              )}
+            </div>
+
+            <div className="space-y-4">
               <label htmlFor="ai-trim-description" className="text-[10px] font-black uppercase tracking-widest text-stone-500">Trim Description</label>
               <textarea
                 id="ai-trim-description"
@@ -1640,8 +1948,12 @@ Context: ${description}`;
             </div>
 
             <button
-              onClick={handleGenerate}
-              disabled={isGenerating || !description.trim()}
+              onClick={() => {
+                handleGenerate().catch(() => {
+                  setError('Failed to generate trim card. Please try again.');
+                });
+              }}
+              disabled={isGenerating || (!description.trim() && !isYouTubeUrl(linkURL))}
               className="w-full py-6 bg-white text-stone-950 rounded-[2rem] font-black uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-4"
             >
               {isGenerating ? <Loader2 className="animate-spin" /> : <Sparkles size={24} />}
@@ -2035,9 +2347,13 @@ const ChefAIView = () => {
   const [loading, setLoading] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
-  const sendMessage = async () => {
-    if (!input.trim()) return;
-    const txt = input; setInput("");
+  const sendMessage = async (overrideText?: string) => {
+    const outgoing = (overrideText ?? input).trim();
+    if (!outgoing) return;
+    const txt = outgoing;
+    if (!overrideText) {
+      setInput("");
+    }
     setMessages(prev => [...prev, { role: 'user', text: txt }]);
     setLoading(true);
     
@@ -2061,6 +2377,13 @@ const ChefAIView = () => {
 
   useEffect(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), [messages]);
 
+  const handleSuggestedPrompt = useCallback((prompt: string) => {
+    sendMessage(prompt).catch(() => {
+      setMessages(prev => [...prev, { role: 'ai', text: 'Studio signal weak. Check connection.' }]);
+      setLoading(false);
+    });
+  }, []);
+
   return (
     <div className="max-w-2xl mx-auto h-[75vh] flex flex-col bg-white rounded-[3.5rem] shadow-2xl border-4 border-white overflow-hidden">
       <header className="p-8 border-b bg-stone-50 flex items-center justify-between">
@@ -2070,6 +2393,18 @@ const ChefAIView = () => {
         </div>
       </header>
       <div className="flex-grow p-8 overflow-y-auto hide-scrollbar space-y-6">
+        <div className="flex flex-wrap gap-2">
+          {CHEF_SUGGESTED_PROMPTS.map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              onClick={() => handleSuggestedPrompt(prompt)}
+              className="px-4 py-2 rounded-full bg-stone-100 hover:bg-yellow-400 text-stone-900 text-[10px] font-black uppercase tracking-widest transition-colors"
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
         {messages.map((m) => (
           <div key={`${m.role}-${m.text}`} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[85%] p-6 rounded-[2.5rem] font-bold text-sm shadow-sm ${m.role === 'user' ? 'bg-stone-900 text-white' : 'bg-stone-50 text-stone-900'}`}>{m.text}</div>
@@ -2080,7 +2415,7 @@ const ChefAIView = () => {
       </div>
       <footer className="p-6 border-t flex gap-3 bg-white">
         <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} placeholder="Consult the Chef..." className="flex-grow bg-stone-50 px-8 py-5 rounded-[2rem] font-black text-xs uppercase outline-none focus:ring-4 focus:ring-yellow-400/10 transition-all" />
-        <button onClick={sendMessage} className="w-16 h-16 bg-yellow-400 rounded-3xl flex items-center justify-center shadow-xl active:scale-95 transition-transform"><Send size={24} /></button>
+        <button onClick={() => { sendMessage().catch(() => undefined); }} className="w-16 h-16 bg-yellow-400 rounded-3xl flex items-center justify-center shadow-xl active:scale-95 transition-transform"><Send size={24} /></button>
       </footer>
     </div>
   );
@@ -2107,9 +2442,11 @@ const ChatView = ({
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatUiMessage[]>([]);
   const [draft, setDraft] = useState('');
+  const [friendSearch, setFriendSearch] = useState('');
   const [isTyping, setIsTyping] = useState(false);
 
   const active = friends.find(f => String(f.id) === activeId);
+  const filteredFriends = useMemo(() => filterFriendsByQuery(friends, friendSearch), [friends, friendSearch]);
 
   const mapMessageToUi = useCallback((message: ChatMessage): ChatUiMessage => ({
     id: message.id,
@@ -2381,14 +2718,26 @@ const ChatView = ({
   return (
     <div className="max-w-2xl mx-auto space-y-6 px-4 animate-in fade-in">
       <header className="hidden md:flex justify-between items-end">
-        <h2 className="text-4xl font-black uppercase tracking-tighter">Studio Inbox</h2>
+        <div>
+          <h2 className="text-4xl font-black uppercase tracking-tighter">Studio Inbox</h2>
+          <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-2">Find Friends</p>
+        </div>
         <div className="flex items-center gap-2 px-4 py-2 bg-yellow-400 rounded-full">
           <div className="w-2 h-2 bg-stone-900 rounded-full animate-pulse" />
           <span className="text-[10px] font-black uppercase tracking-widest">Live</span>
         </div>
       </header>
+      <div className="relative">
+        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300" />
+        <input
+          value={friendSearch}
+          onChange={(e) => setFriendSearch(e.target.value)}
+          placeholder="Search username, name, or email"
+          className="w-full bg-white border border-stone-100 rounded-2xl pl-12 pr-4 py-3 text-xs font-black uppercase tracking-widest outline-none focus:ring-4 focus:ring-yellow-400/10"
+        />
+      </div>
       <div className="space-y-4">
-        {friends.map(c => (
+        {filteredFriends.map(c => (
           <div key={c.id} className="flex items-center gap-2">
             <button
               type="button"
@@ -2427,6 +2776,11 @@ const ChatView = ({
             </button>
           </div>
         ))}
+        {filteredFriends.length === 0 && (
+          <div className="p-8 text-center bg-stone-50 rounded-[2rem] border border-stone-100 text-[10px] font-black uppercase tracking-widest text-stone-400">
+            No friends found.
+          </div>
+        )}
       </div>
     </div>
   );
@@ -2436,7 +2790,7 @@ const ScoutView = ({ onSave, onShareRequest, savedItems }: { onSave: (item: AppI
   const [coords, setCoords] = useState({ lat: 43.65, lng: -79.38 });
   const [selectedPlace, setSelectedPlace] = useState<ScoutPlace | null>(null);
   const [modalTab, setModalTab] = useState('overview');
-  const [scoutTab, setScoutTab] = useState<'nearby' | 'saved'>('nearby');
+  const [scoutTab, setScoutTab] = useState<ScoutMapTab>('main');
   const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const scoutPlacesRequestSeqRef = useRef(0);
@@ -2561,52 +2915,21 @@ const ScoutView = ({ onSave, onShareRequest, savedItems }: { onSave: (item: AppI
   ];
 
   const [places, setPlaces] = useState<ScoutPlace[]>(fallbackPlaces);
-
-  const toStringOr = useCallback((value: unknown, fallback: string) => {
-    return typeof value === 'string' ? value : fallback;
-  }, []);
-
-  const toNumberOr = useCallback((value: unknown, fallback: number) => {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : fallback;
-  }, []);
-
-  const sanitizeStringArray = useCallback((value: unknown): string[] => {
-    if (!Array.isArray(value)) return [];
-    return value.filter((entry): entry is string => typeof entry === 'string');
-  }, []);
-
-  const toOptionalString = useCallback((value: unknown) => {
-    return typeof value === 'string' ? value : undefined;
-  }, []);
-
-  const toTimingsOr = useCallback((value: unknown, fallback: ScoutTimings): ScoutTimings => {
-    return value && typeof value === 'object' ? (value as ScoutTimings) : fallback;
-  }, []);
-
-  const toMenuOr = useCallback((value: unknown, fallback: ScoutMenuSection[]): ScoutMenuSection[] => {
-    return Array.isArray(value) ? (value as ScoutMenuSection[]) : fallback;
-  }, []);
-
-  const toUserReviewsOr = useCallback((value: unknown, fallback: ScoutUserReview[]): ScoutUserReview[] => {
-    return Array.isArray(value) ? (value as ScoutUserReview[]) : fallback;
-  }, []);
-
-  const toNonEmptyStringArrayOr = useCallback((value: unknown, fallback: string[]) => {
-    const normalized = sanitizeStringArray(value);
-    return normalized.length > 0 ? normalized : fallback;
-  }, [sanitizeStringArray]);
+  const [communitySnapPlaces, setCommunitySnapPlaces] = useState<ScoutPlace[]>([]);
 
   const toSavedScoutPlace = useCallback((item: AppItem, index: number): ScoutPlace => {
     const fallback = fallbackPlaces[index % fallbackPlaces.length];
     const timings = toTimingsOr(item.timings, fallback.timings);
     const menu = toMenuOr(item.menu, fallback.menu);
     const userReviews = toUserReviewsOr(item.userReviews, fallback.userReviews);
+    const itemMetadata = (item.metadata && typeof item.metadata === 'object') ? item.metadata : {};
+    const metadataSource = typeof itemMetadata.source === 'string' ? itemMetadata.source : '';
+    const markerSource: 'fuzo' | 'google' = item.placeId || metadataSource === 'google_places' ? 'google' : 'fuzo';
 
     return {
       id: toStringOr(item.id, `saved-place-${index}`),
       placeId: toOptionalString(item.placeId),
-      markerSource: 'fuzo',
+      markerSource,
       name: toStringOr(item.name, fallback.name),
       cat: toStringOr(item.cat, 'Saved Place'),
       rating: toNumberOr(item.rating, fallback.rating),
@@ -2623,15 +2946,108 @@ const ScoutView = ({ onSave, onShareRequest, savedItems }: { onSave: (item: AppI
       userReviews,
       photos: toNonEmptyStringArrayOr(item.photos, fallback.photos),
     };
-  }, [fallbackPlaces, toMenuOr, toNonEmptyStringArrayOr, toNumberOr, toOptionalString, toStringOr, toTimingsOr, toUserReviewsOr]);
+  }, [fallbackPlaces]);
 
-  const savedPlaces = useMemo<ScoutPlace[]>(() => {
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCommunitySnaps = async () => {
+      if (!hasSupabaseConfig || !supabase) {
+        setCommunitySnapPlaces([]);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('fuzo_locations')
+          .select('id, location_name, restaurant_name, cuisine, latitude, longitude, address, photos, notes, tags, created_at')
+          .not('latitude', 'is', null)
+          .not('longitude', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(150);
+
+        if (cancelled || error) return;
+
+        const base = fallbackPlaces[0];
+        const mapped = (data || [])
+          .filter((row: Record<string, unknown>) => Number.isFinite(Number(row.latitude)) && Number.isFinite(Number(row.longitude)))
+          .map((row: Record<string, unknown>, index: number): ScoutPlace => {
+            const photos = Array.isArray(row.photos)
+              ? row.photos.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0)
+              : [];
+            const name = typeof row.location_name === 'string' && row.location_name.trim().length > 0
+              ? row.location_name
+              : (typeof row.restaurant_name === 'string' && row.restaurant_name.trim().length > 0
+                ? row.restaurant_name
+                : `FUZO Location ${index + 1}`);
+            const cuisine = typeof row.cuisine === 'string' && row.cuisine.trim().length > 0
+              ? row.cuisine
+              : 'Snap Discovery';
+
+            return {
+              id: `snap-community-${String(row.id || index)}`,
+              markerSource: 'fuzo',
+              name,
+              cat: cuisine,
+              rating: base.rating,
+              reviews: base.reviews,
+              address: typeof row.address === 'string' && row.address.trim().length > 0 ? row.address : 'FUZO location',
+              phone: base.phone,
+              website: base.website,
+              vibe: ['Community', 'Snap'],
+              img: photos[0] || base.img,
+              lat: Number(row.latitude),
+              lng: Number(row.longitude),
+              timings: base.timings,
+              menu: base.menu,
+              userReviews: base.userReviews,
+              photos: photos.length > 0 ? photos : base.photos,
+            };
+          });
+
+        setCommunitySnapPlaces(mapped);
+      } catch {
+        if (!cancelled) setCommunitySnapPlaces([]);
+      }
+    };
+
+    loadCommunitySnaps();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const myMapPlaces = useMemo<ScoutPlace[]>(() => {
     return savedItems
       .filter((item) => Number.isFinite(Number(item?.lat)) && Number.isFinite(Number(item?.lng)))
+      .filter((item) => {
+        const metadata = item.metadata && typeof item.metadata === 'object' ? item.metadata : {};
+        const source = typeof metadata.source === 'string' ? metadata.source : '';
+        const isSnap = item.itemType === 'photo' || source === 'snap_feature';
+        const isGoogleSaved = item.itemType === 'restaurant' || Boolean(item.placeId) || source === 'google_places';
+        return isSnap || isGoogleSaved;
+      })
       .map((item, index) => toSavedScoutPlace(item, index));
   }, [savedItems, toSavedScoutPlace]);
 
-  const displayPlaces = scoutTab === 'nearby' ? places : savedPlaces;
+  const mainMapPlaces = useMemo<ScoutPlace[]>(() => {
+    const center = { lat: Number(coords.lat), lng: Number(coords.lng) };
+    const nearbyFuzoLocations = communitySnapPlaces.filter((place) => {
+      const placeLat = Number(place.lat);
+      const placeLng = Number(place.lng);
+      if (!Number.isFinite(placeLat) || !Number.isFinite(placeLng)) return false;
+      return getDistanceMeters(center, { lat: placeLat, lng: placeLng }) <= 5000;
+    });
+
+    const merged = [...places, ...nearbyFuzoLocations];
+    const deduped = new Map<string, ScoutPlace>();
+    merged.forEach((place) => {
+      if (!deduped.has(place.id)) deduped.set(place.id, place);
+    });
+    return Array.from(deduped.values());
+  }, [communitySnapPlaces, coords.lat, coords.lng, places]);
+
+  const displayPlaces = resolveScoutDisplayPlaces(scoutTab, mainMapPlaces, communitySnapPlaces, myMapPlaces);
 
   const clearMapMarkers = () => {
     mapMarkersRef.current.forEach((marker) => marker.setMap(null));
@@ -2782,6 +3198,32 @@ const ScoutView = ({ onSave, onShareRequest, savedItems }: { onSave: (item: AppI
     }
   };
 
+  const refreshUsingCurrentGps = () => {
+    if (!globalThis.navigator?.geolocation) {
+      setPlacesError('GPS unavailable in this browser.');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const nextCoords = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        if (!Number.isFinite(nextCoords.lat) || !Number.isFinite(nextCoords.lng)) {
+          setPlacesError('GPS returned invalid coordinates. Try again.');
+          return;
+        }
+        setCoords(nextCoords);
+        fetchNearbyPlaces(nextCoords, true);
+      },
+      () => {
+        setPlacesError('Unable to fetch current GPS. Check location permission.');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
   useEffect(() => {
     let disposed = false;
 
@@ -2874,13 +3316,18 @@ const ScoutView = ({ onSave, onShareRequest, savedItems }: { onSave: (item: AppI
       p => {
         if (disposed) return;
         const nextCoords = { lat: p.coords.latitude, lng: p.coords.longitude };
+        if (!Number.isFinite(nextCoords.lat) || !Number.isFinite(nextCoords.lng)) {
+          fetchNearbyPlaces(coords);
+          return;
+        }
         setCoords(nextCoords);
         fetchNearbyPlaces(nextCoords);
       },
       () => {
         if (disposed) return;
         fetchNearbyPlaces(coords);
-      }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     ); 
 
     return () => {
@@ -2906,28 +3353,35 @@ const ScoutView = ({ onSave, onShareRequest, savedItems }: { onSave: (item: AppI
     setModalTab('overview');
   };
 
-  let scoutHeadline = `${displayPlaces.length} Saved Places Mapped`;
-  if (scoutTab === 'nearby') {
-    scoutHeadline = isLoadingPlaces ? 'Scanning Nearby...' : `${displayPlaces.length} AAA Gems Found`;
-  }
+  const {
+    scoutHeadline,
+    listTitle,
+    emptyStateMessage,
+  } = resolveScoutCopy(scoutTab, displayPlaces.length, isLoadingPlaces);
 
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] md:h-auto space-y-0 md:space-y-8 md:px-4 animate-in fade-in pb-24 md:pb-24 -mx-6 md:mx-0">
       <header className="hidden md:flex justify-between items-end px-4">
         <div>
           <Badge color="emerald">Scout v2.5</Badge>
-          <h2 className="text-4xl font-black uppercase tracking-tighter mt-1">Nearby Discovery</h2>
+          <h2 className="text-4xl font-black uppercase tracking-tighter mt-1">FUZO Map Discovery</h2>
         </div>
         <div className="flex bg-stone-100 p-1.5 rounded-2xl">
           <button 
-            onClick={() => setScoutTab('nearby')}
-            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${scoutTab === 'nearby' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
+            onClick={() => setScoutTab('main')}
+            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${scoutTab === 'main' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
           >
-            Nearby
+            Main Map
           </button>
           <button 
-            onClick={() => setScoutTab('saved')}
-            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${scoutTab === 'saved' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
+            onClick={() => setScoutTab('fuzo')}
+            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${scoutTab === 'fuzo' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
+          >
+            FUZO Locations
+          </button>
+          <button 
+            onClick={() => setScoutTab('my')}
+            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${scoutTab === 'my' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
           >
             My Map
           </button>
@@ -2936,14 +3390,20 @@ const ScoutView = ({ onSave, onShareRequest, savedItems }: { onSave: (item: AppI
 
       <div className="flex md:hidden bg-white border-b border-stone-100 sticky top-0 z-30">
         <button 
-          onClick={() => setScoutTab('nearby')}
-          className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all ${scoutTab === 'nearby' ? 'border-yellow-400 text-stone-900' : 'border-transparent text-stone-400'}`}
+          onClick={() => setScoutTab('main')}
+          className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all ${scoutTab === 'main' ? 'border-yellow-400 text-stone-900' : 'border-transparent text-stone-400'}`}
         >
-          Nearby
+          Main
         </button>
         <button 
-          onClick={() => setScoutTab('saved')}
-          className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all ${scoutTab === 'saved' ? 'border-yellow-400 text-stone-900' : 'border-transparent text-stone-400'}`}
+          onClick={() => setScoutTab('fuzo')}
+          className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all ${scoutTab === 'fuzo' ? 'border-yellow-400 text-stone-900' : 'border-transparent text-stone-400'}`}
+        >
+          FUZO
+        </button>
+        <button 
+          onClick={() => setScoutTab('my')}
+          className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all ${scoutTab === 'my' ? 'border-yellow-400 text-stone-900' : 'border-transparent text-stone-400'}`}
         >
           My Map
         </button>
@@ -2973,7 +3433,7 @@ const ScoutView = ({ onSave, onShareRequest, savedItems }: { onSave: (item: AppI
                   }}
                 >
                   <div className="relative group/marker">
-                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center shadow-xl border-2 border-white transform -rotate-12 group-hover/marker:rotate-0 transition-transform ${scoutTab === 'saved' ? 'bg-emerald-500 text-white' : 'bg-stone-900 text-yellow-400'}`}>
+                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center shadow-xl border-2 border-white transform -rotate-12 group-hover/marker:rotate-0 transition-transform ${scoutTab === 'my' ? 'bg-emerald-500 text-white' : 'bg-stone-900 text-yellow-400'}`}>
                       <MapPin size={20} />
                     </div>
                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white px-3 py-1 rounded-full shadow-lg border border-stone-100 opacity-0 group-hover/marker:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
@@ -2995,18 +3455,24 @@ const ScoutView = ({ onSave, onShareRequest, savedItems }: { onSave: (item: AppI
           <div className="absolute top-6 left-6 md:top-8 md:left-8 bg-white/90 backdrop-blur-md rounded-2xl border border-white/50 shadow-lg px-3 py-2.5">
             <div className="flex items-center gap-4 text-[8px] md:text-[9px] font-black uppercase tracking-widest text-stone-500">
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 border border-white" />
+                <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 border border-white"></span>
                 <span>FUZO Saved</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-stone-900 border border-white" />
-                <span>Google Nearby</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-stone-900 border border-white"></span>
+                <span>Community / Curated</span>
               </div>
             </div>
           </div>
 
           <div className="absolute top-6 right-6 md:top-8 md:right-8 flex flex-col gap-3">
             <button onClick={() => fetchNearbyPlaces(coords, true)} className="p-3 md:p-4 bg-white rounded-2xl shadow-xl hover:bg-stone-50 transition-colors"><RefreshCw size={20} className={isRefreshing ? 'animate-spin' : ''} /></button>
+            <button
+              onClick={refreshUsingCurrentGps}
+              className="px-3 py-2 md:px-4 md:py-3 bg-white rounded-2xl shadow-xl hover:bg-stone-50 transition-colors text-[9px] md:text-[10px] font-black uppercase tracking-widest"
+            >
+              Use current GPS again
+            </button>
             <button className="p-3 md:p-4 bg-white rounded-2xl shadow-xl hover:bg-stone-50 transition-colors"><LayoutGrid size={20} /></button>
           </div>
           
@@ -3025,7 +3491,7 @@ const ScoutView = ({ onSave, onShareRequest, savedItems }: { onSave: (item: AppI
         {/* List Sidebar */}
         <div className="space-y-6 p-6 md:p-0 bg-white md:bg-transparent rounded-t-[3rem] -mt-12 md:mt-0 relative z-20 shadow-[0_-20px_40px_rgba(0,0,0,0.05)] md:shadow-none">
           <div className="w-12 h-1.5 bg-stone-100 rounded-full mx-auto mb-6 md:hidden" />
-          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-stone-300 px-4">{scoutTab === 'nearby' ? 'Trending Nearby' : 'Your Saved Places'}</h3>
+          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-stone-300 px-4">{listTitle}</h3>
           <div className="space-y-4 max-h-[40vh] md:max-h-none overflow-y-auto hide-scrollbar">
             {displayPlaces.map(place => (
               <button 
@@ -3050,7 +3516,7 @@ const ScoutView = ({ onSave, onShareRequest, savedItems }: { onSave: (item: AppI
             {displayPlaces.length === 0 && (
               <div className="p-8 text-center bg-stone-50 rounded-[2rem] border border-stone-100">
                 <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">
-                  {scoutTab === 'saved' ? 'Save places from Scout to build your map.' : 'No nearby places found right now.'}
+                  {emptyStateMessage}
                 </p>
               </div>
             )}
@@ -4757,15 +5223,27 @@ const TaggingForm = ({
   image: string;
   location?: { lat: number; lng: number } | null;
   onBack: () => void;
-  onSave: (data: { restaurant: string; cuisine: string; rating: number; description: string }) => void;
+  onSave: (data: {
+    restaurant: string;
+    cuisine: string;
+    rating: number;
+    description: string;
+    locationName: string;
+    address: string;
+    tags: string[];
+  }) => void;
   isUploading: boolean;
 }) => {
   const [restaurant, setRestaurant] = useState('');
   const [cuisine, setCuisine] = useState('');
   const [rating, setRating] = useState(5);
   const [description, setDescription] = useState('');
+  const [locationName, setLocationName] = useState('');
+  const [address, setAddress] = useState('');
+  const [tagsInput, setTagsInput] = useState('');
 
-  const isValid = restaurant.trim() !== '' && cuisine.trim() !== '';
+  const hasGps = Number.isFinite(Number(location?.lat)) && Number.isFinite(Number(location?.lng));
+  const isValid = restaurant.trim() !== '' && cuisine.trim() !== '' && locationName.trim() !== '' && address.trim() !== '' && hasGps;
 
   return (
     <div className="fixed inset-0 z-[200] bg-stone-50 flex flex-col md:flex-row overflow-hidden">
@@ -4794,6 +5272,28 @@ const TaggingForm = ({
                 value={restaurant}
                 onChange={(e) => setRestaurant(e.target.value)}
                 placeholder="Where are you?"
+                className="w-full bg-stone-50 px-8 py-5 rounded-[2rem] font-bold outline-none border-2 border-transparent focus:border-yellow-400 transition-all"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="snap-location-name" className="text-[10px] font-black uppercase tracking-widest text-stone-400">Location Name *</label>
+              <input
+                id="snap-location-name"
+                value={locationName}
+                onChange={(e) => setLocationName(e.target.value)}
+                placeholder="e.g. Queen St Food Market"
+                className="w-full bg-stone-50 px-8 py-5 rounded-[2rem] font-bold outline-none border-2 border-transparent focus:border-yellow-400 transition-all"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="snap-address" className="text-[10px] font-black uppercase tracking-widest text-stone-400">Address *</label>
+              <input
+                id="snap-address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Street, city"
                 className="w-full bg-stone-50 px-8 py-5 rounded-[2rem] font-bold outline-none border-2 border-transparent focus:border-yellow-400 transition-all"
               />
             </div>
@@ -4836,11 +5336,34 @@ const TaggingForm = ({
                 className="w-full bg-stone-50 px-8 py-5 rounded-[2rem] font-bold outline-none border-2 border-transparent focus:border-yellow-400 transition-all resize-none"
               />
             </div>
+
+            <div className="space-y-2">
+              <label htmlFor="snap-tags" className="text-[10px] font-black uppercase tracking-widest text-stone-400">Tags</label>
+              <input
+                id="snap-tags"
+                value={tagsInput}
+                onChange={(e) => setTagsInput(e.target.value)}
+                placeholder="comma-separated tags"
+                className="w-full bg-stone-50 px-8 py-5 rounded-[2rem] font-bold outline-none border-2 border-transparent focus:border-yellow-400 transition-all"
+              />
+            </div>
           </div>
+          {!hasGps && (
+            <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">
+              GPS coordinates required. Enable location to save this Snap.
+            </p>
+          )}
 
           <button
             disabled={!isValid || isUploading}
-            onClick={() => onSave({ restaurant, cuisine, rating, description })}
+            onClick={() => {
+              const tags = tagsInput
+                .split(',')
+                .map((tag) => tag.trim())
+                .filter(Boolean);
+
+              onSave({ restaurant, cuisine, rating, description, locationName, address, tags });
+            }}
             className={`w-full py-6 rounded-[2rem] font-black uppercase tracking-widest shadow-2xl flex items-center justify-center gap-4 transition-all ${isValid && !isUploading ? 'bg-stone-900 text-white hover:scale-105 active:scale-95' : 'bg-stone-100 text-stone-300 cursor-not-allowed'}`}
           >
             {isUploading ? <Loader2 className="animate-spin" /> : <Check size={24} />}
@@ -4953,6 +5476,9 @@ const SnapMobile = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onCl
             cuisine: data.cuisine,
             rating: data.rating,
             description: data.description,
+            locationName: data.locationName,
+            address: data.address,
+            tags: data.tags,
             location,
           });
           onPost(snapItem);
@@ -5019,12 +5545,22 @@ const SnapMobile = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onCl
 const SnapDesktop = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onClose: () => void }) => {
   const [step, setStep] = useState<'upload' | 'tagging' | 'success'>('upload');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => setLocation(null),
+      { enableHighAccuracy: true }
+    );
+  }, []);
 
   if (step === 'tagging' && capturedImage) {
     return (
       <TaggingForm
         image={capturedImage}
+        location={location}
         onBack={() => setStep('upload')}
         onSave={async (data) => {
           setIsUploading(true);
@@ -5036,7 +5572,10 @@ const SnapDesktop = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onC
             cuisine: data.cuisine,
             rating: data.rating,
             description: data.description,
-            location: null,
+            locationName: data.locationName,
+            address: data.address,
+            tags: data.tags,
+            location,
           });
           onPost(snapItem);
           setStep('success');
@@ -5136,7 +5675,7 @@ const App = () => {
   const notificationPromptedRef = useRef(false);
   const pathname = globalThis.location.pathname;
   const viewParam = new URLSearchParams(globalThis.location.search).get('view');
-  const homeRoute = pathname === '/' && (viewParam === null || viewParam === 'home');
+  const homeRoute = (pathname === '/' || pathname === APP_PATH) && (viewParam === null || viewParam === 'home');
   const isOnboardingDemoView = viewParam === 'onboarding-demo';
   const [onboardingDemoPayload, setOnboardingDemoPayload] = useState<OnboardingV2Payload | null>(null);
   const appRoute = isAppPath(pathname);
@@ -5193,7 +5732,7 @@ const App = () => {
     normalizeSavedItemForUI,
   });
 
-  useTabUrlSync(tab, appRoute, publicProfileUserId);
+  useTabUrlSync(tab, appRoute && !homeRoute, publicProfileUserId);
 
   const handleOpenUserProfile = useCallback((userId: string) => {
     const trimmedUserId = userId.trim();
@@ -5299,12 +5838,12 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated || !appRoute || showAuth) {
+    if (isAuthenticated || !appRoute || showAuth || homeRoute) {
       return;
     }
 
     setShowAuth(true);
-  }, [appRoute, isAuthenticated, showAuth]);
+  }, [appRoute, homeRoute, isAuthenticated, showAuth]);
 
   useEffect(() => {
     if (authBooting || !authCallbackRoute) {
@@ -5381,6 +5920,7 @@ const App = () => {
 
       setFriends(contacts.data.map((contact: ChatContact) => ({
         ...contact,
+        email: contact.email,
         online: contact.isOnline,
         time: contact.isOnline ? 'now' : 'recent',
         unreadCount: 0,

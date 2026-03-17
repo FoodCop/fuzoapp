@@ -7,6 +7,7 @@ export interface ChatContact {
   id: string;
   name: string;
   username: string;
+  email?: string;
   avatar: string;
   isOnline: boolean;
   lastSeen?: string | null;
@@ -62,6 +63,7 @@ const toChatContact = (value: unknown): ChatContact => {
   const row = asRecord(value);
   const id = String(row.id || '');
   const username = typeof row.username === 'string' ? row.username : 'fuzo_user';
+  const email = typeof row.email === 'string' && row.email.trim().length > 0 ? row.email : undefined;
 
   return {
     id,
@@ -69,6 +71,7 @@ const toChatContact = (value: unknown): ChatContact => {
       ? row.display_name
       : username || 'User',
     username,
+    email,
     avatar: typeof row.avatar_url === 'string' && row.avatar_url.trim().length > 0
       ? row.avatar_url
       : `https://i.pravatar.cc/150?u=${id}`,
@@ -82,19 +85,36 @@ export const ChatService = {
     const client = supabase;
     if (!client) return { success: false, error: 'Supabase is not configured' };
 
-    const { data, error } = await client
+    const withEmailQuery = client
       .from('users')
-      .select('id, display_name, username, avatar_url, is_online, last_seen, is_master_bot')
+      .select('id, display_name, username, email, avatar_url, is_online, last_seen, is_master_bot')
       .neq('id', currentUserId)
       .eq('is_master_bot', false)
       .order('points_total', { ascending: false })
       .limit(100);
 
+    const withEmailResult = await withEmailQuery;
+    let contactRows: unknown[] = (withEmailResult.data || []) as unknown[];
+    let error = withEmailResult.error;
+
+    if (error && /column .*email|email.*does not exist/i.test(error.message || '')) {
+      const fallback = await client
+        .from('users')
+        .select('id, display_name, username, avatar_url, is_online, last_seen, is_master_bot')
+        .neq('id', currentUserId)
+        .eq('is_master_bot', false)
+        .order('points_total', { ascending: false })
+        .limit(100);
+
+      contactRows = (fallback.data || []) as unknown[];
+      error = fallback.error;
+    }
+
     if (error) {
       return { success: false, error: error.message };
     }
 
-    const contacts = (data || []).map((row) => toChatContact(row));
+    const contacts = contactRows.map((row) => toChatContact(row));
 
     return { success: true, data: contacts };
   },
