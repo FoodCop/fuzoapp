@@ -4241,6 +4241,7 @@ const FeatureFold = ({
   title,
   subtitle,
   description,
+  microline,
   image,
   reverse = false,
   color = "stone",
@@ -4249,6 +4250,7 @@ const FeatureFold = ({
   title: string,
   subtitle: string,
   description: string,
+  microline?: string,
   image: string,
   reverse?: boolean,
   color?: string,
@@ -4285,6 +4287,11 @@ const FeatureFold = ({
         <p className={`text-xl font-bold leading-relaxed max-w-xl ${reverse ? 'text-stone-500' : 'text-stone-800'}`}>
           {description}
         </p>
+        {microline && (
+          <p className={`text-[11px] font-black uppercase tracking-[0.2em] ${reverse ? 'text-stone-400' : 'text-stone-900/50'}`}>
+            {microline}
+          </p>
+        )}
         <div className="flex items-center gap-6 pt-4">
           <div className="flex -space-x-3">
             {[1, 2, 3].map(i => (
@@ -4305,11 +4312,13 @@ const FeatureFold = ({
       >
         <div className={`absolute inset-0 ${reverse ? 'bg-stone-200' : 'bg-stone-900/10'} blur-[120px] rounded-full opacity-30`} />
         <PhoneMockup image={image} className="relative z-10 border-stone-900/10 shadow-2xl" />
+        <div className="hidden">
         <div className={`absolute -bottom-10 ${reverse ? '-right-10' : '-left-10'} p-8 bg-stone-900 text-white rounded-[3rem] shadow-2xl hidden md:block max-w-[200px] rotate-6`}>
           <p className="font-black uppercase text-xs tracking-widest leading-tight">
             "The most intuitive culinary interface I've ever used."
           </p>
           <p className="text-[8px] font-bold text-stone-400 mt-4 uppercase tracking-widest">— Chef Marcus</p>
+        </div>
         </div>
       </motion.div>
     </div>
@@ -4365,8 +4374,9 @@ const LandingPage = ({ onStart }: { onStart: () => void }) => {
       {/* Feature Folds */}
       <FeatureFold
         subtitle="Discovery"
-        title="The Pulse of Taste"
-        description="Experience a living feed of culinary innovation. Our engine curates the world's most striking dishes, techniques, and trends specifically for your palate."
+        title="YOUR PERSONALIZED FOOD GRAPH"
+        description="Your feed adapts in real time—recipes, short-form videos, and places curated to your taste, location, and behavior."
+        microline="Discover → Save → Share → Refine"
         image="https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80"
         icon={Sparkles}
         color="stone"
@@ -4374,8 +4384,9 @@ const LandingPage = ({ onStart }: { onStart: () => void }) => {
 
       <FeatureFold
         subtitle="Studio Bites"
-        title="Architectural Recipes"
-        description="Access a library of high-fidelity recipe packs. From molecular gastronomy to heritage classics, every bite is broken down into its core components."
+        title="RECIPES, REWIRED"
+        description="Break dishes into structured components—ingredients, techniques, and logic—so you don't just follow recipes, you understand them."
+        microline="From consumption → comprehension"
         image="https://images.unsplash.com/photo-1550317138-10000687ad32?auto=format&fit=crop&w=800&q=80"
         icon={ChefHat}
         color="stone"
@@ -4384,8 +4395,9 @@ const LandingPage = ({ onStart }: { onStart: () => void }) => {
 
       <FeatureFold
         subtitle="Scout Maps"
-        title="Hyper-local Scouting"
-        description="Uncover hidden culinary gems with our hyper-local discovery engine. Real-time ratings, vibe analysis, and recommendations for the global diner."
+        title="DISCOVER WHAT'S AROUND YOU—INTELLIGENTLY"
+        description="Explore nearby restaurants through live data, menus, reviews, and geo-aware recommendations tuned to your taste profile."
+        microline="Map + Memory + Taste Graph"
         image="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80"
         icon={MapPin}
         color="stone"
@@ -4393,8 +4405,9 @@ const LandingPage = ({ onStart }: { onStart: () => void }) => {
 
       <FeatureFold
         subtitle="Fuzo Trims"
-        title="Cinematic Culinary"
-        description="Short-form cinematic education. Watch top-tier creators break down complex techniques in high-definition, vertical-first video trims."
+        title="SHORT-FORM FOOD. CONTEXTUALIZED."
+        description="A localized video feed that understands where you are and what you like—delivering relevant culinary content, not random noise."
+        microline="Signal > Scroll"
         image="https://images.unsplash.com/photo-1577308856961-8e9ec50d0c67?auto=format&fit=crop&w=800&q=80"
         icon={PlayCircle}
         color="stone"
@@ -4403,8 +4416,9 @@ const LandingPage = ({ onStart }: { onStart: () => void }) => {
 
       <FeatureFold
         subtitle="Fuzo Elite"
-        title="Rise to the Top"
-        description="Join the global leaderboard. Earn points for every snap, save, and share. Compete with the world's most dedicated foodies for the title of Studio Elite."
+        title="TURN ACTION INTO PROGRESSION"
+        description="Every save, share, and post earns points. Climb the leaderboard, unlock rewards, and build your culinary identity."
+        microline="Engagement → Status → Access"
         image="https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&w=800&q=80"
         icon={Trophy}
         color="stone"
@@ -4412,8 +4426,9 @@ const LandingPage = ({ onStart }: { onStart: () => void }) => {
 
       <FeatureFold
         subtitle="Studio Rewards"
-        title="Exclusive Access"
-        description="Redeem your points for exclusive rewards. From filter packs to private chef consultations, your engagement unlocks the studio's inner circle."
+        title="REWARDS THAT ACTUALLY MATTER"
+        description="Redeem points for curated experiences—from chef access to premium content and insider opportunities."
+        microline="Not discounts. Access."
         image="https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=800&q=80"
         icon={Gift}
         color="stone"
@@ -4422,8 +4437,9 @@ const LandingPage = ({ onStart }: { onStart: () => void }) => {
 
       <FeatureFold
         subtitle="Chef AI"
-        title="Sous-Chef"
-        description="Consult our proprietary LLM for recipe architecture, ingredient pairing, and culinary troubleshooting. Your 24/7 kitchen companion."
+        title="YOUR AI CULINARY PARTNER"
+        description="Generate recipes, analyze dishes, and create content ideas—powered by AI trained for food workflows."
+        microline="Think less. Create more."
         image="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80"
         icon={Bot}
         color="stone"
@@ -4432,15 +4448,15 @@ const LandingPage = ({ onStart }: { onStart: () => void }) => {
       {/* Final CTA */}
       <section className="py-40 bg-stone-900 text-white text-center">
         <div className="max-w-4xl mx-auto px-6 space-y-12">
-          <h2 className="text-7xl md:text-9xl font-black uppercase tracking-tighter leading-[0.8] italic">Ready to <br /> <span className="not-italic text-yellow-400">Evolve?</span></h2>
+          <h2 className="text-7xl md:text-9xl font-black uppercase tracking-tighter leading-[0.8] italic">READY TO BUILD YOUR <br /> <span className="not-italic text-yellow-400">TASTE PROFILE?</span></h2>
           <p className="text-2xl font-bold text-stone-400 max-w-2xl mx-auto">
-            Join the world's most advanced culinary community and redefine your relationship with taste.
+            Join a system designed to evolve how you discover, cook, and experience food.
           </p>
           <button
             onClick={onStart}
             className="px-16 py-8 bg-yellow-400 text-stone-900 rounded-[3rem] font-black uppercase tracking-widest text-xl hover:scale-105 active:scale-95 transition-all shadow-2xl"
           >
-            Get Started Now
+            Start Exploring →
           </button>
         </div>
       </section>
