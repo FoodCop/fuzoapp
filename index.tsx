@@ -111,6 +111,60 @@ const getMetadataString = (metadata: Record<string, unknown> | undefined, ...key
   return '';
 };
 
+const getMetadataRecord = (value: unknown): Record<string, unknown> | undefined => {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : undefined;
+};
+
+const getMetadataStringArray = (metadata: Record<string, unknown> | undefined, ...keys: string[]) => {
+  for (const key of keys) {
+    const value = metadata?.[key];
+    if (Array.isArray(value)) {
+      const strings = value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0);
+      if (strings.length > 0) {
+        return strings;
+      }
+    }
+  }
+  return [] as string[];
+};
+
+const getMetadataNumber = (metadata: Record<string, unknown> | undefined, ...keys: string[]) => {
+  for (const key of keys) {
+    const value = metadata?.[key];
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return undefined;
+};
+
+const getNutritionRecord = (...sources: Array<Record<string, unknown> | undefined>) => {
+  for (const source of sources) {
+    if (!source) {
+      continue;
+    }
+
+    const calories = getMetadataNumber(source, 'calories');
+    const protein = getMetadataNumber(source, 'protein');
+    const fat = getMetadataNumber(source, 'fat');
+    const carbs = getMetadataNumber(source, 'carbs');
+
+    if ([calories, protein, fat, carbs].some((value) => value !== undefined)) {
+      return { calories, protein, fat, carbs };
+    }
+  }
+
+  return undefined;
+};
+
+const areSavedItemsEquivalent = (left: AppItem, right: AppItem) => {
+  const normalizedLeft = normalizeItemForPlateSave(left);
+  const normalizedRight = normalizeItemForPlateSave(right);
+
+  return normalizedLeft.itemType === normalizedRight.itemType && normalizedLeft.itemId === normalizedRight.itemId;
+};
+
 const normalizeExternalUrl = (value: string | undefined, baseUrl: string) => {
   if (!value) return baseUrl;
   const trimmed = value.trim();
@@ -3677,9 +3731,10 @@ const ScoutView = ({ onSave, onShareRequest, savedItems }: { onSave: (item: AppI
   );
 };
 
-const ProfileView = ({ savedItems, authUser, friends }: { savedItems: AppItem[]; authUser: AuthUser | null; friends: ChatFriend[] }) => {
+const ProfileView = ({ savedItems, authUser, friends, onSave, onUnsave, onShareRequest }: { savedItems: AppItem[]; authUser: AuthUser | null; friends: ChatFriend[]; onSave: (item: AppItem) => void; onUnsave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void }) => {
   const [activeTab, setActiveTab] = useState('places');
   const [persistedProfile, setPersistedProfile] = useState<SettingsProfile | null>(null);
+  const [selectedSavedItem, setSelectedSavedItem] = useState<AppItem | null>(null);
 
   const hasIdPrefix = useCallback((item: AppItem, prefix: string) => {
     return typeof item.id === 'string' && item.id.startsWith(prefix);
@@ -3838,18 +3893,475 @@ const ProfileView = ({ savedItems, authUser, friends }: { savedItems: AppItem[];
               </div>
             ) : (
               filteredItems.map((item) => (
-                <div key={item.id || `${item.name}-${item.cat}`} className="aspect-square bg-stone-100 rounded-[3rem] border-4 border-white shadow-md overflow-hidden relative group">
+                <button
+                  type="button"
+                  key={item.id || `${item.name}-${item.cat}`}
+                  onClick={() => setSelectedSavedItem(item)}
+                  className="aspect-square bg-stone-100 rounded-[3rem] border-4 border-white shadow-md overflow-hidden relative group text-left active:scale-[0.98] transition-transform"
+                >
                   <img src={item.img} alt={item.name || 'Saved item'} className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white p-4 text-center">
                     <p className="font-black uppercase text-[10px] tracking-tighter leading-tight mb-2">{item.name}</p>
                     <Badge color="yellow">{item.cat}</Badge>
                   </div>
-                </div>
+                </button>
               ))
             )}
           </div>
         )}
       </div>
+
+      {selectedSavedItem && (
+        <SavedItemDetailModal item={selectedSavedItem} onClose={() => setSelectedSavedItem(null)} onSave={onSave} onUnsave={onUnsave} onShareRequest={onShareRequest} savedItems={savedItems} />
+      )}
+    </div>
+  );
+};
+
+const useModalSwipeToClose = (onClose: () => void) => {
+  const dragStartYRef = useRef<number | null>(null);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleTouchStart = (event: React.TouchEvent<HTMLButtonElement>) => {
+    dragStartYRef.current = event.touches[0]?.clientY ?? null;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (event: React.TouchEvent<HTMLButtonElement>) => {
+    if (dragStartYRef.current === null) {
+      return;
+    }
+
+    const nextOffset = Math.max(0, (event.touches[0]?.clientY ?? dragStartYRef.current) - dragStartYRef.current);
+    setDragOffset(nextOffset);
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+
+    if (dragOffset > 120) {
+      onClose();
+    }
+
+    dragStartYRef.current = null;
+    setDragOffset(0);
+  };
+
+  return {
+    dragOffset,
+    isDragging,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+  };
+};
+
+const SavedItemActionFooter = ({
+  canSave,
+  isAlreadySaved,
+  onSaveClick,
+  onUnsaveClick,
+  onShareClick,
+}: {
+  canSave: boolean;
+  isAlreadySaved: boolean;
+  onSaveClick: () => void;
+  onUnsaveClick?: () => void;
+  onShareClick?: () => void;
+}) => {
+  if (!canSave && !onUnsaveClick && !onShareClick) {
+    return null;
+  }
+
+  let primaryAction: React.ReactNode = null;
+  if (isAlreadySaved && onUnsaveClick) {
+    primaryAction = (
+      <button
+        type="button"
+        onClick={onUnsaveClick}
+        className="flex-1 py-4 rounded-[1.5rem] flex items-center justify-center gap-3 transition-transform shadow-xl bg-red-50 text-red-600 border border-red-100 active:scale-95"
+      >
+        <X size={20} />
+        <span className="font-black uppercase tracking-widest text-[10px]">Remove</span>
+      </button>
+    );
+  } else if (canSave) {
+    primaryAction = (
+      <button
+        type="button"
+        onClick={onSaveClick}
+        className="flex-1 py-4 rounded-[1.5rem] flex items-center justify-center gap-3 transition-transform shadow-xl bg-stone-900 text-white active:scale-95"
+      >
+        <Bookmark size={20} />
+        <span className="font-black uppercase tracking-widest text-[10px]">Save</span>
+      </button>
+    );
+  }
+
+  return (
+    <footer className="sticky bottom-0 bg-white/95 backdrop-blur-md pt-2">
+      <div className="flex gap-3">
+        {primaryAction}
+        {onShareClick && (
+          <button
+            type="button"
+            onClick={onShareClick}
+            className="flex-1 py-4 bg-yellow-400 text-stone-900 rounded-[1.5rem] flex items-center justify-center gap-3 active:scale-95 transition-transform shadow-xl"
+          >
+            <Share2 size={20} />
+            <span className="font-black uppercase tracking-widest text-[10px]">Share</span>
+          </button>
+        )}
+      </div>
+    </footer>
+  );
+};
+
+const SavedItemRecipeSections = ({
+  recipeIngredients,
+  recipeInstructions,
+}: {
+  recipeIngredients: string[];
+  recipeInstructions: string;
+}) => {
+  return (
+    <>
+      {recipeIngredients.length > 0 && (
+        <section className="space-y-3">
+          <h4 className="font-black uppercase text-[10px] tracking-[0.25em] text-stone-400">Ingredients</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {recipeIngredients.map((ingredient) => (
+              <div key={ingredient} className="p-4 bg-stone-50 rounded-[1.5rem] border border-stone-100 text-sm font-bold text-stone-700">
+                {ingredient}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {recipeInstructions && (
+        <section className="space-y-3">
+          <h4 className="font-black uppercase text-[10px] tracking-[0.25em] text-stone-400">Instructions</h4>
+          <div className="p-5 bg-stone-50 rounded-[2rem] border border-stone-100 text-sm font-bold text-stone-700 whitespace-pre-wrap leading-relaxed">
+            {recipeInstructions}
+          </div>
+        </section>
+      )}
+    </>
+  );
+};
+
+const SavedItemVideoSection = ({
+  keyFoodItem,
+  summary,
+  sourceUrl,
+}: {
+  keyFoodItem: string;
+  summary: string;
+  sourceUrl: string;
+}) => {
+  if (!keyFoodItem && !summary && !sourceUrl) {
+    return null;
+  }
+
+  return (
+    <section className="space-y-3">
+      <h4 className="font-black uppercase text-[10px] tracking-[0.25em] text-stone-400">Trim Details</h4>
+      <div className="p-5 bg-stone-50 rounded-[2rem] border border-stone-100 space-y-3 text-sm font-bold text-stone-700">
+        {keyFoodItem && <p><span className="text-stone-400 uppercase tracking-widest text-[10px] mr-2">Key Food</span>{keyFoodItem}</p>}
+        {summary && <p>{summary}</p>}
+        {sourceUrl && (
+          <a href={sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-blue-600 hover:underline">
+            <PlayCircle size={16} /> Open Source
+          </a>
+        )}
+      </div>
+    </section>
+  );
+};
+
+const SavedItemGenericDetailsSection = ({
+  phone,
+  sourceUrl,
+  vibe,
+}: {
+  phone: string;
+  sourceUrl: string;
+  vibe: string[];
+}) => {
+  if (!phone && !sourceUrl && vibe.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="space-y-3">
+      <h4 className="font-black uppercase text-[10px] tracking-[0.25em] text-stone-400">Details</h4>
+      <div className="p-5 bg-stone-50 rounded-[2rem] border border-stone-100 space-y-4 text-sm font-bold text-stone-700">
+        {phone && <p><span className="text-stone-400 uppercase tracking-widest text-[10px] mr-2">Phone</span>{phone}</p>}
+        {sourceUrl && (
+          <a href={sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-blue-600 hover:underline">
+            <MapPin size={16} /> Open Link
+          </a>
+        )}
+        {vibe.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {vibe.map((entry) => (
+              <div key={entry} className="px-3 py-2 bg-white rounded-full border border-stone-200 text-[10px] font-black uppercase tracking-widest text-stone-600">
+                {entry}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+};
+
+const SavedItemNutritionSection = ({
+  nutrition,
+}: {
+  nutrition?: { calories?: number; protein?: number; fat?: number; carbs?: number };
+}) => {
+  if (!nutrition) {
+    return null;
+  }
+
+  return (
+    <section className="space-y-3">
+      <h4 className="font-black uppercase text-[10px] tracking-[0.25em] text-stone-400">Nutrition</h4>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: 'Calories', value: nutrition.calories },
+          { label: 'Protein', value: nutrition.protein },
+          { label: 'Fat', value: nutrition.fat },
+          { label: 'Carbs', value: nutrition.carbs },
+        ].map((entry) => (
+          <div key={entry.label} className="p-4 bg-stone-50 rounded-[1.5rem] border border-stone-100">
+            <p className="text-xl font-black text-stone-900">{entry.value ?? '--'}</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-1">{entry.label}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+const SavedItemContentSections = ({
+  resolvedType,
+  address,
+  recipeIngredients,
+  recipeInstructions,
+  keyFoodItem,
+  summary,
+  sourceUrl,
+  phone,
+  vibe,
+  nutrition,
+}: {
+  resolvedType: string;
+  address: string;
+  recipeIngredients: string[];
+  recipeInstructions: string;
+  keyFoodItem: string;
+  summary: string;
+  sourceUrl: string;
+  phone: string;
+  vibe: string[];
+  nutrition?: { calories?: number; protein?: number; fat?: number; carbs?: number };
+}) => {
+  return (
+    <>
+      {address && (
+        <section className="space-y-3">
+          <h4 className="font-black uppercase text-[10px] tracking-[0.25em] text-stone-400">Location</h4>
+          <div className="flex items-start gap-3 p-5 bg-stone-50 rounded-[2rem] border border-stone-100 text-stone-700">
+            <MapPin size={18} className="shrink-0 mt-0.5 text-stone-400" />
+            <p className="text-sm font-bold leading-relaxed">{address}</p>
+          </div>
+        </section>
+      )}
+
+      {resolvedType === 'recipe' && <SavedItemRecipeSections recipeIngredients={recipeIngredients} recipeInstructions={recipeInstructions} />}
+      {resolvedType === 'video' && <SavedItemVideoSection keyFoodItem={keyFoodItem} summary={summary} sourceUrl={sourceUrl} />}
+      {(resolvedType === 'restaurant' || resolvedType === 'other' || resolvedType === 'photo') && <SavedItemGenericDetailsSection phone={phone} sourceUrl={sourceUrl} vibe={vibe} />}
+      <SavedItemNutritionSection nutrition={nutrition} />
+    </>
+  );
+};
+
+const SavedItemDetailModal = ({ item, onClose, onSave, onUnsave, onShareRequest, savedItems = [] }: { item: AppItem; onClose: () => void; onSave?: (item: AppItem) => void; onUnsave?: (item: AppItem) => void; onShareRequest?: (item: AppItem) => void; savedItems?: AppItem[] }) => {
+  const metadata = getMetadataRecord(item.metadata);
+  const generatedRecipe = getMetadataRecord(metadata?.generatedRecipe);
+  const generatedTrim = getMetadataRecord(metadata?.generatedTrim);
+  const nutrition = getNutritionRecord(
+    getMetadataRecord(generatedRecipe?.nutrition),
+    getMetadataRecord(generatedTrim?.nutrition),
+    getMetadataRecord(metadata?.nutrition),
+    getMetadataRecord(item.nutrition),
+  );
+  let resolvedType = 'other';
+  if (typeof item.itemType === 'string' && item.itemType) {
+    resolvedType = item.itemType;
+  } else if (typeof item.id === 'string') {
+    resolvedType = inferItemTypeFromId(item.id);
+  }
+  const title = item.name || item.title || getMetadataString(metadata, 'title', 'name') || 'Saved Item';
+  const category = item.cat || getMetadataString(metadata, 'cat', 'category') || 'Saved Item';
+  const imageSrc = item.img || item.image || item.imageUrl || item.thumbnailUrl || getMetadataString(metadata, 'image', 'img', 'image_url', 'thumbnailUrl') || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80';
+  const summary = getMetadataString(metadata, 'description', 'caption', 'summary') || item.description || item.caption || '';
+  const address = item.address || getMetadataString(metadata, 'address', 'locationName', 'location') || '';
+  const sourceUrlRaw = getMetadataString(metadata, 'sourceUrl', 'website') || item.website || '';
+  let sourceUrl = sourceUrlRaw;
+  if (sourceUrlRaw && !sourceUrlRaw.startsWith('http')) {
+    sourceUrl = `https://${sourceUrlRaw}`;
+  }
+  const recipeIngredients = Array.isArray(generatedRecipe?.ingredients)
+    ? generatedRecipe.ingredients.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+    : getMetadataStringArray(metadata, 'ingredients');
+  const recipeInstructions = (typeof generatedRecipe?.instructions === 'string' && generatedRecipe.instructions) || getMetadataString(metadata, 'instructions');
+  const readyInMinutes = getMetadataNumber(generatedRecipe, 'readyInMinutes') ?? getMetadataNumber(metadata, 'readyInMinutes');
+  const servings = getMetadataNumber(generatedRecipe, 'servings') ?? getMetadataNumber(metadata, 'servings');
+  const author = getMetadataString(metadata, 'channelTitle', 'author') || item.author || '';
+  const likes = getMetadataString(metadata, 'likes') || item.likes || '';
+  const keyFoodItem = getMetadataString(metadata, 'keyFoodItem');
+  const trimSummary = getMetadataString(metadata, 'summary');
+  const tags = getMetadataStringArray(metadata, 'cuisineTags', 'tags', 'vibe');
+  const vibe = item.vibe && item.vibe.length > 0 ? item.vibe : tags;
+  const rating = typeof item.rating === 'number' ? item.rating : getMetadataNumber(metadata, 'rating');
+  const reviews = typeof item.reviews === 'number' ? item.reviews : getMetadataNumber(metadata, 'reviews');
+  const phone = item.phone || getMetadataString(metadata, 'phone');
+  const isAlreadySaved = useMemo(() => savedItems.some((savedItem) => areSavedItemsEquivalent(savedItem, item)), [item, savedItems]);
+  const {
+    dragOffset,
+    isDragging,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+  } = useModalSwipeToClose(onClose);
+
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    globalThis.addEventListener('keydown', handleEscape);
+    return () => globalThis.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
+  const handleSaveClick = () => {
+    if (!onSave || isAlreadySaved) {
+      return;
+    }
+    onSave(item);
+  };
+
+  const handleUnsaveClick = () => {
+    if (!onUnsave || !isAlreadySaved) {
+      return;
+    }
+
+    onUnsave(item);
+    onClose();
+  };
+
+  const handleShareClick = () => {
+    if (!onShareRequest) {
+      return;
+    }
+    onShareRequest(item);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[140] flex items-end md:items-center justify-center p-0 md:p-8 animate-in fade-in duration-300">
+      <button
+        type="button"
+        aria-label="Close saved item details"
+        className="absolute inset-0 bg-stone-900/70 backdrop-blur-xl"
+        onClick={onClose}
+      />
+      <dialog
+        open
+        className="relative bg-white w-full max-w-3xl max-h-[100dvh] md:max-h-[92vh] rounded-t-[3rem] md:rounded-[3rem] shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-8 md:zoom-in duration-300"
+        style={{
+          transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
+          transition: isDragging ? 'none' : 'transform 220ms ease-out',
+        }}
+      >
+        <button
+          type="button"
+          aria-label="Swipe down to close"
+          className="flex justify-center pt-3 pb-1 md:hidden"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className="w-14 h-1.5 rounded-full bg-stone-200" />
+        </button>
+        <div className="relative h-64 md:h-80 bg-stone-900 shrink-0">
+          <img src={imageSrc} alt={title} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close saved item details"
+            className="absolute top-5 right-5 z-20 p-3 bg-white/15 text-white rounded-2xl backdrop-blur-xl hover:bg-white/25 transition-colors"
+          >
+            <X size={24} />
+          </button>
+          <div className="absolute bottom-0 inset-x-0 p-6 md:p-8 text-white space-y-3">
+            <Badge color="yellow">{category}</Badge>
+            <div className="space-y-1">
+              <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tighter leading-none">{title}</h3>
+              {summary && (
+                <p className="text-sm md:text-base font-bold text-white/85 max-w-2xl">{summary}</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 md:p-8 overflow-y-auto space-y-8">
+          <div className="flex flex-wrap gap-3">
+            {readyInMinutes !== undefined && (
+              <div className="px-4 py-3 bg-stone-50 rounded-2xl border border-stone-100 text-xs font-black uppercase tracking-widest text-stone-500">
+                {readyInMinutes} Min
+              </div>
+            )}
+            {servings !== undefined && (
+              <div className="px-4 py-3 bg-stone-50 rounded-2xl border border-stone-100 text-xs font-black uppercase tracking-widest text-stone-500">
+                {servings} Servings
+              </div>
+            )}
+            {author && (
+              <div className="px-4 py-3 bg-stone-50 rounded-2xl border border-stone-100 text-xs font-black uppercase tracking-widest text-stone-500">
+                @{author}
+              </div>
+            )}
+            {likes && (
+              <div className="px-4 py-3 bg-stone-50 rounded-2xl border border-stone-100 text-xs font-black uppercase tracking-widest text-stone-500">
+                {likes} Likes
+              </div>
+            )}
+            {rating !== undefined && (
+              <div className="px-4 py-3 bg-stone-50 rounded-2xl border border-stone-100 text-xs font-black uppercase tracking-widest text-stone-500">
+                {rating.toFixed(1)} Rating
+              </div>
+            )}
+            {reviews !== undefined && (
+              <div className="px-4 py-3 bg-stone-50 rounded-2xl border border-stone-100 text-xs font-black uppercase tracking-widest text-stone-500">
+                {reviews.toLocaleString()} Reviews
+              </div>
+            )}
+          </div>
+
+          <SavedItemContentSections resolvedType={resolvedType} address={address} recipeIngredients={recipeIngredients} recipeInstructions={recipeInstructions} keyFoodItem={keyFoodItem} summary={trimSummary} sourceUrl={sourceUrl} phone={phone} vibe={vibe} nutrition={nutrition} />
+
+          <SavedItemActionFooter canSave={Boolean(onSave)} isAlreadySaved={isAlreadySaved} onSaveClick={handleSaveClick} onUnsaveClick={onUnsave ? handleUnsaveClick : undefined} onShareClick={onShareRequest ? handleShareClick : undefined} />
+        </div>
+      </dialog>
     </div>
   );
 };
@@ -4907,11 +5419,12 @@ const LeaderboardView = ({ userPoints, userLevel, leaderboardUsers, onOpenUserPr
   );
 };
 
-const PublicProfileView = ({ targetUserId, authUser, currentUserSavedItems, friends, onBackToOwnProfile }: { targetUserId: string; authUser: AuthUser | null; currentUserSavedItems: AppItem[]; friends: ChatFriend[]; onBackToOwnProfile: () => void }) => {
+const PublicProfileView = ({ targetUserId, authUser, currentUserSavedItems, friends, onBackToOwnProfile, onSave, onUnsave, onShareRequest }: { targetUserId: string; authUser: AuthUser | null; currentUserSavedItems: AppItem[]; friends: ChatFriend[]; onBackToOwnProfile: () => void; onSave: (item: AppItem) => void; onUnsave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void }) => {
   const [activeTab, setActiveTab] = useState('places');
   const [profile, setProfile] = useState<PublicUserProfile | null>(null);
   const [savedItems, setSavedItems] = useState<AppItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedSavedItem, setSelectedSavedItem] = useState<AppItem | null>(null);
 
   const hasIdPrefix = useCallback((item: AppItem, prefix: string) => {
     return typeof item.id === 'string' && item.id.startsWith(prefix);
@@ -5124,19 +5637,28 @@ const PublicProfileView = ({ targetUserId, authUser, currentUserSavedItems, frie
                   </div>
                 ) : (
                   filteredItems.map((item) => (
-                    <div key={item.id || `${item.name}-${item.cat}`} className="aspect-square bg-stone-100 rounded-[3rem] border-4 border-white shadow-md overflow-hidden relative group">
+                    <button
+                      type="button"
+                      key={item.id || `${item.name}-${item.cat}`}
+                      onClick={() => setSelectedSavedItem(item)}
+                      className="aspect-square bg-stone-100 rounded-[3rem] border-4 border-white shadow-md overflow-hidden relative group text-left active:scale-[0.98] transition-transform"
+                    >
                       <img src={item.img} alt={item.name || 'Saved item'} className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white p-4 text-center">
                         <p className="font-black uppercase text-[10px] tracking-tighter leading-tight mb-2">{item.name}</p>
                         <Badge color="yellow">{item.cat}</Badge>
                       </div>
-                    </div>
+                    </button>
                   ))
                 )}
               </div>
             )}
           </div>
         </>
+      )}
+
+      {selectedSavedItem && (
+        <SavedItemDetailModal item={selectedSavedItem} onClose={() => setSelectedSavedItem(null)} onSave={onSave} onUnsave={onUnsave} onShareRequest={onShareRequest} savedItems={currentUserSavedItems} />
       )}
     </div>
   );
@@ -5201,12 +5723,14 @@ const TaggingForm = ({
   image,
   location,
   onBack,
+  onClose,
   onSave,
   isUploading
 }: {
   image: string;
   location?: { lat: number; lng: number } | null;
   onBack: () => void;
+  onClose: () => void;
   onSave: (data: {
     restaurant: string;
     cuisine: string;
@@ -5231,6 +5755,14 @@ const TaggingForm = ({
 
   return (
     <div className="fixed inset-0 z-[200] bg-stone-50 flex flex-col md:flex-row overflow-hidden">
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close snap tagging"
+        className="absolute top-6 right-6 z-30 w-12 h-12 bg-stone-900 text-white rounded-2xl flex items-center justify-center shadow-xl active:scale-90 transition-transform"
+      >
+        <X size={22} />
+      </button>
       <div className="h-1/2 md:h-full md:w-1/2 relative bg-black">
         <img src={image} alt="Snap preview" className="w-full h-full object-cover" />
         <button onClick={onBack} className="absolute top-8 left-8 w-14 h-14 bg-black/20 backdrop-blur-xl rounded-2xl flex items-center justify-center text-white"><X size={28} /></button>
@@ -5426,6 +5958,14 @@ const SnapMobile = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onCl
   if (step === 'disclaimer') {
     return (
       <div className="fixed inset-0 z-[200] bg-stone-950 text-white p-10 flex flex-col justify-center items-center text-center space-y-8">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close snap modal"
+          className="absolute top-8 right-8 w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-xl rounded-2xl flex items-center justify-center transition-colors"
+        >
+          <X size={24} />
+        </button>
         <div className="w-24 h-24 bg-yellow-400 rounded-[2rem] flex items-center justify-center text-stone-950 shadow-2xl rotate-6">
           <Info size={48} strokeWidth={2.5} />
         </div>
@@ -5450,6 +5990,7 @@ const SnapMobile = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onCl
         image={capturedImage}
         location={location}
         onBack={() => setStep('capture')}
+        onClose={onClose}
         onSave={async (data) => {
           setIsUploading(true);
           const snapId = `snap-${Date.now()}`;
@@ -5477,6 +6018,14 @@ const SnapMobile = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onCl
   if (step === 'success') {
     return (
       <div className="fixed inset-0 z-[200] bg-emerald-500 text-white flex flex-col items-center justify-center p-10 text-center space-y-8">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close snap success modal"
+          className="absolute top-8 right-8 w-12 h-12 bg-white/15 hover:bg-white/25 backdrop-blur-xl rounded-2xl flex items-center justify-center transition-colors"
+        >
+          <X size={24} />
+        </button>
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
@@ -5546,6 +6095,7 @@ const SnapDesktop = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onC
         image={capturedImage}
         location={location}
         onBack={() => setStep('upload')}
+        onClose={onClose}
         onSave={async (data) => {
           setIsUploading(true);
           const snapId = `snap-${Date.now()}`;
@@ -5573,6 +6123,14 @@ const SnapDesktop = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onC
   if (step === 'success') {
     return (
       <div className="fixed inset-0 z-[200] bg-emerald-500 text-white flex flex-col items-center justify-center p-10 text-center">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close snap success modal"
+          className="absolute top-8 right-8 w-12 h-12 bg-white/15 hover:bg-white/25 backdrop-blur-xl rounded-2xl flex items-center justify-center transition-colors"
+        >
+          <X size={24} />
+        </button>
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-32 h-32 bg-white rounded-full flex items-center justify-center text-emerald-500 shadow-2xl mb-8">
           <Check size={64} strokeWidth={4} />
         </motion.div>
@@ -6125,6 +6683,31 @@ const App = () => {
     }
   };
 
+  const handleUnsave = async (item: AppItem) => {
+    const normalized = normalizeItemForPlateSave(item);
+
+    setSavedItems(prev => prev.filter((savedItem) => !areSavedItemsEquivalent(savedItem, normalized)));
+
+    if (!hasSupabaseConfig) {
+      return;
+    }
+
+    const result = await PlateService.removeFromPlate({
+      itemId: normalized.itemId,
+      itemType: normalized.itemType,
+    });
+
+    if (!result.success) {
+      console.warn('Plate unsave failed:', result.error);
+      setSavedItems(prev => {
+        if (prev.some((savedItem) => areSavedItemsEquivalent(savedItem, normalized))) {
+          return prev;
+        }
+        return [normalized, ...prev];
+      });
+    }
+  };
+
   const handleSnap = (item: AppItem) => {
     const itemId = String(item.id || '');
     setSavedItems(prev => [item, ...prev]);
@@ -6222,6 +6805,11 @@ const App = () => {
     handleSave: (item: AppItem) => {
       handleSave(item).catch((error) => {
         console.warn('Save failed:', error);
+      });
+    },
+    handleUnsave: (item: AppItem) => {
+      handleUnsave(item).catch((error) => {
+        console.warn('Unsave failed:', error);
       });
     },
     setActiveShareItem,

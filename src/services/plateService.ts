@@ -21,6 +21,11 @@ export interface SavePlateParams {
   metadata?: Record<string, unknown>;
 }
 
+export interface RemovePlateParams {
+  itemId: string;
+  itemType: PlateItemType;
+}
+
 interface PlateServiceResult<T> {
   success: boolean;
   data?: T;
@@ -139,6 +144,40 @@ export const PlateService = {
         error: error instanceof Error ? error.message : 'Failed to save to plate',
       };
     }
+  },
+
+  async removeFromPlate(params: RemovePlateParams): Promise<PlateServiceResult<null>> {
+    const client = supabase;
+    if (!client) {
+      return { success: false, error: 'Supabase is not configured' };
+    }
+
+    if (!params.itemId || !params.itemType) {
+      return { success: false, error: 'itemId and itemType are required' };
+    }
+
+    const { data: authData } = await client.auth.getUser();
+    const user = authData?.user;
+    if (!user) {
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    const { error } = await client
+      .from('saved_items')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('item_type', params.itemType)
+      .eq('item_id', params.itemId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return {
+      success: true,
+      data: null,
+      message: `${params.itemType} removed from plate`,
+    };
   },
 };
 
