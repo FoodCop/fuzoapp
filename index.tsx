@@ -20,6 +20,7 @@ import { PlacesService } from './src/services/placesService';
 import { SpoonacularService } from './src/services/spoonacularService';
 import { YouTubeService } from './src/services/youtubeService';
 import { PlateService } from './src/services/plateService';
+import { FriendRequestService, type FriendRequestRelationship } from './src/services/friendRequestService';
 import { hasSupabaseConfig, supabase } from './src/services/supabaseClient';
 import { UserProfileService } from './src/services/userProfileService';
 import { FEED_COMPARE_WITH_LOCAL, FEED_USE_SERVICE } from './src/features/feed/constants/config';
@@ -5425,6 +5426,10 @@ const PublicProfileView = ({ targetUserId, authUser, currentUserSavedItems, frie
   const [savedItems, setSavedItems] = useState<AppItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSavedItem, setSelectedSavedItem] = useState<AppItem | null>(null);
+  const [relationship, setRelationship] = useState<FriendRequestRelationship>({ state: 'none', request: null });
+  const [relationshipLoading, setRelationshipLoading] = useState(false);
+  const [relationshipUpdating, setRelationshipUpdating] = useState(false);
+  const [relationshipError, setRelationshipError] = useState('');
 
   const hasIdPrefix = useCallback((item: AppItem, prefix: string) => {
     return typeof item.id === 'string' && item.id.startsWith(prefix);
@@ -5480,6 +5485,50 @@ const PublicProfileView = ({ targetUserId, authUser, currentUserSavedItems, frie
       cancelled = true;
     };
   }, [targetUserId]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadRelationship = async () => {
+      if (!authUser?.id || !targetUserId || authUser.id === targetUserId || !hasSupabaseConfig) {
+        setRelationship({ state: 'none', request: null });
+        setRelationshipLoading(false);
+        setRelationshipError('');
+        return;
+      }
+
+      setRelationshipLoading(true);
+      setRelationshipError('');
+
+      const result = await FriendRequestService.getRelationship(authUser.id, targetUserId);
+      if (cancelled) {
+        return;
+      }
+
+      if (!result.success || !result.data) {
+        setRelationship({ state: 'none', request: null });
+        setRelationshipError(result.error || 'Could not load follow status.');
+        setRelationshipLoading(false);
+        return;
+      }
+
+      setRelationship(result.data);
+      setRelationshipLoading(false);
+    };
+
+    loadRelationship().catch((error) => {
+      if (!cancelled) {
+        console.warn('Failed to load profile relationship:', error);
+        setRelationship({ state: 'none', request: null });
+        setRelationshipError('Could not load follow status.');
+        setRelationshipLoading(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authUser?.id, targetUserId]);
 
   const profileDisplay = useMemo(() => {
     if (profile) {
@@ -5538,6 +5587,77 @@ const PublicProfileView = ({ targetUserId, authUser, currentUserSavedItems, frie
   const showLimitedShell = !isLoading && !profile;
   const visibleSavedItems = showLimitedShell ? [] : savedItems;
   const canReturnToOwnProfile = Boolean(authUser?.id) && authUser?.id !== targetUserId;
+  const canFollowProfile = Boolean(authUser?.id) && authUser?.id !== targetUserId;
+  const relationshipHelperText = relationship.state === 'incoming-pending'
+    ? 'This user requested to connect with you.'
+    : relationship.state === 'outgoing-pending'
+      ? 'Request sent. Tap again to cancel.'
+      : relationship.state === 'accepted'
+        ? 'You are connected with this profile.'
+        : 'Follow this profile to stay connected.';
+
+  const handleRelationshipAction = useCallback(async () => {
+    if (!authUser?.id || !targetUserId || relationshipLoading || relationshipUpdating) {
+      return;
+    }
+
+    setRelationshipUpdating(true);
+    setRelationshipError('');
+
+    let nextRelationship: FriendRequestRelationship = relationship;
+
+    if (relationship.state === 'incoming-pending' && relationship.request?.id) {
+      const result = await FriendRequestService.acceptRequest(relationship.request.id);
+      if (!result.success || !result.data) {
+        setRelationshipError(result.error || 'Could not accept request.');
+        setRelationshipUpdating(false);
+        return;
+      }
+
+      nextRelationship = { state: 'accepted', request: result.data };
+    } else if (relationship.state === 'outgoing-pending' && relationship.request?.id) {
+      const result = await FriendRequestService.cancelRequest(relationship.request.id);
+      if (!result.success) {
+        setRelationshipError(result.error || 'Could not cancel request.');
+        setRelationshipUpdating(false);
+        return;
+      }
+
+      nextRelationship = { state: 'none', request: null };
+    } else if (relationship.state === 'none') {
+      const result = await FriendRequestService.sendRequest(authUser.id, targetUserId);
+      if (!result.success || !result.data) {
+        setRelationshipError(result.error || 'Could not send request.');
+        setRelationshipUpdating(false);
+        return;
+      }
+
+      nextRelationship = { state: 'outgoing-pending', request: result.data };
+    }
+
+    setRelationship(nextRelationship);
+    setRelationshipUpdating(false);
+  }, [authUser?.id, relationship, relationshipLoading, relationshipUpdating, targetUserId]);
+
+  const followButtonLabel = relationshipLoading
+    ? 'Loading...'
+    : relationshipUpdating
+      ? 'Working...'
+      : relationship.state === 'incoming-pending'
+        ? 'Accept Request'
+        : relationship.state === 'outgoing-pending'
+          ? 'Requested'
+          : relationship.state === 'accepted'
+            ? 'Following'
+            : 'Follow';
+
+  const followButtonClassName = relationship.state === 'incoming-pending'
+    ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+    : relationship.state === 'outgoing-pending'
+      ? 'bg-stone-100 text-stone-900 hover:bg-stone-200'
+      : relationship.state === 'accepted'
+        ? 'bg-stone-900 text-white'
+        : 'bg-yellow-400 text-stone-900 hover:bg-yellow-300';
 
   return (
     <div className="max-w-2xl mx-auto space-y-10 animate-in fade-in pb-20">
@@ -5548,19 +5668,44 @@ const PublicProfileView = ({ targetUserId, authUser, currentUserSavedItems, frie
       </div>
 
       <div className="px-8 space-y-4">
-        {canReturnToOwnProfile && (
-          <button
-            type="button"
-            onClick={onBackToOwnProfile}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest"
-          >
-            <ChevronLeft size={14} />
-            Back To My Profile
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-3">
+          {canReturnToOwnProfile && (
+            <button
+              type="button"
+              onClick={onBackToOwnProfile}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest"
+            >
+              <ChevronLeft size={14} />
+              Back To My Profile
+            </button>
+          )}
+          {canFollowProfile && (
+            <button
+              type="button"
+              onClick={() => {
+                handleRelationshipAction().catch((error) => {
+                  console.warn('Failed to update profile relationship:', error);
+                  setRelationshipError('Could not update follow state.');
+                  setRelationshipUpdating(false);
+                });
+              }}
+              disabled={relationshipLoading || relationshipUpdating || relationship.state === 'accepted'}
+              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-colors disabled:cursor-default disabled:opacity-70 ${followButtonClassName}`}
+            >
+              {relationshipUpdating && <Loader2 size={14} className="animate-spin" />}
+              {followButtonLabel}
+            </button>
+          )}
+        </div>
         <h2 className="text-5xl font-black uppercase tracking-tighter">{profileDisplay.name}</h2>
         <p className="text-stone-400 font-bold text-xs uppercase tracking-widest">@{profileDisplay.username}</p>
         <p className="text-stone-500 font-bold max-w-md">{profileDisplay.bio}</p>
+        {canFollowProfile && (
+          <div className="space-y-1">
+            <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">{relationshipHelperText}</p>
+            {relationshipError && <p className="text-[10px] font-black uppercase tracking-widest text-red-500">{relationshipError}</p>}
+          </div>
+        )}
         <div className="flex items-center gap-4 pt-4">
           <div className="text-center"><p className="text-2xl font-black">{visibleSavedItems.length}</p><p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Saves</p></div>
           <div className="w-px h-10 bg-stone-100" />
