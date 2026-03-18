@@ -4887,7 +4887,7 @@ const LandingPage = ({ onStart }: { onStart: () => void }) => {
       <FeatureFold
         subtitle="Discovery"
         title="YOUR PERSONALIZED FOOD GRAPH"
-        description="Your feed adapts in real time—recipes, short-form videos, and places curated to your taste, location, and behavior."
+        description="Your feed adapts in real time, with recipes, short-form videos, and places curated to your taste, location, and behavior."
         microline="Discover → Save → Share → Refine"
         image="https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80"
         icon={Sparkles}
@@ -4897,7 +4897,7 @@ const LandingPage = ({ onStart }: { onStart: () => void }) => {
       <FeatureFold
         subtitle="Studio Bites"
         title="RECIPES, REWIRED"
-        description="Break dishes into structured components—ingredients, techniques, and logic—so you don't just follow recipes, you understand them."
+        description="Break dishes into structured components: ingredients, techniques, and logic, so you don't just follow recipes, you understand them."
         microline="From consumption → comprehension"
         image="https://images.unsplash.com/photo-1550317138-10000687ad32?auto=format&fit=crop&w=800&q=80"
         icon={ChefHat}
@@ -4907,7 +4907,7 @@ const LandingPage = ({ onStart }: { onStart: () => void }) => {
 
       <FeatureFold
         subtitle="Scout Maps"
-        title="DISCOVER WHAT'S AROUND YOU—INTELLIGENTLY"
+        title="DISCOVER WHAT'S AROUND YOU, INTELLIGENTLY"
         description="Explore nearby restaurants through live data, menus, reviews, and geo-aware recommendations tuned to your taste profile."
         microline="Map + Memory + Taste Graph"
         image="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80"
@@ -4918,7 +4918,7 @@ const LandingPage = ({ onStart }: { onStart: () => void }) => {
       <FeatureFold
         subtitle="Fuzo Trims"
         title="SHORT-FORM FOOD. CONTEXTUALIZED."
-        description="A localized video feed that understands where you are and what you like—delivering relevant culinary content, not random noise."
+        description="A localized video feed that understands where you are and what you like, delivering relevant culinary content instead of random noise."
         microline="Signal > Scroll"
         image="https://images.unsplash.com/photo-1577308856961-8e9ec50d0c67?auto=format&fit=crop&w=800&q=80"
         icon={PlayCircle}
@@ -4939,7 +4939,7 @@ const LandingPage = ({ onStart }: { onStart: () => void }) => {
       <FeatureFold
         subtitle="Studio Rewards"
         title="REWARDS THAT ACTUALLY MATTER"
-        description="Redeem points for curated experiences—from chef access to premium content and insider opportunities."
+        description="Redeem points for curated experiences, from chef access to premium content and insider opportunities."
         microline="Not discounts. Access."
         image="https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=800&q=80"
         icon={Gift}
@@ -4950,7 +4950,7 @@ const LandingPage = ({ onStart }: { onStart: () => void }) => {
       <FeatureFold
         subtitle="Chef AI"
         title="YOUR AI CULINARY PARTNER"
-        description="Generate recipes, analyze dishes, and create content ideas—powered by AI trained for food workflows."
+        description="Generate recipes, analyze dishes, and create content ideas, powered by AI trained for food workflows."
         microline="Think less. Create more."
         image="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80"
         icon={Bot}
