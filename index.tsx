@@ -41,7 +41,7 @@ import type { BiteActionItem, BiteRecipe, BiteRecipeInput } from './src/features
 import { DEFAULT_FRIENDS } from './src/features/chat/constants/chatSeeds';
 import { ChatService } from './src/features/chat/services/chatService';
 import type { ChatContact, ChatMessage } from './src/features/chat/services/chatService';
-import type { ChatFriend, ChatUiMessage } from './src/features/chat/types/chatUi';
+import type { ChatFriend, ChatUiMessage, ChatInboxItem } from './src/features/chat/types/chatUi';
 import { FALLBACK_SAVED_ITEMS } from './src/features/plate/constants/fallbackSavedItems';
 import { inferItemTypeFromId, normalizeItemForPlateSave, normalizeSavedItemForUI } from './src/features/plate/lib/savedItems';
 import { PointsService } from './src/features/points/services/pointsService';
@@ -207,14 +207,14 @@ const isYouTubeUrl = (value: string) => {
   return /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i.test(trimmed);
 };
 
-const filterFriendsByQuery = (friends: ChatFriend[], query: string) => {
+const filterFriendsByQuery = (friends: ChatInboxItem[], query: string) => {
   const normalized = query.trim().toLowerCase();
   if (!normalized) return friends;
 
   return friends.filter((friend) => {
-    const username = String(friend.username || '').toLowerCase();
+    const username = 'username' in friend ? String(friend.username || '').toLowerCase() : '';
     const displayName = String(friend.name || '').toLowerCase();
-    const email = String(friend.email || '').toLowerCase();
+    const email = 'email' in friend ? String(friend.email || '').toLowerCase() : '';
     return username.includes(normalized) || displayName.includes(normalized) || email.includes(normalized);
   });
 };
@@ -603,7 +603,7 @@ const SwipeCard = ({ children, onSwipe, active }: { children: React.ReactNode; o
 
 // --- SHARE MODAL ---
 
-const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friends: ChatFriend[], onShare: (friendId: string | number, item: AppItem) => void, onClose: () => void }) => {
+const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friends: ChatInboxItem[], onShare: (friendId: string | number, item: AppItem) => void, onClose: () => void }) => {
   const [sentTo, setSentTo] = useState<Array<string | number>>([]);
   const [friendSearch, setFriendSearch] = useState('');
   const filteredFriends = useMemo(() => filterFriendsByQuery(friends, friendSearch), [friends, friendSearch]);
@@ -2485,7 +2485,7 @@ const ChatView = ({
   onConversationOpened,
   onOpenUserProfile,
 }: {
-  friends: ChatFriend[];
+  friends: ChatInboxItem[];
   authUser: AuthUser | null;
   onSave: (item: AppItem) => void;
   onShareRequest: (item: AppItem) => void;
@@ -2494,11 +2494,15 @@ const ChatView = ({
   onOpenUserProfile: (userId: string) => void;
 }) => {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeType, setActiveType] = useState<'dm' | 'group' | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatUiMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [friendSearch, setFriendSearch] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
 
   const active = friends.find(f => String(f.id) === activeId);
   const filteredFriends = useMemo(() => filterFriendsByQuery(friends, friendSearch), [friends, friendSearch]);
@@ -2528,16 +2532,20 @@ const ChatView = ({
   }, [authUser?.id]);
 
   useEffect(() => {
-    if (!conversationId) return;
+    if (!activeId || !activeType) return;
 
-    const unsubscribe = ChatService.subscribeToConversationMessages(conversationId, (message) => {
-      appendIncomingMessage(message);
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [conversationId, appendIncomingMessage]);
+    if (activeType === 'dm' && conversationId) {
+      const unsubscribe = ChatService.subscribeToConversationMessages(conversationId, (message) => {
+        appendIncomingMessage(message);
+      });
+      return () => unsubscribe();
+    } else if (activeType === 'group' && activeId) {
+      const unsubscribe = ChatService.subscribeToGroupMessages(activeId, (message) => {
+        appendIncomingMessage(message);
+      });
+      return () => unsubscribe();
+    }
+  }, [activeId, activeType, conversationId, appendIncomingMessage]);
 
   useEffect(() => {
     if (!activeId) return;
@@ -2549,10 +2557,10 @@ const ChatView = ({
     };
   }, [activeId, messages.length]);
 
-  const formatFriendTime = (friend: ChatFriend) => {
-    if (friend?.time) return friend.time;
-    if (friend?.isOnline) return 'now';
-    if (friend?.lastSeen) return 'recent';
+  const formatFriendTime = (item: ChatInboxItem) => {
+    if (item?.time) return item.time;
+    if ('online' in item && item.online) return 'now';
+    if ('lastSeen' in item && item.lastSeen) return 'recent';
     return '—';
   };
 
@@ -2564,40 +2572,62 @@ const ChatView = ({
     return <Check size={10} className="text-stone-400" />;
   };
 
-  const openConversation = async (friendId: string) => {
+  const openConversation = async (participantId: string, type: 'dm' | 'group' = 'dm') => {
     if (!authUser?.id || !hasSupabaseConfig) {
-      setActiveId(friendId);
+      setActiveId(participantId);
+      setActiveType(type);
       setMessages([]);
       return;
     }
 
-    setActiveId(friendId);
-    onConversationOpened(friendId);
-    const conversation = await ChatService.getOrCreateConversation(authUser.id, friendId);
-    if (!conversation.success || !conversation.data) {
-      return;
-    }
+    setActiveId(participantId);
+    setActiveType(type);
+    onConversationOpened(participantId);
 
-    setConversationId(conversation.data.id);
-    const result = await ChatService.listMessages(conversation.data.id);
-    if (!result.success || !result.data) {
-      setMessages([]);
-      return;
-    }
+    if (type === 'dm') {
+      const conversation = await ChatService.getOrCreateConversation(authUser.id, participantId);
+      if (!conversation.success || !conversation.data) {
+        return;
+      }
 
-    setMessages(result.data.map((message) => ({
-      id: message.id,
-      role: message.senderId === authUser?.id ? 'user' : 'ai',
-      type: message.sharedItem ? 'share' : 'text',
-      text: message.content,
-      item: message.sharedItem,
-      status: message.senderId === authUser?.id ? 'sent' : undefined,
-    })));
+      setConversationId(conversation.data.id);
+      const result = await ChatService.listMessages(conversation.data.id);
+      if (!result.success || !result.data) {
+        setMessages([]);
+        return;
+      }
+
+      setMessages(result.data.map((message) => ({
+        id: message.id,
+        role: message.senderId === authUser?.id ? 'user' : 'ai',
+        type: message.sharedItem ? 'share' : 'text',
+        text: message.content,
+        item: message.sharedItem,
+        status: message.senderId === authUser?.id ? 'sent' : undefined,
+      })));
+    } else {
+      // Group Chat
+      setConversationId(null);
+      const result = await ChatService.listGroupMessages(participantId);
+      if (!result.success || !result.data) {
+        setMessages([]);
+        return;
+      }
+
+      setMessages(result.data.map((message) => ({
+        id: message.id,
+        role: message.senderId === authUser?.id ? 'user' : 'ai',
+        type: message.sharedItem ? 'share' : 'text',
+        text: message.content,
+        item: message.sharedItem,
+        status: message.senderId === authUser?.id ? 'sent' : undefined,
+      })));
+    }
   };
 
   const sendMessage = async () => {
     const content = draft.trim();
-    if (!content || !conversationId || !authUser?.id) return;
+    if (!content || !activeId || !authUser?.id) return;
 
     setDraft('');
     const optimisticId = `local-${Date.now()}`;
@@ -2609,13 +2639,22 @@ const ChatView = ({
       status: 'sending',
     }]));
 
-    const sent = await ChatService.sendTextMessage({
-      conversationId,
-      senderId: authUser.id,
-      content,
-    });
+    let sent;
+    if (activeType === 'dm' && conversationId) {
+      sent = await ChatService.sendTextMessage({
+        conversationId,
+        senderId: authUser.id,
+        content,
+      });
+    } else if (activeType === 'group') {
+      sent = await ChatService.sendGroupTextMessage({
+        groupId: activeId,
+        senderId: authUser.id,
+        content,
+      });
+    }
 
-    if (!sent.success || !sent.data) {
+    if (!sent || !sent.success || !sent.data) {
       setMessages(prev => prev.map((message) => message.id === optimisticId ? { ...message, status: 'error' } : message));
       setDraft(content);
       return;
@@ -2624,7 +2663,24 @@ const ChatView = ({
     const sentMessage = sent.data;
     setMessages(prev => prev
       .filter((message) => message.id !== optimisticId)
-      .concat([{ ...mapMessageToUi(sentMessage), status: 'sent' }]));
+      .concat([{ ...mapMessageToUi(sentMessage), status: 'sent', senderName: authUser.name || 'You' }]));
+  };
+
+  const createGroup = async () => {
+    if (!newGroupName.trim() || selectedMemberIds.length === 0 || !authUser?.id) return;
+
+    const result = await ChatService.createGroup({
+      name: newGroupName,
+      memberIds: [authUser.id, ...selectedMemberIds],
+      createdBy: authUser.id,
+    });
+
+    if (result.success && result.data) {
+      setIsCreatingGroup(false);
+      setNewGroupName('');
+      setSelectedMemberIds([]);
+      openConversation(result.data.id, 'group');
+    }
   };
 
   if (activeId && active) return (
@@ -2634,21 +2690,33 @@ const ChatView = ({
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => onOpenUserProfile(String(active.id))}
+            onClick={() => active.type === 'dm' && onOpenUserProfile(String(active.id))}
             className="relative"
           >
-            <img src={active.avatar} alt={active.name || 'Active friend'} className="w-10 h-10 rounded-full border-2 border-yellow-400" />
-            {active.isOnline && <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />}
+            <img src={active.avatar} alt={active.name || 'Chat'} className="w-10 h-10 rounded-full border-2 border-yellow-400" />
+            {active.type === 'dm' && 'online' in active && active.online && (
+              <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
+            )}
+            {active.type === 'group' && (
+              <div className="absolute -bottom-1 -right-1 bg-stone-900 text-white p-0.5 rounded shadow-sm">
+                <LayoutGrid size={8} />
+              </div>
+            )}
           </button>
           <div>
             <h4 className="font-black text-xs uppercase tracking-widest">{active.name}</h4>
-            <p className="text-[8px] font-bold text-stone-400 uppercase tracking-widest">{active.isOnline ? 'Online' : 'Offline'}</p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <div className={`w-1.5 h-1.5 rounded-full ${active.type === 'group' ? 'bg-stone-400' : (('online' in active && active.online) ? 'bg-emerald-500' : 'bg-stone-300')}`} />
+              <p className="text-[8px] font-bold text-stone-400 uppercase tracking-widest">
+                {active.type === 'group' ? 'Studio Group' : (('online' in active && active.online) ? 'Online' : 'Offline')}
+              </p>
+            </div>
           </div>
         </div>
         <div className="w-10" />
       </header>
 
-      {active.requestStatus === 'pending' && (
+      {active.type === 'dm' && 'requestStatus' in active && active.requestStatus === 'pending' && (
         <div className="p-6 bg-yellow-50 border-b flex flex-col items-center gap-4 text-center">
           <p className="text-xs font-bold text-stone-600 uppercase tracking-widest">Message Request</p>
           <p className="text-sm font-bold text-stone-900">{active.name} wants to connect with you.</p>
@@ -2672,6 +2740,9 @@ const ChatView = ({
       <div className="flex-grow p-10 space-y-6 overflow-y-auto hide-scrollbar">
         {messages.map((m) => (
           <div key={`${m.id || ''}-${m.role}-${m.type || 'text'}-${m.text || ''}-${m.item?.id || ''}`} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+            {activeType === 'group' && m.role !== 'user' && m.senderName && (
+              <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1 ml-4">{m.senderName}</span>
+            )}
             <div className={`max-w-[85%] p-6 rounded-[2.5rem] font-bold text-sm shadow-sm ${m.role === 'user' ? 'bg-stone-900 text-white' : 'bg-stone-50 text-stone-900'}`}>
               {m.type === 'share' ? (
                 <div className="space-y-4">
@@ -2755,13 +2826,13 @@ const ChatView = ({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-          placeholder={active.requestStatus === 'pending' ? 'Accept request to reply' : 'Message...'}
-          disabled={active.requestStatus === 'pending'}
+          placeholder={(active.type === 'dm' && 'requestStatus' in active && active.requestStatus === 'pending') ? 'Accept request to reply' : 'Message...'}
+          disabled={active.type === 'dm' && 'requestStatus' in active && active.requestStatus === 'pending'}
           className="flex-grow bg-stone-50 px-8 py-5 rounded-[2rem] font-bold outline-none focus:bg-stone-100 transition-colors disabled:opacity-50"
         />
         <button
           onClick={sendMessage}
-          disabled={active.requestStatus === 'pending' || !draft.trim()}
+          disabled={(active.type === 'dm' && 'requestStatus' in active && active.requestStatus === 'pending') || !draft.trim()}
           className="w-16 h-16 bg-yellow-400 text-stone-900 rounded-3xl flex items-center justify-center shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
         >
           <Send size={24} />
@@ -2772,16 +2843,74 @@ const ChatView = ({
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 px-4 animate-in fade-in">
-      <header className="hidden md:flex justify-between items-end">
+      <header className="flex justify-between items-end">
         <div>
           <h2 className="text-4xl font-black uppercase tracking-tighter">Studio Inbox</h2>
-          <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-2">Find Friends</p>
+          <div className="flex items-center gap-4 mt-2">
+            <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Find Friends</p>
+            <button
+              onClick={() => setIsCreatingGroup(true)}
+              className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-yellow-600 hover:text-yellow-700 transition-colors"
+            >
+              <LayoutGrid size={12} />
+              Create Group
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-2 px-4 py-2 bg-yellow-400 rounded-full">
           <div className="w-2 h-2 bg-stone-900 rounded-full animate-pulse" />
           <span className="text-[10px] font-black uppercase tracking-widest">Live</span>
         </div>
       </header>
+
+      {isCreatingGroup && (
+        <div className="bg-stone-50 p-8 rounded-[3rem] border-2 border-dashed border-stone-200 space-y-6 animate-in zoom-in-95 duration-300">
+          <div className="flex justify-between items-center">
+            <h3 className="text-xl font-black uppercase tracking-tighter">New Chat Group</h3>
+            <button onClick={() => setIsCreatingGroup(false)} className="p-2 hover:bg-white rounded-full transition-colors"><X size={20} /></button>
+          </div>
+          <div className="space-y-4">
+            <input
+              value={newGroupName}
+              onChange={(e) => setNewGroupName(e.target.value)}
+              placeholder="Group Name..."
+              className="w-full bg-white px-6 py-4 rounded-2xl font-bold outline-none border focus:border-yellow-400"
+            />
+            <div className="space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 px-2">Select Members</p>
+              <div className="flex flex-wrap gap-2">
+                {friends.filter(f => f.type !== 'group').map(f => (
+                  <button
+                    key={f.id}
+                    onClick={() => {
+                      setSelectedMemberIds(prev =>
+                        prev.includes(String(f.id))
+                          ? prev.filter(mid => mid !== String(f.id))
+                          : [...prev, String(f.id)]
+                      );
+                    }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                      selectedMemberIds.includes(String(f.id))
+                        ? 'bg-stone-900 text-white shadow-lg'
+                        : 'bg-white text-stone-500 border hover:border-stone-300'
+                    }`}
+                  >
+                    <img src={f.avatar} className="w-4 h-4 rounded-full" />
+                    {f.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={createGroup}
+            disabled={!newGroupName.trim() || selectedMemberIds.length === 0}
+            className="w-full py-4 bg-yellow-400 text-stone-900 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
+          >
+            Create Studio Group
+          </button>
+        </div>
+      )}
       <div className="relative">
         <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300" />
         <input
@@ -2797,21 +2926,42 @@ const ChatView = ({
             <button
               type="button"
               onClick={() => {
-              openConversation(String(c.id)).catch((error) => {
-                console.warn('Failed to open conversation:', error);
-              });
+                openConversation(String(c.id), c.type || 'dm').catch((error) => {
+                  console.warn('Failed to open conversation:', error);
+                });
               }}
               className="w-full bg-white p-6 rounded-[3rem] flex items-center gap-5 border shadow-sm cursor-pointer hover:bg-stone-50 transition-all hover:scale-[1.01] relative group text-left"
             >
               <div className="relative">
-                <img src={c.avatar} alt={c.name || 'Friend'} className="w-16 h-16 rounded-3xl border-2 border-yellow-400 shadow-md" />
-                {c.isOnline && <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full shadow-sm" />}
+                <img src={c.avatar} alt={c.name || 'Chat'} className="w-16 h-16 rounded-3xl border-2 border-yellow-400 shadow-md" />
+                {c.type === 'dm' && 'online' in c && c.online && (
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full shadow-sm" />
+                )}
+                {c.type === 'group' && (
+                  <div className="absolute -bottom-2 -right-2 bg-stone-900 text-white p-1 rounded-lg border-2 border-white shadow-sm">
+                    <LayoutGrid size={12} />
+                  </div>
+                )}
               </div>
               <div className="flex-grow">
-                <div className="flex justify-between mb-1"><h4 className="font-black text-sm uppercase tracking-widest">{c.name}</h4><span className="text-[10px] text-stone-300 font-bold">{formatFriendTime(c)}</span></div>
+                <div className="flex justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-black text-sm uppercase tracking-widest">{c.name}</h4>
+                    {c.type === 'group' && (
+                      <span className="bg-stone-100 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest text-stone-500">
+                        Group
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-stone-300 font-bold">
+                    {formatFriendTime(c)}
+                  </span>
+                </div>
                 <div className="flex items-center justify-between">
                   <p className={`text-xs font-bold truncate ${(c.unreadCount ?? 0) > 0 ? 'text-stone-900' : 'text-stone-400'}`}>
-                    {c.requestStatus === 'pending' ? 'New Message Request' : 'Open to chat...'}
+                    {c.type === 'dm' && 'requestStatus' in c && c.requestStatus === 'pending' 
+                      ? 'New Message Request' 
+                      : 'Open to chat...'}
                   </p>
                   {(c.unreadCount ?? 0) > 0 && (
                     <div className="bg-yellow-400 text-stone-900 text-[10px] font-black px-2 py-1 rounded-full shadow-sm">
@@ -2822,18 +2972,20 @@ const ChatView = ({
               </div>
               <ChevronRight className="text-stone-200 group-hover:text-stone-400 transition-colors" />
             </button>
-            <button
-              type="button"
-              onClick={() => onOpenUserProfile(String(c.id))}
-              className="px-3 py-2 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest"
-            >
-              Profile
-            </button>
+            {c.type === 'dm' && (
+              <button
+                type="button"
+                onClick={() => onOpenUserProfile(String(c.id))}
+                className="px-3 py-2 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-stone-800 transition-colors"
+              >
+                Profile
+              </button>
+            )}
           </div>
         ))}
         {filteredFriends.length === 0 && (
           <div className="p-8 text-center bg-stone-50 rounded-[2rem] border border-stone-100 text-[10px] font-black uppercase tracking-widest text-stone-400">
-            No friends found.
+            No contacts or groups found.
           </div>
         )}
       </div>
@@ -6350,7 +6502,7 @@ const App = () => {
   const [savedItems, setSavedItems] = useState<AppItem[]>(FALLBACK_SAVED_ITEMS);
   const [activeShareItem, setActiveShareItem] = useState<AppItem | null>(null);
 
-  const [friends, setFriends] = useState<ChatFriend[]>(DEFAULT_FRIENDS);
+  const [friends, setFriends] = useState<ChatInboxItem[]>(DEFAULT_FRIENDS);
   const totalUnread = useMemo(() => friends.reduce((sum, friend) => sum + (friend.unreadCount || 0), 0), [friends]);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | 'unsupported'>(() => {
     if (globalThis.Notification === undefined) {
@@ -6599,20 +6751,37 @@ const App = () => {
         return;
       }
 
-      const contacts = await ChatService.listContacts(authUser.id);
-      if (cancelled || !contacts.success || !contacts.data) {
-        setFriends(DEFAULT_FRIENDS);
-        return;
-      }
+      const [contacts, groups] = await Promise.all([
+        ChatService.listContacts(authUser.id),
+        ChatService.listGroups(authUser.id),
+      ]);
 
-      setFriends(contacts.data.map((contact: ChatContact) => ({
-        ...contact,
-        email: contact.email,
-        online: contact.isOnline,
-        time: contact.isOnline ? 'now' : 'recent',
-        unreadCount: 0,
-        requestStatus: 'accepted',
-      })));
+      if (cancelled) return;
+
+      const contactItems: ChatInboxItem[] = (contacts.success && contacts.data)
+        ? contacts.data.map((contact: ChatContact) => ({
+            ...contact,
+            email: contact.email,
+            online: contact.isOnline,
+            time: contact.isOnline ? 'now' : 'recent',
+            unreadCount: 0,
+            requestStatus: 'accepted',
+            type: 'dm' as const,
+          }))
+        : [];
+
+      const groupItems: ChatInboxItem[] = (groups.success && groups.data)
+        ? groups.data.map((g) => ({
+            id: g.id,
+            name: g.name,
+            avatar: g.avatarUrl || `https://i.pravatar.cc/150?u=${g.id}`,
+            type: 'group' as const,
+            unreadCount: 0,
+            time: g.lastMessageAt ? 'recent' : 'new',
+          }))
+        : [];
+
+      setFriends([...groupItems, ...contactItems]);
     };
 
     loadContacts();

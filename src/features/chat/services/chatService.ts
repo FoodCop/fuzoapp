@@ -15,11 +15,22 @@ export interface ChatContact {
 
 export interface ChatMessage {
   id: string;
-  conversationId: string;
+  conversationId?: string;
+  groupId?: string;
   senderId: string;
   content: string;
   sharedItem: ChatSharedItem | null;
   createdAt: string;
+}
+
+export interface ChatGroup {
+  id: string;
+  name: string;
+  description?: string;
+  avatarUrl?: string;
+  createdBy: string;
+  createdAt: string;
+  lastMessageAt?: string;
 }
 
 interface ChatResult<T> {
@@ -51,11 +62,25 @@ const toChatMessage = (value: unknown): ChatMessage => {
   const row = asRecord(value);
   return {
     id: String(row.id || ''),
-    conversationId: String(row.conversation_id || ''),
+    conversationId: row.conversation_id ? String(row.conversation_id) : undefined,
+    groupId: row.group_id ? String(row.group_id) : undefined,
     senderId: String(row.sender_id || ''),
     content: typeof row.content === 'string' ? row.content : '',
     sharedItem: (row.shared_item && typeof row.shared_item === 'object') ? (row.shared_item as ChatSharedItem) : null,
     createdAt: String(row.created_at || ''),
+  };
+};
+
+const toChatGroup = (value: unknown): ChatGroup => {
+  const row = asRecord(value);
+  return {
+    id: String(row.id || ''),
+    name: String(row.name || 'Group'),
+    description: typeof row.description === 'string' ? row.description : undefined,
+    avatarUrl: typeof row.avatar_url === 'string' ? row.avatar_url : undefined,
+    createdBy: String(row.created_by || ''),
+    createdAt: String(row.created_at || ''),
+    lastMessageAt: typeof row.last_message_at === 'string' ? row.last_message_at : undefined,
   };
 };
 
@@ -313,6 +338,169 @@ export const ChatService = {
           otherUserId,
           message,
         });
+      })
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  },
+
+  async listGroups(userId: string): Promise<ChatResult<ChatGroup[]>> {
+    const client = supabase;
+    if (!client) return { success: false, error: 'Supabase is not configured' };
+
+    const { data, error } = await client
+      .from('groups')
+      .select(`
+        *,
+        group_members!inner(user_id)
+      `)
+      .eq('group_members.user_id', userId)
+      .order('last_message_at', { ascending: false });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return {
+      success: true,
+      data: (data || []).map(toChatGroup),
+    };
+  },
+
+  async createGroup(params: {
+    name: string;
+    description?: string;
+    avatarUrl?: string;
+    memberIds: string[];
+    createdBy: string;
+  }): Promise<ChatResult<ChatGroup>> {
+    const client = supabase;
+    if (!client) return { success: false, error: 'Supabase is not configured' };
+
+    // 1. Create group
+    const { data: group, error: groupError } = await client
+      .from('groups')
+      .insert({
+        name: params.name,
+        description: params.description,
+        avatar_url: params.avatarUrl,
+        created_by: params.createdBy,
+      })
+      .select()
+      .single();
+
+    if (groupError || !group) {
+      return { success: false, error: groupError?.message || 'Failed to create group' };
+    }
+
+    // 2. Add members
+    const members = params.memberIds.map(id => ({
+      group_id: group.id,
+      user_id: id,
+      role: id === params.createdBy ? 'admin' : 'member',
+    }));
+
+    const { error: membersError } = await client
+      .from('group_members')
+      .insert(members);
+
+    if (membersError) {
+      // Cleanup group if members fail (optional but good)
+      await client.from('groups').delete().eq('id', group.id);
+      return { success: false, error: membersError.message };
+    }
+
+    return { success: true, data: toChatGroup(group) };
+  },
+
+  async listGroupMessages(groupId: string): Promise<ChatResult<ChatMessage[]>> {
+    const client = supabase;
+    if (!client) return { success: false, error: 'Supabase is not configured' };
+
+    const { data, error } = await client
+      .from('group_messages')
+      .select('id, group_id, sender_id, content, shared_item, created_at')
+      .eq('group_id', groupId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return {
+      success: true,
+      data: (data || []).map(toChatMessage),
+    };
+  },
+
+  async sendGroupTextMessage(params: {
+    groupId: string;
+    senderId: string;
+    content: string;
+  }): Promise<ChatResult<ChatMessage>> {
+    const client = supabase;
+    if (!client) return { success: false, error: 'Supabase is not configured' };
+
+    const { data, error } = await client
+      .from('group_messages')
+      .insert({
+        group_id: params.groupId,
+        sender_id: params.senderId,
+        content: params.content,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: toChatMessage(data) };
+  },
+
+  async sendGroupSharedItemMessage(params: {
+    groupId: string;
+    senderId: string;
+    item: ChatSharedItem;
+  }): Promise<ChatResult<ChatMessage>> {
+    const client = supabase;
+    if (!client) return { success: false, error: 'Supabase is not configured' };
+
+    const { data, error } = await client
+      .from('group_messages')
+      .insert({
+        group_id: params.groupId,
+        sender_id: params.senderId,
+        content: `Shared: ${params.item?.name || 'item'}`,
+        shared_item: params.item,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: toChatMessage(data) };
+  },
+
+  subscribeToGroupMessages(groupId: string, onMessage: (message: ChatMessage) => void) {
+    const client = supabase;
+    if (!client) return () => undefined;
+
+    const channel = client
+      .channel(`group_messages:${groupId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'group_messages',
+        filter: `group_id=eq.${groupId}`,
+      }, (payload: SupabaseRealtimePayload) => {
+        const message = toChatMessage(payload.new);
+        if (!message.id || !message.groupId || !message.senderId) return;
+        onMessage(message);
       })
       .subscribe();
 

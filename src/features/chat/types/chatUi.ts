@@ -14,11 +14,27 @@ export interface ChatFriend {
   lastSeen?: string | null;
   unreadCount?: number;
   requestStatus?: 'pending' | 'accepted';
+  type?: 'dm';
 }
+
+export interface ChatGroup {
+  id: string;
+  name: string;
+  avatar: string;
+  description?: string;
+  lastMessageAt?: string;
+  unreadCount?: number;
+  memberCount?: number;
+  type: 'group';
+}
+
+export type ChatInboxItem = ChatFriend | ChatGroup;
 
 export interface ChatUiMessage {
   id: string;
   role: 'user' | 'ai';
+  senderId?: string;
+  senderName?: string;
   type: 'text' | 'share';
   text: string;
   item?: AppItem | null;
