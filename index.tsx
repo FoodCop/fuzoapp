@@ -3697,7 +3697,7 @@ const App = () => {
   const [leaderboardUsers, setLeaderboardUsers] = useState<LeaderboardEntry[]>([]);
 
   const tabIds = useMemo(() => new Set(TAB_IDS), []);
-  const [tab, setTab] = useState(() => resolveInitialTab(globalThis.location.search, tabIds));
+  const [tab, setTab] = useState<typeof TAB_IDS[number]>(() => resolveInitialTab(globalThis.location.search, tabIds) as typeof TAB_IDS[number]);
   const [publicProfileUserId, setPublicProfileUserId] = useState(() => new URLSearchParams(globalThis.location.search).get('userId') || '');
   const [showSnap, setShowSnap] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -4319,46 +4319,70 @@ const App = () => {
     globalThis.history.replaceState(null, '', `${APP_PATH}?view=feed`);
   };
 
-  const renderView = () => renderAppView({
-    tab,
-    setTab,
-    handleSave: (item: AppItem) => {
-      handleSave(item).catch((error) => {
-        console.warn('Save failed:', error);
-      });
-    },
-    handleUnsave: (item: AppItem) => {
-      handleUnsave(item).catch((error) => {
-        console.warn('Unsave failed:', error);
-      });
-    },
-    setActiveShareItem,
-    friends,
-    savedItems,
-    authUser,
-    points,
-    level,
-    leaderboardUsers,
-    profileUserId: publicProfileUserId,
-    handleSignOut,
-    handleConversationOpened,
-    handleOpenUserProfile,
-    handleBackToOwnProfile,
-    mapsApiKey: API_KEYS.MAPS,
-    components: {
-      FeedView,
-      BitesView,
-      TrimsView,
-      ChefAIView,
-      ChatView,
-      ScoutView,
-      ProfileView,
-      PublicProfileView,
-      LeaderboardView,
-      RewardsView,
-      SettingsView,
-    },
-  });
+  const [googleMapsReady, setGoogleMapsReady] = useState(false);
+
+  useEffect(() => {
+    const initGlobalMaps = async () => {
+      try {
+        const loader = new Loader({
+          apiKey: API_KEYS.MAPS,
+          version: 'weekly',
+          libraries: ['places', 'visualization']
+        });
+        await loader.load();
+        setGoogleMapsReady(true);
+        console.log('Google Maps globally initialized');
+      } catch (err) {
+        console.error('Failed to load Google Maps globally:', err);
+      }
+    };
+    initGlobalMaps();
+  }, []);
+
+  const renderApp = (tab: typeof TAB_IDS[number]) => {
+    const commonProps = {
+      tab: tab as string,
+      setTab: setTab as (t: string) => void,
+      handleSave: (item: AppItem) => {
+        handleSave(item).catch((error) => {
+          console.warn('Save failed:', error);
+        });
+      },
+      handleUnsave: (item: AppItem) => {
+        handleUnsave(item).catch((error) => {
+          console.warn('Unsave failed:', error);
+        });
+      },
+      setActiveShareItem,
+      friends,
+      savedItems,
+      authUser,
+      points,
+      level,
+      leaderboardUsers,
+      profileUserId: publicProfileUserId,
+      handleSignOut,
+      handleConversationOpened,
+      handleOpenUserProfile,
+      handleBackToOwnProfile,
+      mapsApiKey: API_KEYS.MAPS,
+      googleMapsReady,
+      components: {
+        FeedView,
+        BitesView,
+        TrimsView,
+        ChefAIView,
+        ChatView,
+        ScoutView,
+        ProfileView,
+        PublicProfileView,
+        LeaderboardView,
+        RewardsView,
+        SettingsView,
+      },
+    };
+    return renderAppView(commonProps);
+  };
 
   if (authBooting) {
     return (
@@ -4580,7 +4604,7 @@ const App = () => {
           </button>
         </header>
 
-        {renderView()}
+        {renderApp(tab)}
       </main>
 
       <nav aria-label="Main tabs" role="tablist" className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-2xl border-t border-stone-100 px-8 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex justify-between items-center md:hidden z-[60] shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">

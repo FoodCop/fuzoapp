@@ -1,4 +1,4 @@
-﻿
+
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { 
   MapPin, RefreshCw, LayoutGrid, Sparkles, X, Star, Clock, Info, 
@@ -38,10 +38,12 @@ const shouldApplyLatestRequest = (
 export const ScoutView = ({ 
   mapsApiKey = API_KEYS.MAPS,
   savedItems = [],
+  googleMapsReady,
   onAction 
 }: { 
   mapsApiKey?: string;
   savedItems?: any[];
+  googleMapsReady?: boolean;
   onAction: (item: any, action: 'save' | 'share') => void;
 }) => {
   const [scoutTab, setScoutTab] = useState<ScoutTab>('main');
@@ -245,7 +247,7 @@ export const ScoutView = ({
     };
 
     initMap();
-  }, [mapsApiKey, fetchPlaces]);
+  }, [mapsApiKey, fetchPlaces, googleMapsReady]);
 
   useEffect(() => {
     if (!isMapReady || !mapInstanceRef.current) return;
@@ -314,7 +316,8 @@ export const ScoutView = ({
             <button 
               key={tab}
               onClick={() => setScoutTab(tab)}
-              className={`px-6 py-2 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${scoutTab === tab ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
+              aria-label={`Switch to ${tab === 'main' ? 'Main Map' : tab === 'fuzo' ? 'FUZO Locations' : 'My Map'}`}
+              className={`px-6 py-2.5 min-h-[44px] rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${scoutTab === tab ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
             >
               {tab === 'main' ? 'Main Map' : tab === 'fuzo' ? 'FUZO Locations' : 'My Map'}
             </button>
@@ -328,7 +331,8 @@ export const ScoutView = ({
           <button 
             key={tab}
             onClick={() => setScoutTab(tab)}
-            className={`flex-1 py-4 text-[12px] font-black uppercase tracking-widest border-b-2 transition-all ${scoutTab === tab ? 'border-yellow-400 text-stone-900' : 'border-transparent text-stone-400'}`}
+            aria-label={`Switch to ${tab === 'main' ? 'Main' : tab === 'fuzo' ? 'FUZO' : 'My Map'}`}
+            className={`flex-1 py-5 min-h-[50px] text-[12px] font-black uppercase tracking-widest border-b-2 transition-all ${scoutTab === tab ? 'border-yellow-400 text-stone-900' : 'border-transparent text-stone-400'}`}
           >
             {tab === 'main' ? 'Main' : tab === 'fuzo' ? 'FUZO' : 'My Map'}
           </button>

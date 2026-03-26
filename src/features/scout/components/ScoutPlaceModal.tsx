@@ -1,8 +1,9 @@
-﻿import React from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { X, Star, Info, Clock, List, MapPin, Zap, PlayCircle, Bookmark, Share2 } from 'lucide-react';
 import { ScoutPlace } from '../types/scoutUi';
 import { Badge } from '../../../shared/ui/Badge';
+import { useFocusTrap } from '../../../shared/hooks/useFocusTrap';
 
 interface ScoutPlaceModalProps {
   place: ScoutPlace;
@@ -21,12 +22,21 @@ export const ScoutPlaceModal = ({
   onClose,
   onAction,
 }: ScoutPlaceModalProps) => {
+  const containerRef = useFocusTrap(true);
+
   return (
-    <div role="dialog" aria-modal="true" aria-label={`Details for ${place.name}`} className="fixed inset-0 z-[110] bg-stone-900/60 backdrop-blur-xl flex items-start justify-center p-4 md:p-10 overflow-y-auto">
+    <div 
+      ref={containerRef as any}
+      role="dialog" 
+      aria-modal="true" 
+      aria-label={`Details for ${place.name}`} 
+      className="fixed inset-0 z-[110] bg-stone-900/60 backdrop-blur-xl flex items-start justify-center p-4 md:p-10 overflow-y-auto"
+    >
       <div className="bg-white w-full max-w-4xl rounded-[4rem] shadow-2xl overflow-hidden flex flex-col md:flex-row relative animate-in zoom-in duration-300">
         <button 
           onClick={onClose} 
-          className="absolute top-6 right-6 z-20 p-4 bg-stone-900 text-white rounded-3xl active:scale-90 transition-transform"
+          aria-label="Close modal"
+          className="absolute top-6 right-6 z-20 p-5 bg-stone-900 text-white rounded-3xl active:scale-90 transition-transform min-w-[54px] min-h-[54px] flex items-center justify-center"
         >
           <X size={24} />
         </button>
@@ -179,16 +189,19 @@ export const ScoutPlaceModal = ({
             )}
           </div>
 
-          <footer className="pt-4 flex gap-4 sticky bottom-0 bg-white/90 backdrop-blur-md pb-2">
+          <footer className="pt-4 flex gap-4 sticky bottom-0 bg-white/90 backdrop-blur-md pb-4">
             <button 
               onClick={() => onAction(place, 'save')}
-              className="flex-grow py-5 bg-stone-900 text-white rounded-[2rem] flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl"
+              aria-label="Save this place"
+              className="flex-grow min-h-[56px] bg-stone-900 text-white rounded-[2rem] flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl"
             >
               <Bookmark size={22} />
+              <span className="text-[12px] font-black uppercase tracking-widest">Save</span>
             </button>
             <button 
               onClick={() => onAction(place, 'share')}
-              className="py-5 px-10 bg-yellow-400 text-stone-900 rounded-[2rem] flex items-center justify-center active:scale-95 transition-all shadow-xl"
+              aria-label="Share this place"
+              className="min-h-[56px] px-10 bg-yellow-400 text-stone-900 rounded-[2rem] flex items-center justify-center active:scale-95 transition-all shadow-xl"
             >
               <Share2 size={22} />
             </button>

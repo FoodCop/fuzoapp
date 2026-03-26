@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import type { AuthUser } from '../../features/auth/types/auth';
 import type { ChatFriend, ChatInboxItem } from '../../features/chat/types/chatUi';
 import type { LeaderboardEntry } from '../../features/points/services/pointsService';
@@ -22,6 +22,7 @@ interface RenderComponents {
     mapsApiKey?: string;
     savedItems: AppItem[];
     onAction: (item: AppItem, action: 'save' | 'share') => void;
+    googleMapsReady?: boolean;
   }>;
   ProfileView: React.ComponentType<{ savedItems: AppItem[]; authUser: AuthUser | null; friends: ChatInboxItem[]; onSave: (item: AppItem) => void; onUnsave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void; setTab: (tab: string) => void }>;
   PublicProfileView: React.ComponentType<{ targetUserId: string; authUser: AuthUser | null; currentUserSavedItems: AppItem[]; friends: ChatInboxItem[]; onBackToOwnProfile: () => void; onSave: (item: AppItem) => void; onUnsave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void; setTab: (tab: string) => void }>;
@@ -48,6 +49,7 @@ export const renderAppView = ({
   handleOpenUserProfile,
   handleBackToOwnProfile,
   mapsApiKey,
+  googleMapsReady,
   components,
 }: {
   tab: string;
@@ -67,6 +69,7 @@ export const renderAppView = ({
   handleOpenUserProfile: (userId: string) => void;
   handleBackToOwnProfile: () => void;
   mapsApiKey: string;
+  googleMapsReady?: boolean;
   components: RenderComponents;
 }) => {
   const {
@@ -99,6 +102,7 @@ export const renderAppView = ({
         <ScoutView
           mapsApiKey={mapsApiKey}
           savedItems={savedItems}
+          googleMapsReady={googleMapsReady}
           onAction={(item, action) => {
             if (action === 'save') handleSave(item);
             else setActiveShareItem(item);

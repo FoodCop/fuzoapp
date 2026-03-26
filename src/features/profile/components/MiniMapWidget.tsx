@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 import { API_KEYS } from '../../../shared/constants/apiKeys';
 import type { AppItem } from '../../../shared/types/appItem';
@@ -29,27 +29,12 @@ export const MiniMapWidget = ({
     let disposed = false;
 
     const initMap = async () => {
-      if (!API_KEYS.MAPS) {
-        setError('Maps API key not found');
-        return;
+      const googleMaps = getGoogleMaps();
+      if (!googleMaps || disposed || !mapContainerRef.current) {
+        return; 
       }
 
-      if (!mapContainerRef.current) return;
-
       try {
-        const loader = new Loader({
-          apiKey: API_KEYS.MAPS,
-          version: 'weekly',
-          libraries: ['visualization']
-        });
-
-        await loader.importLibrary('maps');
-        
-        if (disposed || !mapContainerRef.current) return;
-
-        const googleMaps = getGoogleMaps();
-        if (!googleMaps) throw new Error('Google Maps runtime not available');
-
         // Calculate center based on pins or use default
         const center = validPins.length > 0 
           ? { lat: validPins[0].lat!, lng: validPins[0].lng! }
@@ -120,7 +105,7 @@ export const MiniMapWidget = ({
 
         setIsLoaded(true);
       } catch (err) {
-        console.error('Failed to load Google Maps:', err);
+        console.error('Failed to init map in widget:', err);
         setError('Failed to initialize map');
       }
     };

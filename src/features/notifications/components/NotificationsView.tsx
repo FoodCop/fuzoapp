@@ -1,9 +1,10 @@
-﻿import React from 'react';
+import React from 'react';
 import { 
   Bell, X, MessageSquare, UserPlus, Trophy, 
   Settings, CheckCheck, Clock 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useFocusTrap } from '../../../shared/hooks/useFocusTrap';
 
 interface Notification {
   id: string;
@@ -55,6 +56,8 @@ interface NotificationsViewProps {
 }
 
 export const NotificationsView = ({ isOpen, onClose }: NotificationsViewProps) => {
+  const containerRef = useFocusTrap(isOpen);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -70,6 +73,7 @@ export const NotificationsView = ({ isOpen, onClose }: NotificationsViewProps) =
 
           {/* Sidebar/Drawer */}
           <motion.div 
+            ref={containerRef as any}
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
@@ -90,7 +94,7 @@ export const NotificationsView = ({ isOpen, onClose }: NotificationsViewProps) =
               <button 
                 onClick={onClose}
                 aria-label="Close notifications"
-                className="p-3 bg-stone-50 rounded-2xl text-stone-400 hover:text-stone-900 transition-colors"
+                className="p-4 bg-stone-50 rounded-2xl text-stone-400 hover:text-stone-900 transition-colors min-w-[54px] min-h-[54px] flex items-center justify-center"
               >
                 <X size={20} />
               </button>
@@ -131,8 +135,11 @@ export const NotificationsView = ({ isOpen, onClose }: NotificationsViewProps) =
               ))}
             </div>
 
-            <footer className="p-8 border-t border-stone-100 bg-stone-50/50">
-              <button className="w-full py-5 bg-stone-900 text-white rounded-[2rem] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all">
+            <footer className="p-8 border-t border-stone-100 bg-stone-50/50 pb-[calc(2rem+env(safe-area-inset-bottom))]">
+              <button 
+                aria-label="Mark all notifications as read"
+                className="w-full min-h-[56px] bg-stone-900 text-white rounded-[2rem] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+              >
                 <CheckCheck size={18} />
                 Mark All As Read
               </button>
