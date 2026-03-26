@@ -65,7 +65,7 @@ export const NotificationsView = ({ isOpen, onClose }: NotificationsViewProps) =
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-stone-900/40 backdrop-blur-md z-[300]"
+            className="fixed inset-0 bg-stone-900/40 backdrop-blur-md z-[300]" aria-hidden="true"
           />
 
           {/* Sidebar/Drawer */}
@@ -75,6 +75,7 @@ export const NotificationsView = ({ isOpen, onClose }: NotificationsViewProps) =
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-white z-[301] shadow-2xl flex flex-col"
+            role="dialog" aria-modal="true" aria-label="Notifications"
           >
             <header className="p-8 border-b border-stone-100 flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -83,11 +84,12 @@ export const NotificationsView = ({ isOpen, onClose }: NotificationsViewProps) =
                 </div>
                 <div>
                   <h2 className="text-xl font-black uppercase tracking-tighter text-stone-900">Notifications</h2>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Stay updated with FUZO</p>
+                  <p className="text-[12px] font-bold uppercase tracking-widest text-stone-500">Stay updated with FUZO</p>
                 </div>
               </div>
               <button 
                 onClick={onClose}
+                aria-label="Close notifications"
                 className="p-3 bg-stone-50 rounded-2xl text-stone-400 hover:text-stone-900 transition-colors"
               >
                 <X size={20} />
@@ -120,8 +122,8 @@ export const NotificationsView = ({ isOpen, onClose }: NotificationsViewProps) =
                       </div>
                       <p className="text-xs font-bold text-stone-500 leading-relaxed pr-8">{notif.description}</p>
                       <div className="flex items-center gap-2 pt-1">
-                        <Clock size={10} className="text-stone-300" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-stone-300">{notif.time}</span>
+                        <Clock size={12} className="text-stone-500" />
+                        <span className="text-[12px] font-black uppercase tracking-widest text-stone-500">{notif.time}</span>
                       </div>
                     </div>
                   </div>

@@ -471,7 +471,7 @@ const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friend
   };
 
   return (
-    <div className="fixed inset-0 z-[120] bg-stone-900/60 backdrop-blur-xl flex items-end md:items-center justify-center p-0 md:p-10 animate-in fade-in duration-300">
+    <div role="dialog" aria-modal="true" aria-label="Share with friend" className="fixed inset-0 z-[120] bg-stone-900/60 backdrop-blur-xl flex items-end md:items-center justify-center p-0 md:p-10 animate-in fade-in duration-300">
       <div className="bg-white w-full max-w-lg max-h-[90vh] rounded-t-[4rem] md:rounded-[4rem] shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-20 duration-500">
         <header className="p-10 border-b flex justify-between items-center bg-stone-50">
           <div>
@@ -842,7 +842,7 @@ const BitesRecipeModal = ({
   ] as const;
 
   return (
-    <div className="fixed inset-0 z-[500] bg-stone-950/40 backdrop-blur-2xl flex items-center justify-center p-4 md:p-10 overflow-y-auto">
+    <div role="dialog" aria-modal="true" aria-label="Item details" className="fixed inset-0 z-[500] bg-stone-950/40 backdrop-blur-2xl flex items-center justify-center p-4 md:p-10 overflow-y-auto">
       <motion.div 
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -1254,7 +1254,7 @@ User description: ${description}`;
   };
 
   return (
-    <div className="fixed inset-0 z-[200] bg-stone-950 text-white flex flex-col overflow-hidden">
+    <div role="dialog" aria-modal="true" aria-label="Create recipe with AI" className="fixed inset-0 z-[200] bg-stone-950 text-white flex flex-col overflow-hidden">
       <button
         onClick={onClose}
         className="absolute top-8 right-8 z-30 w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-xl rounded-2xl flex items-center justify-center transition-colors shadow-2xl"
@@ -1875,7 +1875,7 @@ const AITrimStudio = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[200] bg-stone-950 text-white flex flex-col overflow-hidden">
+    <div role="dialog" aria-modal="true" aria-label="Create trim with AI" className="fixed inset-0 z-[200] bg-stone-950 text-white flex flex-col overflow-hidden">
       <button
         onClick={onClose}
         className="absolute top-8 right-8 z-30 w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-xl rounded-2xl flex items-center justify-center transition-colors shadow-2xl"
@@ -3253,7 +3253,7 @@ const TaggingForm = ({
   const isValid = restaurant.trim() !== '' && cuisine.trim() !== '' && locationName.trim() !== '' && address.trim() !== '' && hasGps;
 
   return (
-    <div className="fixed inset-0 z-[200] bg-stone-50 flex flex-col md:flex-row overflow-hidden">
+    <div role="dialog" aria-modal="true" aria-label="Snap review" className="fixed inset-0 z-[200] bg-stone-50 flex flex-col md:flex-row overflow-hidden">
       <button
         type="button"
         onClick={onClose}
@@ -3545,7 +3545,7 @@ const SnapMobile = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onCl
   }
 
   return (
-    <div className="fixed inset-0 z-[200] bg-black flex flex-col overflow-hidden">
+    <div role="dialog" aria-modal="true" aria-label="Camera" className="fixed inset-0 z-[200] bg-black flex flex-col overflow-hidden">
       <header className="absolute top-0 inset-x-0 p-8 flex justify-between items-center z-20">
         <button onClick={onClose} className="w-14 h-14 bg-white/10 backdrop-blur-xl rounded-2xl flex items-center justify-center text-white"><X size={28} /></button>
         <button className="w-14 h-14 bg-white/10 backdrop-blur-xl rounded-2xl flex items-center justify-center text-white"><Zap size={24} /></button>
@@ -3640,7 +3640,7 @@ const SnapDesktop = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onC
   }
 
   return (
-    <div className="fixed inset-0 z-[200] bg-stone-950 flex items-center justify-center p-10">
+    <div role="dialog" aria-modal="true" aria-label="Image preview" className="fixed inset-0 z-[200] bg-stone-950 flex items-center justify-center p-10">
       <button onClick={onClose} className="absolute top-10 right-10 w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center text-white hover:bg-white/20 transition-colors"><X size={32} /></button>
 
       <div className="max-w-2xl w-full aspect-video bg-stone-900 rounded-[3rem] border-4 border-dashed border-stone-800 flex flex-col items-center justify-center space-y-6 text-center p-12 group hover:border-yellow-400/50 transition-colors relative">
@@ -4479,13 +4479,14 @@ const App = () => {
         />
       )}
       
-      <aside className={`fixed inset-y-0 left-0 z-[200] w-28 bg-white border-r border-stone-100 transform ${sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'} md:translate-x-0 md:static transition-all duration-500 ease-in-out`}>
+      <aside aria-label="Main navigation" className={`fixed inset-y-0 left-0 z-[200] w-28 bg-white border-r border-stone-100 transform ${sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'} md:translate-x-0 md:static transition-all duration-500 ease-in-out`}>
         <div className="flex flex-col h-full p-4 overflow-y-auto hide-scrollbar items-center">
           <header className="flex flex-col items-center justify-center mb-12 md:mb-16 mt-4 gap-6">
             <div className="w-14 h-14 bg-stone-900 rounded-3xl items-center justify-center text-yellow-400 shadow-2xl rotate-3 shrink-0 hidden md:flex"><ChefHat size={32} /></div>
             
             <button 
               onClick={() => setShowUnifiedCreation(true)}
+              aria-label="Create new content"
               className="w-12 h-12 bg-white border-2 border-stone-100 rounded-2xl flex items-center justify-center text-stone-900 shadow-sm hover:scale-105 active:scale-95 transition-all group"
             >
               <Plus size={24} strokeWidth={3} className="group-hover:rotate-90 transition-transform" />
@@ -4493,22 +4494,25 @@ const App = () => {
 
             <button 
               onClick={() => { setTab('leaderboard'); setSidebarOpen(false); }}
-              className="flex flex-col items-center gap-1 group"
+              aria-label={`Leaderboard, ${points} points`}
+              className="flex flex-col items-center gap-1 group min-w-[44px] min-h-[44px]"
             >
-              <div className="px-3 py-1 bg-yellow-400 rounded-full text-[10px] font-black text-stone-900 shadow-lg group-hover:scale-110 transition-transform">
+              <div className="px-3 py-1 bg-yellow-400 rounded-full text-[12px] font-black text-stone-900 shadow-lg group-hover:scale-110 transition-transform">
                 {points.toLocaleString()}
               </div>
-              <span className="text-[8px] font-black uppercase tracking-widest text-stone-300">Pts</span>
+              <span className="text-[11px] font-black uppercase tracking-widest text-stone-500">Pts</span>
             </button>
-            <button onClick={() => setSidebarOpen(false)} className="md:hidden p-4 bg-stone-50 rounded-2xl"><X size={20} /></button>
+            <button onClick={() => setSidebarOpen(false)} aria-label="Close sidebar" className="md:hidden p-4 bg-stone-50 rounded-2xl"><X size={20} /></button>
           </header>
           
-          <nav className="space-y-4 flex-grow w-full">
+          <nav aria-label="App sections" className="space-y-4 flex-grow w-full">
             {BOTTOM_NAV_ITEMS.filter(item => item.id !== 'snap').map(item => (
               <button 
                 key={item.id}
                 onClick={() => { setTab(item.id); setSidebarOpen(false); }}
-                className={`w-full flex items-center justify-center py-5 rounded-[1.5rem] transition-all ${tab === item.id ? 'bg-yellow-400 text-stone-900 shadow-xl' : 'text-stone-300 hover:bg-stone-50'}`}
+                aria-label={item.label}
+                aria-current={tab === item.id ? 'page' : undefined}
+                className={`w-full flex items-center justify-center py-5 rounded-[1.5rem] transition-all min-h-[44px] ${tab === item.id ? 'bg-yellow-400 text-stone-900 shadow-xl' : 'text-stone-300 hover:bg-stone-50'}`}
               >
                 <item.icon size={28} strokeWidth={tab === item.id ? 3 : 2} />
               </button>
@@ -4532,7 +4536,9 @@ const App = () => {
                   }
                   setSidebarOpen(false);
                 }}
-                className={`w-full flex items-center justify-center py-5 rounded-[1.5rem] transition-all ${tab === item.id ? 'bg-stone-900 text-white shadow-xl' : 'text-stone-300 hover:bg-stone-50'}`}
+                aria-label={item.label}
+                aria-current={tab === item.id ? 'page' : undefined}
+                className={`w-full flex items-center justify-center py-5 rounded-[1.5rem] transition-all min-h-[44px] ${tab === item.id ? 'bg-stone-900 text-white shadow-xl' : 'text-stone-300 hover:bg-stone-50'}`}
               >
                 <div className="relative">
                   <item.icon size={28} strokeWidth={tab === item.id ? 3 : 2} />
@@ -4548,22 +4554,25 @@ const App = () => {
         </div>
       </aside>
 
-      <main className="flex-grow max-w-6xl mx-auto w-full px-6 md:px-12 relative pt-8 pb-32 md:pb-12">
+      <a href="#main-content" className="skip-to-content">Skip to content</a>
+      <main id="main-content" className="flex-grow max-w-6xl mx-auto w-full px-6 md:px-12 relative pt-8 pb-32 md:pb-12">
         <header className="flex items-center justify-between mb-8 md:hidden px-2">
-          <button onClick={() => setSidebarOpen(true)} className="p-2 bg-stone-900 text-yellow-400 rounded-2xl shadow-lg active:scale-90 transition-transform rotate-3">
+          <button onClick={() => setSidebarOpen(true)} aria-label="Open menu" className="p-3 bg-stone-900 text-yellow-400 rounded-2xl shadow-lg active:scale-90 transition-transform rotate-3">
             <ChefHat size={24} strokeWidth={2.5} />
           </button>
           
           <button 
             onClick={() => setShowNotifications(true)}
-            className="p-2 bg-white text-stone-400 rounded-2xl shadow-sm border border-stone-100 active:scale-90 transition-transform relative"
+            aria-label="Notifications"
+            className="p-3 bg-white text-stone-400 rounded-2xl shadow-sm border border-stone-100 active:scale-90 transition-transform relative"
           >
             <Bell size={24} />
-            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
+            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" aria-hidden="true" />
           </button>
 
           <button 
             onClick={() => setTab('leaderboard')}
+            aria-label={`Leaderboard, ${points} points`}
             className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl shadow-sm border border-stone-100 active:scale-95 transition-all"
           >
             <Trophy size={16} className="text-yellow-500" />
@@ -4574,12 +4583,13 @@ const App = () => {
         {renderView()}
       </main>
 
-      <nav className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-2xl border-t border-stone-100 px-8 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex justify-between items-center md:hidden z-[60] shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+      <nav aria-label="Main tabs" role="tablist" className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-2xl border-t border-stone-100 px-8 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex justify-between items-center md:hidden z-[60] shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
         <NavIcon icon={LayoutGrid} active={tab === 'feed'} onClick={() => setTab('feed')} label="Feed" />
         <NavIcon icon={ChefHat} active={tab === 'bites'} onClick={() => setTab('bites')} label="Bites" />
         
         <button 
           onClick={() => setShowUnifiedCreation(true)} 
+          aria-label="Create new content"
           className="w-[72px] h-[72px] -mt-14 bg-stone-900 rounded-[2.5rem] flex items-center justify-center text-yellow-400 shadow-[0_20px_40px_rgba(0,0,0,0.3)] border-4 border-white active:scale-90 transition-transform"
         >
           <Camera size={29} strokeWidth={3} />

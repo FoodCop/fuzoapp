@@ -2,6 +2,62 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Accessibility: Focus Indicators ─── */
+@layer base {
+  *:focus-visible {
+    outline: 3px solid #facc15;
+    outline-offset: 2px;
+    border-radius: 0.75rem;
+  }
+
+  /* Remove inner focus ring when focus-visible is active */
+  *:focus:not(:focus-visible) {
+    outline: none;
+  }
+}
+
+/* ─── Accessibility: Reduced Motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─── Accessibility: Skip to Content ─── */
+.skip-to-content {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  z-index: 9999;
+}
+
+.skip-to-content:focus {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+  height: auto;
+  padding: 1rem 2rem;
+  background: #1c1917;
+  color: #facc15;
+  font-weight: 900;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-radius: 1.5rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  z-index: 9999;
+}
+
 body {
   font-family: 'Inter', sans-serif;
   -webkit-tap-highlight-color: transparent;

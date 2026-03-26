@@ -22,7 +22,7 @@ export const ScoutPlaceModal = ({
   onAction,
 }: ScoutPlaceModalProps) => {
   return (
-    <div className="fixed inset-0 z-[110] bg-stone-900/60 backdrop-blur-xl flex items-start justify-center p-4 md:p-10 overflow-y-auto">
+    <div role="dialog" aria-modal="true" aria-label={`Details for ${place.name}`} className="fixed inset-0 z-[110] bg-stone-900/60 backdrop-blur-xl flex items-start justify-center p-4 md:p-10 overflow-y-auto">
       <div className="bg-white w-full max-w-4xl rounded-[4rem] shadow-2xl overflow-hidden flex flex-col md:flex-row relative animate-in zoom-in duration-300">
         <button 
           onClick={onClose} 
