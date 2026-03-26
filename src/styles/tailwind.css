@@ -71,13 +71,39 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
+/* ─── Accessibility: Thin Scrollbars ─── */
+/* Show thin, unobtrusive scrollbars instead of hiding them completely */
+.hide-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
 }
 
-.hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+.hide-scrollbar:hover,
+.hide-scrollbar:focus-within {
+  scrollbar-color: rgba(120, 113, 108, 0.3) transparent;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.hide-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.hide-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+}
+
+.hide-scrollbar:hover::-webkit-scrollbar-thumb,
+.hide-scrollbar:focus-within::-webkit-scrollbar-thumb {
+  background: rgba(120, 113, 108, 0.3);
+}
+
+.hide-scrollbar:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 113, 108, 0.5);
 }
 
 @keyframes shimmer {

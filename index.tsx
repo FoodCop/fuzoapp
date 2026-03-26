@@ -1,4 +1,4 @@
-﻿
+
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import './src/styles/tailwind.css';
 import { mountApp } from './src/app/bootstrap/mountApp';
@@ -1270,7 +1270,7 @@ User description: ${description}`;
               <div className="relative aspect-video bg-stone-900 rounded-[2.5rem] border-4 border-dashed border-stone-800 overflow-hidden group hover:border-yellow-400/50 transition-all">
                 {image ? (
                   <>
-                    <img src={image} alt="Uploaded context" className="w-full h-full object-cover" />
+                    <img src={image} alt="Uploaded recipe context image" className="w-full h-full object-cover" />
                     <button onClick={() => setImage(null)} className="absolute top-4 right-4 p-2 bg-black/60 rounded-full hover:bg-red-500 transition-colors"><X size={16} /></button>
                   </>
                 ) : (
@@ -2809,7 +2809,7 @@ const ChatView = ({
                         : 'bg-white text-stone-500 border hover:border-stone-300'
                     }`}
                   >
-                    <img src={f.avatar} className="w-4 h-4 rounded-full" />
+                    <img src={f.avatar} alt={`${f.name || 'Member'} avatar`} className="w-4 h-4 rounded-full" />
                     {f.name}
                   </button>
                 ))}
@@ -2867,7 +2867,7 @@ const ChatView = ({
                       </span>
                     )}
                   </div>
-                  <span className="text-[12px] text-stone-300 font-bold">
+                  <span className="text-[12px] text-stone-500 font-bold">
                     {formatFriendTime(c)}
                   </span>
                 </div>
@@ -2913,7 +2913,7 @@ const PhoneMockup = ({ image, className = "" }: { image: string, className?: str
   <div className={`relative w-64 h-[520px] bg-stone-950 rounded-[3rem] p-3 shadow-2xl border-4 border-stone-800/50 overflow-hidden ${className}`}>
     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-stone-950 rounded-b-3xl z-20" />
     <div className="w-full h-full rounded-[2.2rem] overflow-hidden bg-stone-900">
-      <img src={image} alt="Phone mockup" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+      <img src={image} alt="" aria-hidden="true" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
     </div>
     <div className="absolute bottom-3 left-1/2 -translate-x-1/2 w-24 h-1 bg-white/20 rounded-full" />
   </div>
