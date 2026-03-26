@@ -1,89 +1,75 @@
+
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  MapPin, RefreshCw, LayoutGrid, Sparkles, Star, 
-  Search, X, Menu, Filter 
+  MapPin, RefreshCw, LayoutGrid, Sparkles, X, Star, Clock, Info, 
+  List, Bookmark, Share2, Plus, ArrowRight, Zap, PlayCircle, Search
 } from 'lucide-react';
-import { Loader } from '@googlemaps/js-api-loader';
-import { MarkerClusterer } from '@googlemaps/markerclusterer';
+import { Badge } from '../../../shared/ui/Badge';
+import { API_KEYS } from '../../../shared/constants/apiKeys';
 import { 
-  ScoutMapTab, ScoutPlace, MapLike, MarkerLike, 
-  getGoogleMaps, ScoutFilter 
+  getGoogleMaps 
+} from '../types/scoutUi';
+import type { 
+  ScoutPlace, 
+  MapLike, 
+  MarkerLike,
+  ScoutFilter
 } from '../types/scoutUi';
 import { 
-  resolveScoutDisplayPlaces, resolveScoutCopy, 
-  toScoutPlace, toSavedScoutPlace, shouldApplyLatestRequest,
-  getMatchPercentage, filterPlaces
+  SCOUT_FALLBACK_PLACES, 
+  calculateNeuralMatch, 
+  filterPlaces, 
+  sortPlaces,
+  toScoutPlace
 } from '../lib/scoutLogic';
-import { SCOUT_FALLBACK_PLACES } from '../constants/scoutSeeds';
-import { ScoutPlaceModal } from './ScoutPlaceModal';
 import { ScoutDiscoveryPanel } from './ScoutDiscoveryPanel';
-import { Badge } from '../../../shared/ui/Badge';
-import { AppItem } from '../../../shared/types/appItem';
+import { ScoutPlaceModal } from './ScoutPlaceModal';
+import { MarkerClusterer } from '@googlemaps/markerclusterer';
+import { supabase, hasSupabaseConfig } from '../../../services/supabaseClient';
 
-interface ScoutViewProps {
-  mapsApiKey: string;
-  savedItems: AppItem[];
-  onAction: (item: AppItem, action: 'save' | 'share' | 'delete') => void;
-}
+type ScoutTab = 'main' | 'fuzo' | 'my';
 
-export const ScoutView = ({ mapsApiKey, savedItems, onAction }: ScoutViewProps) => {
-  const [activeTab, setActiveTab] = useState<ScoutMapTab>('main');
-  const [filter, setFilter] = useState<ScoutFilter>('all');
-  const [selectedPlace, setSelectedPlace] = useState<ScoutPlace | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
-  const [modalTab, setModalTab] = useState('overview');
+const shouldApplyLatestRequest = (
+  mounted: { current: boolean },
+  seq: number,
+  ref: { current: number }
+) => mounted.current && seq === ref.current;
 
+export const ScoutView = ({ 
+  mapsApiKey = API_KEYS.MAPS,
+  savedItems = [],
+  onAction 
+}: { 
+  mapsApiKey?: string;
+  savedItems?: any[];
+  onAction: (item: any, action: 'save' | 'share') => void;
+}) => {
+  const [scoutTab, setScoutTab] = useState<ScoutTab>('main');
   const [mainMapPlaces, setMainMapPlaces] = useState<ScoutPlace[]>([]);
   const [communitySnapPlaces, setCommunitySnapPlaces] = useState<ScoutPlace[]>([]);
-  
-  const myMapPlaces = useMemo(() => {
-    return savedItems.map((item, idx) => toSavedScoutPlace(item, idx));
-  }, [savedItems]);
-
-  const unfilteredPlaces = useMemo(() => 
-    resolveScoutDisplayPlaces(activeTab, mainMapPlaces, communitySnapPlaces, myMapPlaces),
-    [activeTab, mainMapPlaces, communitySnapPlaces, myMapPlaces]
-  );
-
-  const displayPlaces = useMemo(() => 
-    filterPlaces(unfilteredPlaces, filter),
-    [unfilteredPlaces, filter]
-  );
-
-  const { scoutHeadline, listTitle, emptyStateMessage } = resolveScoutCopy(activeTab, displayPlaces.length, isLoading);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState<ScoutPlace | null>(null);
+  const [modalTab, setModalTab] = useState('overview');
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [isMapReady, setIsMapReady] = useState(false);
+  const [filter, setFilter] = useState<ScoutFilter>({
+    type: 'all',
+    rating: 0,
+    openNow: false,
+    maxDistance: 5000,
+    sortBy: 'match'
+  });
 
   const mapRef = useRef<HTMLDivElement>(null);
-  const googleMap = useRef<MapLike | null>(null);
-  const markers = useRef<MarkerLike[]>([]);
-  const clusterer = useRef<MarkerClusterer | null>(null);
+  const mapInstanceRef = useRef<MapLike | null>(null);
+  const clustererRef = useRef<MarkerClusterer | null>(null);
   const requestSeq = useRef(0);
   const mounted = useRef(true);
 
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; };
-  }, []);
-
-  const clearMarkers = useCallback(() => {
-    markers.current.forEach(m => m.setMap(null));
-    markers.current = [];
-    if (clusterer.current) {
-      clusterer.current.clearMarkers();
-    }
-  }, []);
-
-  const fetchCommunitySnaps = useCallback(async () => {
-    try {
-      setCommunitySnapPlaces(SCOUT_FALLBACK_PLACES.slice(0, 4).map(p => ({
-        ...p,
-        id: `snap-${p.id}`,
-        markerSource: 'fuzo'
-      })));
-    } catch (err) {
-      console.error('Failed to fetch community snaps:', err);
-    }
   }, []);
 
   const fetchPlaces = useCallback(async (map: MapLike) => {
@@ -95,7 +81,6 @@ export const ScoutView = ({ mapsApiKey, savedItems, onAction }: ScoutViewProps) 
       const google = getGoogleMaps();
       if (!google) throw new Error('Google Maps not loaded');
 
-      // Use modern searchNearby if available, fallback to legacy PlacesService
       const center = (map as any).getCenter();
       const lat = typeof center.lat === 'function' ? center.lat() : center.lat;
       const lng = typeof center.lng === 'function' ? center.lng() : center.lng;
@@ -104,12 +89,9 @@ export const ScoutView = ({ mapsApiKey, savedItems, onAction }: ScoutViewProps) 
         const { Place } = await (google as any).importLibrary('places');
         const { places } = await Place.searchNearby({
           fields: ['displayName', 'location', 'rating', 'userRatingCount', 'vicinity', 'types', 'photos'],
-          locationRestriction: { 
-            center: { lat, lng }, 
-            radius: 2000 
-          },
+          locationRestriction: { center: { lat, lng }, radius: 5000 },
           includedPrimaryTypes: ['restaurant', 'cafe', 'bar'],
-          maxResultCount: 15,
+          maxResultCount: 20,
         });
 
         if (!shouldApplyLatestRequest(mounted, seq, requestSeq)) return;
@@ -144,18 +126,18 @@ export const ScoutView = ({ mapsApiKey, savedItems, onAction }: ScoutViewProps) 
           setMainMapPlaces(SCOUT_FALLBACK_PLACES);
         }
       } catch (innerErr) {
-        // Fallback to legacy PlacesService if modern API fails or is unavailable
+        // Fallback
         const service = new (google as any).places.PlacesService(map);
         service.nearbySearch({
           location: { lat, lng },
-          radius: 2000,
+          radius: 5000,
           type: ['restaurant', 'cafe', 'bar']
         }, (results: any[], status: any) => {
           if (!shouldApplyLatestRequest(mounted, seq, requestSeq)) return;
           setIsLoading(false);
 
           if (status === (google as any).places.PlacesServiceStatus.OK && results) {
-            const transformed = results.slice(0, 15).map((r, i) => toScoutPlace(r, i, mapsApiKey));
+            const transformed = results.slice(0, 20).map((r, i) => toScoutPlace(r, i, mapsApiKey));
             setMainMapPlaces(transformed);
           } else {
             setMainMapPlaces(SCOUT_FALLBACK_PLACES);
@@ -170,198 +152,254 @@ export const ScoutView = ({ mapsApiKey, savedItems, onAction }: ScoutViewProps) 
     }
   }, [mapsApiKey]);
 
-  const renderMarkers = useCallback(() => {
+  useEffect(() => {
+    if (!hasSupabaseConfig || !supabase) return;
+    const loadFuzo = async () => {
+      const { data } = await supabase.from('fuzo_locations').select('*').limit(50);
+      if (data) {
+        setCommunitySnapPlaces(data.map((row, i) => ({
+          id: `fuzo-${row.id || i}`,
+          markerSource: 'fuzo',
+          name: row.location_name || row.restaurant_name || 'FUZO Discovery',
+          cat: row.cuisine || 'Spot',
+          rating: 4.5,
+          reviews: 12,
+          address: row.address || '',
+          phone: '',
+          website: '',
+          img: row.photos?.[0] || '',
+          lat: Number(row.latitude),
+          lng: Number(row.longitude),
+          vibe: row.tags || [],
+          timings: {},
+          menu: [],
+          userReviews: [],
+          photos: row.photos || []
+        })));
+      }
+    };
+    loadFuzo();
+  }, []);
+
+  const myMapPlaces = useMemo(() => {
+    return savedItems
+      .filter(item => Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lng)))
+      .map((item, i): ScoutPlace => ({
+        id: item.id || `saved-${i}`,
+        name: item.name,
+        cat: item.cat,
+        img: item.img,
+        lat: Number(item.lat),
+        lng: Number(item.lng),
+        markerSource: 'saved' as const,
+        rating: 5,
+        reviews: 0,
+        address: item.address || '',
+        phone: item.phone || '',
+        website: item.website || '',
+        vibe: [],
+        timings: {},
+        menu: [],
+        userReviews: [],
+        photos: []
+      }));
+  }, [savedItems]);
+
+  const activePlaces = useMemo(() => {
+    let base = mainMapPlaces;
+    if (scoutTab === 'fuzo') base = communitySnapPlaces;
+    if (scoutTab === 'my') base = myMapPlaces;
+    
+    // Apply neural match simulation
+    const withMatch = base.map(p => ({
+      ...p,
+      matchPercentage: calculateNeuralMatch(p)
+    }));
+    
+    return sortPlaces(filterPlaces(withMatch, filter), filter.sortBy);
+  }, [scoutTab, mainMapPlaces, communitySnapPlaces, myMapPlaces, filter]);
+
+  useEffect(() => {
+    if (!mapRef.current || !mapsApiKey) return;
+
+    const initMap = async () => {
+      const google = getGoogleMaps();
+      if (!google) return;
+
+      const map = new google.Map(mapRef.current!, {
+        center: { lat: 40.7128, lng: -74.0060 },
+        zoom: 13,
+        disableDefaultUI: true,
+      });
+
+      mapInstanceRef.current = map;
+      setIsMapReady(true);
+      fetchPlaces(map);
+
+      // Attempt geolocation
+      navigator.geolocation.getCurrentPosition((p) => {
+        const pos = { lat: p.coords.latitude, lng: p.coords.longitude };
+        map.setCenter(pos);
+        fetchPlaces(map);
+      });
+    };
+
+    initMap();
+  }, [mapsApiKey, fetchPlaces]);
+
+  useEffect(() => {
+    if (!isMapReady || !mapInstanceRef.current) return;
     const google = getGoogleMaps();
-    if (!google || !googleMap.current) return;
+    if (!google) return;
 
-    clearMarkers();
-    const bounds = new google.LatLngBounds();
-    const newMarkers: MarkerLike[] = [];
+    if (clustererRef.current) {
+      clustererRef.current.clearMarkers();
+    }
 
-    displayPlaces.forEach(place => {
-      const match = getMatchPercentage(place);
+    const markers = activePlaces.map(place => {
       const marker = new google.Marker({
         position: { lat: place.lat, lng: place.lng },
-        title: `${place.name} (${match}% Match)`,
         label: {
-          text: `${match}%`,
-          color: 'white',
+          text: place.matchPercentage ? `${place.matchPercentage}% Match` : place.name,
+          color: '#ffffff',
           fontSize: '10px',
-          fontWeight: 'black'
+          fontWeight: '900',
+          className: 'marker-label-premium bg-stone-900/80 px-2 py-1 rounded-full border border-yellow-400/30 backdrop-blur-md'
         },
         icon: {
           path: google.SymbolPath.CIRCLE,
-          scale: 14,
-          fillColor: place.markerSource === 'google' ? '#FACC15' : '#1C1917',
+          scale: 6,
+          fillColor: place.markerSource === 'fuzo' ? '#facc15' : '#3b82f6',
           fillOpacity: 1,
-          strokeColor: '#FFFFFF',
+          strokeColor: '#ffffff',
           strokeWeight: 2,
         }
       });
 
       marker.addListener('click', () => setSelectedPlace(place));
-      newMarkers.push(marker);
-      bounds.extend({ lat: place.lat, lng: place.lng });
+      return marker;
     });
 
-    markers.current = newMarkers;
+    clustererRef.current = new MarkerClusterer({
+      map: mapInstanceRef.current,
+      markers
+    });
 
-    if (!clusterer.current) {
-      clusterer.current = new MarkerClusterer({
-        map: googleMap.current,
-        markers: newMarkers,
-        renderer: {
-          render: ({ count, position }) => {
-            return new google.Marker({
-              label: { text: String(count), color: "white", fontSize: "12px", fontWeight: "bold" },
-              position,
-              icon: {
-                path: google.SymbolPath.CIRCLE,
-                scale: 18,
-                fillColor: "#FACC15",
-                fillOpacity: 0.9,
-                strokeColor: "#FFFFFF",
-                strokeWeight: 3,
-              },
-              zIndex: 1000,
-            });
-          }
-        }
-      });
-    } else {
-      clusterer.current.addMarkers(newMarkers);
+  }, [isMapReady, activePlaces]);
+
+  const handlePlaceSelect = (place: ScoutPlace) => {
+    setSelectedPlace(place);
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.panTo({ lat: place.lat, lng: place.lng });
+      mapInstanceRef.current.setZoom(16);
     }
-
-    if (!bounds.isEmpty()) {
-      googleMap.current.fitBounds(bounds, 50);
-    }
-  }, [displayPlaces, clearMarkers]);
-
-  useEffect(() => {
-    if (!mapsApiKey || !mapRef.current) return;
-
-    const loader = new Loader({
-      apiKey: mapsApiKey,
-      version: 'weekly',
-      libraries: ['places']
-    });
-
-    loader.load().then(() => {
-      const google = getGoogleMaps();
-      if (!google || !mapRef.current) return;
-
-      const map = new google.Map(mapRef.current, {
-        center: { lat: 43.644, lng: -79.4 },
-        zoom: 14,
-        streetViewControl: false,
-        mapTypeControl: false,
-        fullscreenControl: false,
-      });
-
-      googleMap.current = map;
-      fetchPlaces(map);
-      fetchCommunitySnaps();
-    });
-  }, [mapsApiKey, fetchPlaces, fetchCommunitySnaps]);
-
-  useEffect(() => {
-    renderMarkers();
-  }, [displayPlaces, renderMarkers]);
-
-  const handleAction = (place: ScoutPlace, action: 'save' | 'share') => {
-    const item: AppItem = {
-      id: place.id,
-      name: place.name,
-      img: place.img,
-      cat: place.cat,
-      rating: place.rating,
-      reviews: place.reviews,
-      lat: place.lat,
-      lng: place.lng,
-      placeId: place.placeId,
-      address: place.address,
-      phone: place.phone,
-      website: place.website,
-      vibe: place.vibe,
-      timings: place.timings,
-      menu: place.menu,
-      userReviews: place.userReviews,
-      photos: place.photos,
-    };
-    onAction(item, action);
   };
 
-  const handleSelectPlace = useCallback((place: ScoutPlace) => {
-    setSelectedPlace(place);
-    if (googleMap.current && (googleMap.current as any).setCenter) {
-      (googleMap.current as any).setCenter({ lat: place.lat, lng: place.lng });
-      (googleMap.current as any).setZoom(16);
-    }
-  }, []);
+  const scoutHeadline = useMemo(() => {
+    if (isLoading) return 'Scouting your area...';
+    if (activePlaces.length === 0) return 'No matches found';
+    return `Discovering ${activePlaces.length} premium spots`;
+  }, [isLoading, activePlaces.length]);
 
   return (
-    <div className="flex-grow flex flex-col relative h-full bg-white">
-      <div ref={mapRef} className="absolute inset-0 z-0" />
+    <div className="flex flex-col h-[calc(100vh-120px)] md:h-auto space-y-0 md:space-y-8 md:px-4 animate-in fade-in pb-24 md:pb-24 -mx-6 md:mx-0">
+      {/* Header with Tabs */}
+      <header className="hidden md:flex justify-between items-end px-4">
+        <div>
+          <Badge color="emerald">Scout v3.0</Badge>
+          <h2 className="text-4xl font-black uppercase tracking-tighter mt-1 text-stone-900">FUZO Map Discovery</h2>
+        </div>
+        <div className="flex bg-stone-100 p-1.5 rounded-2xl">
+          {(['main', 'fuzo', 'my'] as const).map(tab => (
+            <button 
+              key={tab}
+              onClick={() => setScoutTab(tab)}
+              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${scoutTab === tab ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
+            >
+              {tab === 'main' ? 'Main Map' : tab === 'fuzo' ? 'FUZO Locations' : 'My Map'}
+            </button>
+          ))}
+        </div>
+      </header>
 
-      <ScoutDiscoveryPanel
-        places={displayPlaces}
-        onSelect={handleSelectPlace}
-        isLoading={isLoading}
-        title={listTitle}
-        emptyState={emptyStateMessage}
-        activeFilter={filter}
-        onFilterChange={setFilter}
-      />
+      {/* Mobile Tabs */}
+      <div className="flex md:hidden bg-white border-b border-stone-100 sticky top-0 z-30">
+        {(['main', 'fuzo', 'my'] as const).map(tab => (
+          <button 
+            key={tab}
+            onClick={() => setScoutTab(tab)}
+            className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all ${scoutTab === tab ? 'border-yellow-400 text-stone-900' : 'border-transparent text-stone-400'}`}
+          >
+            {tab === 'main' ? 'Main' : tab === 'fuzo' ? 'FUZO' : 'My Map'}
+          </button>
+        ))}
+      </div>
 
-      <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20 w-[90%] md:w-auto">
-        <div className="flex flex-col gap-4">
-          <nav className="bg-white/80 backdrop-blur-3xl p-3 rounded-[2.5rem] shadow-2xl flex gap-3 border border-white/40">
-            {[
-              { id: 'main', label: 'Discovery', icon: MapPin },
-              { id: 'fuzo', label: 'Snaps', icon: Sparkles },
-              { id: 'my', label: 'My Map', icon: LayoutGrid }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as ScoutMapTab)}
-                className={`flex items-center gap-3 px-8 py-4 rounded-[1.8rem] text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-stone-900 text-white shadow-lg' : 'text-stone-400 hover:bg-white'}`}
-              >
-                <tab.icon size={16} strokeWidth={3} />
-                <span className="hidden md:block">{tab.label}</span>
-              </button>
-            ))}
-          </nav>
-
-          <header className="bg-white/80 backdrop-blur-3xl p-6 rounded-[2.5rem] shadow-2xl border border-white/40 flex items-center justify-between">
-            <div className="px-4">
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full animate-pulse ${isLoading ? 'bg-yellow-400' : 'bg-emerald-400'}`} />
-                <h3 className="text-sm font-black uppercase tracking-tighter">{scoutHeadline}</h3>
+      <div className="flex flex-col lg:grid lg:grid-cols-3 gap-0 md:gap-8 flex-grow">
+        {/* Map Area */}
+        <div className="lg:col-span-2 h-[60vh] md:h-[50vh] lg:h-[75vh] rounded-none md:rounded-[3.5rem] overflow-hidden border-0 md:border-[12px] border-white shadow-2xl bg-stone-100 relative group">
+          <div ref={mapRef} className="absolute inset-0" id="scout-map" />
+          
+          {/* Map Controls */}
+          <div className="absolute top-6 left-6 md:top-8 md:left-8 bg-white/90 backdrop-blur-md rounded-2xl border border-white/50 shadow-lg px-3 py-2.5">
+            <div className="flex items-center gap-4 text-[8px] md:text-[9px] font-black uppercase tracking-widest text-stone-500">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 border border-white"></span>
+                <span>FUZO Spots</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-500 border border-white"></span>
+                <span>Community</span>
               </div>
             </div>
+          </div>
+
+          <div className="absolute top-6 right-6 md:top-8 md:right-8 flex flex-col gap-3">
             <button 
-              onClick={() => googleMap.current && fetchPlaces(googleMap.current)}
-              className="p-4 bg-white rounded-3xl active:rotate-180 transition-transform duration-500 shadow-sm"
-              disabled={isLoading}
+              onClick={() => mapInstanceRef.current && fetchPlaces(mapInstanceRef.current)} 
+              className="p-3 md:p-4 bg-white rounded-2xl shadow-xl hover:bg-stone-50 transition-colors"
             >
-              <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
+              <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
             </button>
-          </header>
+          </div>
+          
+          <div className="absolute bottom-6 left-6 right-6 md:bottom-8 md:left-8 md:right-8 bg-white/90 backdrop-blur-md p-4 md:p-6 rounded-[2rem] md:rounded-[2.5rem] border border-white/50 shadow-xl flex items-center justify-between">
+            <div className="flex items-center gap-3 md:gap-4">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600"><Sparkles size={20} /></div>
+              <div>
+                <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-stone-400 leading-none">Scout Active</p>
+                <h4 className="font-black uppercase text-xs md:text-sm tracking-tighter mt-1 text-stone-900">{scoutHeadline}</h4>
+              </div>
+            </div>
+            <button className="px-4 py-2 md:px-6 md:py-3 bg-stone-900 text-white rounded-xl md:rounded-2xl font-black uppercase text-[8px] md:text-[10px] tracking-widest">Expand</button>
+          </div>
+        </div>
+
+        {/* Discovery Sidebar (The replacement for the old list sidebar) */}
+        <div className="relative space-y-6 p-6 md:p-0 bg-white md:bg-transparent rounded-t-[3rem] -mt-12 md:mt-0 z-20 shadow-[0_-20px_40px_rgba(0,0,0,0.05)] md:shadow-none h-full overflow-hidden">
+          <div className="w-12 h-1.5 bg-stone-100 rounded-full mx-auto mb-6 md:hidden" />
+          <ScoutDiscoveryPanel
+            places={activePlaces}
+            onPlaceSelect={handlePlaceSelect}
+            filter={filter}
+            onFilterChange={setFilter}
+            onClose={() => {}} // No close button needed in side panel mode
+            className="h-[60vh] md:h-full relative pointer-events-auto"
+            isSidebar={true}
+          />
         </div>
       </div>
 
-      <AnimatePresence>
-        {selectedPlace && (
-          <ScoutPlaceModal
-            place={selectedPlace}
-            modalTab={modalTab}
-            setModalTab={setModalTab}
-            isLoadingDetails={isLoadingDetails}
-            onClose={() => setSelectedPlace(null)}
-            onAction={handleAction}
-          />
-        )}
-      </AnimatePresence>
+      {selectedPlace && (
+        <ScoutPlaceModal
+          place={selectedPlace}
+          modalTab={modalTab}
+          setModalTab={setModalTab}
+          isLoadingDetails={isLoadingDetails}
+          onClose={() => setSelectedPlace(null)}
+          onAction={onAction}
+        />
+      )}
     </div>
   );
 };

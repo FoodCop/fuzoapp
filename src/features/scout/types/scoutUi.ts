@@ -12,12 +12,18 @@ export interface ScoutUserReview {
 export type ScoutTimings = Record<string, string>;
 
 export type ScoutMapTab = 'main' | 'fuzo' | 'my';
-export type ScoutFilter = 'all' | 'top' | 'open' | 'distance';
+export interface ScoutFilter {
+  type: 'all' | 'top' | 'open' | 'distance';
+  rating: number;
+  openNow: boolean;
+  maxDistance: number;
+  sortBy: 'match' | 'rating' | 'distance' | 'reviews';
+}
 
 export interface ScoutPlace {
   id: string;
   placeId?: string;
-  markerSource?: 'fuzo' | 'google';
+  markerSource?: 'fuzo' | 'google' | 'saved';
   name: string;
   cat: string;
   rating: number;
@@ -33,6 +39,7 @@ export interface ScoutPlace {
   menu: ScoutMenuSection[];
   userReviews: ScoutUserReview[];
   photos: string[];
+  matchPercentage?: number;
 }
 
 export type MarkerLike = {
@@ -52,6 +59,8 @@ export type MapLike = {
   fitBounds: (bounds: LatLngBoundsLike, padding?: number) => void;
   setCenter: (center: { lat: number; lng: number }) => void;
   getCenter: () => { lat: () => number; lng: () => number };
+  panTo: (center: { lat: number; lng: number }) => void;
+  setZoom: (zoom: number) => void;
 };
 
 export type GoogleMapsLike = {
@@ -60,9 +69,10 @@ export type GoogleMapsLike = {
     options: {
       center: { lat: number; lng: number };
       zoom: number;
-      streetViewControl: boolean;
-      mapTypeControl: boolean;
-      fullscreenControl: boolean;
+      disableDefaultUI?: boolean;
+      streetViewControl?: boolean;
+      mapTypeControl?: boolean;
+      fullscreenControl?: boolean;
     }
   ) => MapLike;
   Marker: any;

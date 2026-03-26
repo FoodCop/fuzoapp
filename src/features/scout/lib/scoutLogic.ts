@@ -2,6 +2,28 @@ import React from 'react';
 import { AppItem } from '../../../shared/types/appItem';
 import { ScoutPlace, ScoutMapTab, ScoutFilter } from '../types/scoutUi';
 
+export const SCOUT_FALLBACK_PLACES: ScoutPlace[] = [
+  {
+    id: 'fallback-1',
+    name: 'The Glass House',
+    cat: 'Fine Dining',
+    rating: 4.8,
+    reviews: 1240,
+    address: '123 Crystal Lane, NY',
+    phone: '+1 212-555-0123',
+    website: 'theglasshouse.com',
+    vibe: ['Elegant', 'Romantic', 'Quiet'],
+    img: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=400',
+    lat: 40.7128,
+    lng: -74.0060,
+    timings: { mon: '5PM - 11PM', tue: '5PM - 11PM', wed: '5PM - 11PM', thu: '5PM - 12AM', fri: '5PM - 1AM', sat: '4PM - 1AM', sun: '4PM - 10PM' },
+    menu: [],
+    userReviews: [],
+    photos: [],
+    matchPercentage: 98
+  }
+];
+
 export const toScoutPlace = (result: any, index: number, mapsApiKey: string): ScoutPlace => {
   const lat = result.geometry?.location?.lat() || 0;
   const lng = result.geometry?.location?.lng() || 0;
@@ -16,8 +38,8 @@ export const toScoutPlace = (result: any, index: number, mapsApiKey: string): Sc
     rating: result.rating || 0,
     reviews: result.user_ratings_total || 0,
     address: result.vicinity || result.formatted_address || '',
-    phone: '',
-    website: '',
+    phone: result.formatted_phone_number || '',
+    website: result.website || '',
     vibe: [],
     img: `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${result.photos?.[0]?.photo_reference}&key=${mapsApiKey}`,
     lat,
@@ -38,10 +60,13 @@ export const toSavedScoutPlace = (item: AppItem, index: number): ScoutPlace => {
     img: item.img || '',
     rating: item.rating || 0,
     reviews: item.reviews || 0,
+    address: item.address || '',
     lat: item.lat || 0,
     lng: item.lng || 0,
     markerSource: 'fuzo',
     vibe: item.vibe || [],
+    phone: item.phone || '',
+    website: item.website || '',
     timings: item.timings || {},
     menu: item.menu || [],
     userReviews: item.userReviews || [],
@@ -49,75 +74,46 @@ export const toSavedScoutPlace = (item: AppItem, index: number): ScoutPlace => {
   };
 };
 
-export const resolveScoutDisplayPlaces = (
-  tab: ScoutMapTab, 
-  main: ScoutPlace[], 
-  snaps: ScoutPlace[], 
-  my: ScoutPlace[]
-): ScoutPlace[] => {
-  switch (tab) {
-    case 'main': return main;
-    case 'fuzo': return snaps;
-    case 'my': return my;
-    default: return main;
-  }
-};
-
-export const resolveScoutCopy = (tab: ScoutMapTab, count: number, isLoading: boolean) => {
-  if (isLoading) return { scoutHeadline: 'Scanning Area...', listTitle: 'Detecting Spots', emptyStateMessage: '' };
-
-  switch (tab) {
-    case 'main':
-      return { 
-        scoutHeadline: 'Discovery Mode', 
-        listTitle: count > 0 ? 'Top Picks Nearby' : 'No Spots Found',
-        emptyStateMessage: 'Try moving the map or refreshing'
-      };
-    case 'fuzo':
-      return { 
-        scoutHeadline: 'Community Snaps', 
-        listTitle: 'Recent Vibes',
-        emptyStateMessage: 'No community snaps in this area yet'
-      };
-    case 'my':
-      return { 
-        scoutHeadline: 'My Map', 
-        listTitle: 'Saved Spots',
-        emptyStateMessage: 'You haven\'t saved any spots yet'
-      };
-    default:
-      return { scoutHeadline: 'Scout Mode', listTitle: 'Nearby', emptyStateMessage: '' };
-  }
-};
-
-export const getDistanceMeters = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-  const earthRadius = 6371e3;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLng / 2) * Math.sin(dLng / 2);
-  const arc = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return earthRadius * arc;
+export const calculateNeuralMatch = (place: ScoutPlace): number => {
+  const base = place.rating * 20; 
+  const random = Math.floor(Math.random() * 10) - 5; 
+  return Math.min(100, Math.max(70, Math.round(base + random)));
 };
 
 export const getMatchPercentage = (place: ScoutPlace | null): number => {
   if (!place) return 0;
-  const base = place.rating * 20; 
-  const random = Math.floor(Math.random() * 10) - 5; 
-  return Math.min(100, Math.max(70, base + random));
+  return place.matchPercentage || calculateNeuralMatch(place);
 };
 
 export const filterPlaces = (places: ScoutPlace[], filter: ScoutFilter): ScoutPlace[] => {
-  switch (filter) {
-    case 'top':
-      return [...places].sort((a, b) => b.rating - a.rating);
-    case 'open':
-      return places.filter(p => p.rating > 4.2);
+  let filtered = [...places];
+
+  if (filter.type === 'top') {
+    filtered = filtered.filter(p => p.rating >= 4.5);
+  } else if (filter.type === 'open') {
+    filtered = filtered.filter(p => p.rating > 4.2); // Simplified
+  }
+
+  if (filter.rating > 0) {
+    filtered = filtered.filter(p => p.rating >= filter.rating);
+  }
+
+  return filtered;
+};
+
+export const sortPlaces = (places: ScoutPlace[], sortBy: ScoutFilter['sortBy']): ScoutPlace[] => {
+  const sorted = [...places];
+  switch (sortBy) {
+    case 'match':
+      return sorted.sort((a, b) => (b.matchPercentage || 0) - (a.matchPercentage || 0));
+    case 'rating':
+      return sorted.sort((a, b) => b.rating - a.rating);
+    case 'reviews':
+      return sorted.sort((a, b) => b.reviews - a.reviews);
     case 'distance':
-      return places;
+      return sorted; // Needs lat/lng of user
     default:
-      return places;
+      return sorted;
   }
 };
 
