@@ -1,6 +1,6 @@
 import React from 'react';
 import type { AuthUser } from '../../features/auth/types/auth';
-import type { ChatFriend } from '../../features/chat/types/chatUi';
+import type { ChatFriend, ChatInboxItem } from '../../features/chat/types/chatUi';
 import type { LeaderboardEntry } from '../../features/points/services/pointsService';
 import type { AppItem } from '../../shared/types/appItem';
 
@@ -10,7 +10,7 @@ interface RenderComponents {
   TrimsView: React.ComponentType<{ onSave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void; authUser: AuthUser | null }>;
   ChefAIView: React.ComponentType;
   ChatView: React.ComponentType<{
-    friends: ChatFriend[];
+    friends: ChatInboxItem[];
     authUser: AuthUser | null;
     onSave: (item: AppItem) => void;
     onShareRequest: (item: AppItem) => void;
@@ -19,8 +19,8 @@ interface RenderComponents {
     onOpenUserProfile: (userId: string) => void;
   }>;
   ScoutView: React.ComponentType<{ onSave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void; savedItems: AppItem[] }>;
-  ProfileView: React.ComponentType<{ savedItems: AppItem[]; authUser: AuthUser | null; friends: ChatFriend[]; onSave: (item: AppItem) => void; onUnsave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void }>;
-  PublicProfileView: React.ComponentType<{ targetUserId: string; authUser: AuthUser | null; currentUserSavedItems: AppItem[]; friends: ChatFriend[]; onBackToOwnProfile: () => void; onSave: (item: AppItem) => void; onUnsave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void }>;
+  ProfileView: React.ComponentType<{ savedItems: AppItem[]; authUser: AuthUser | null; friends: ChatInboxItem[]; onSave: (item: AppItem) => void; onUnsave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void; setTab: (tab: string) => void }>;
+  PublicProfileView: React.ComponentType<{ targetUserId: string; authUser: AuthUser | null; currentUserSavedItems: AppItem[]; friends: ChatInboxItem[]; onBackToOwnProfile: () => void; onSave: (item: AppItem) => void; onUnsave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void; setTab: (tab: string) => void }>;
   LeaderboardView: React.ComponentType<{ userPoints: number; userLevel: number; leaderboardUsers: LeaderboardEntry[]; onOpenUserProfile: (userId: string) => void }>;
   RewardsView: React.ComponentType;
   SettingsView: React.ComponentType<{ onSignOut: () => Promise<void>; authUser: AuthUser | null }>;
@@ -50,7 +50,7 @@ export const renderAppView = ({
   handleSave: (item: AppItem) => void;
   handleUnsave: (item: AppItem) => void;
   setActiveShareItem: (item: AppItem) => void;
-  friends: ChatFriend[];
+  friends: ChatInboxItem[];
   savedItems: AppItem[];
   authUser: AuthUser | null;
   points: number;
@@ -91,9 +91,9 @@ export const renderAppView = ({
     case 'scout':
       return <ScoutView onSave={handleSave} onShareRequest={setActiveShareItem} savedItems={savedItems} />;
     case 'profile':
-      return <ProfileView savedItems={savedItems} authUser={authUser} friends={friends} onSave={handleSave} onUnsave={handleUnsave} onShareRequest={setActiveShareItem} />;
+      return <ProfileView savedItems={savedItems} authUser={authUser} friends={friends} onSave={handleSave} onUnsave={handleUnsave} onShareRequest={setActiveShareItem} setTab={setTab} />;
     case 'user-profile':
-      return <PublicProfileView targetUserId={profileUserId} authUser={authUser} currentUserSavedItems={savedItems} friends={friends} onBackToOwnProfile={handleBackToOwnProfile} onSave={handleSave} onUnsave={handleUnsave} onShareRequest={setActiveShareItem} />;
+      return <PublicProfileView targetUserId={profileUserId} authUser={authUser} currentUserSavedItems={savedItems} friends={friends} onBackToOwnProfile={handleBackToOwnProfile} onSave={handleSave} onUnsave={handleUnsave} onShareRequest={setActiveShareItem} setTab={setTab} />;
     case 'leaderboard':
       return <LeaderboardView userPoints={points} userLevel={level} leaderboardUsers={leaderboardUsers} onOpenUserProfile={handleOpenUserProfile} />;
     case 'rewards':

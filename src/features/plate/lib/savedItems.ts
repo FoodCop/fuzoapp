@@ -116,3 +116,10 @@ export const normalizeItemForPlateSave = (item: AppItem): NormalizedPlateItem =>
     metadata,
   };
 };
+
+export const areSavedItemsEquivalent = (left: AppItem, right: AppItem) => {
+  const normalizedLeft = normalizeItemForPlateSave(left);
+  const normalizedRight = normalizeItemForPlateSave(right);
+
+  return normalizedLeft.itemType === normalizedRight.itemType && normalizedLeft.itemId === normalizedRight.itemId;
+};

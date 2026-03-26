@@ -8,13 +8,30 @@ import {
   Bookmark, ChevronLeft, RefreshCw, LayoutGrid, Sparkles, Bot,
   Info, List, PieChart, CheckCircle2, SlidersHorizontal, Music2, Eye,
   Mail, Phone, Bell, Shield, LogOut, Trophy, Gift, Image as ImageIcon, CheckCheck, AlertCircle,
-  Pin
+  Plus,
+  ArrowRight,
+  Pin, Youtube, ExternalLink
 } from 'lucide-react';
+import { LeaderboardView } from './src/features/points/components/LeaderboardView';
+import { ProfileView } from './src/features/profile/components/ProfileView';
+import { PublicProfileView } from './src/features/profile/components/PublicProfileView';
+import { SettingsView } from './src/features/settings/components/SettingsView';
+import { NotificationsView } from './src/features/notifications/components/NotificationsView';
+import { UnifiedCreationModal } from './src/features/creation/components/UnifiedCreationModal';
+import { 
+  getMetadataRecord, 
+  getMetadataString, 
+  getMetadataStringArray, 
+  getMetadataNumber, 
+  getNutritionRecord 
+} from './src/shared/lib/metadata';
+import { normalizeExternalUrl } from './src/shared/lib/urlHelpers';
 import { Loader } from '@googlemaps/js-api-loader';
 import { BOTTOM_NAV_ITEMS, DRAWER_NAV_ITEMS, resolveInitialTab, TAB_IDS } from './src/app/layout/navItems';
 import { useAuthSessionSync } from './src/app/hooks/useAuthSessionSync';
 import { useSavedItemsOnAuth } from './src/app/hooks/useSavedItemsOnAuth';
 import { useTabUrlSync } from './src/app/hooks/useTabUrlSync';
+import { areSavedItemsEquivalent } from './src/features/plate/lib/savedItems';
 import { renderAppView } from './src/app/routes/renderAppView';
 import { PlacesService } from './src/services/placesService';
 import { SpoonacularService } from './src/services/spoonacularService';
@@ -102,79 +119,6 @@ const loadUploadedImage = async (
   onTagged();
 };
 
-const getMetadataString = (metadata: Record<string, unknown> | undefined, ...keys: string[]) => {
-  for (const key of keys) {
-    const value = metadata?.[key];
-    if (typeof value === 'string' && value.trim().length > 0) {
-      return value;
-    }
-  }
-  return '';
-};
-
-const getMetadataRecord = (value: unknown): Record<string, unknown> | undefined => {
-  return value && typeof value === 'object' ? (value as Record<string, unknown>) : undefined;
-};
-
-const getMetadataStringArray = (metadata: Record<string, unknown> | undefined, ...keys: string[]) => {
-  for (const key of keys) {
-    const value = metadata?.[key];
-    if (Array.isArray(value)) {
-      const strings = value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0);
-      if (strings.length > 0) {
-        return strings;
-      }
-    }
-  }
-  return [] as string[];
-};
-
-const getMetadataNumber = (metadata: Record<string, unknown> | undefined, ...keys: string[]) => {
-  for (const key of keys) {
-    const value = metadata?.[key];
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
-  }
-  return undefined;
-};
-
-const getNutritionRecord = (...sources: Array<Record<string, unknown> | undefined>) => {
-  for (const source of sources) {
-    if (!source) {
-      continue;
-    }
-
-    const calories = getMetadataNumber(source, 'calories');
-    const protein = getMetadataNumber(source, 'protein');
-    const fat = getMetadataNumber(source, 'fat');
-    const carbs = getMetadataNumber(source, 'carbs');
-
-    if ([calories, protein, fat, carbs].some((value) => value !== undefined)) {
-      return { calories, protein, fat, carbs };
-    }
-  }
-
-  return undefined;
-};
-
-const areSavedItemsEquivalent = (left: AppItem, right: AppItem) => {
-  const normalizedLeft = normalizeItemForPlateSave(left);
-  const normalizedRight = normalizeItemForPlateSave(right);
-
-  return normalizedLeft.itemType === normalizedRight.itemType && normalizedLeft.itemId === normalizedRight.itemId;
-};
-
-const normalizeExternalUrl = (value: string | undefined, baseUrl: string) => {
-  if (!value) return baseUrl;
-  const trimmed = value.trim();
-  if (!trimmed) return baseUrl;
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
-  if (trimmed.startsWith('@')) return `${baseUrl}/${trimmed.slice(1)}`;
-  if (trimmed.includes('.')) return `https://${trimmed}`;
-  return `${baseUrl}/${trimmed}`;
-};
 
 const parseAiJson = (raw: string | undefined | null) => {
   if (!raw) return null;
@@ -664,7 +608,7 @@ const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friend
                 <img src={friend.avatar} alt={friend.name || 'Friend avatar'} className="w-12 h-12 rounded-full border-2 border-stone-100" />
                 <div>
                   <span className="font-black uppercase text-xs tracking-widest block">{friend.name}</span>
-                  {!!friend.username && <span className="text-[9px] font-bold uppercase tracking-widest text-stone-400">@{friend.username}</span>}
+                  {!!('username' in friend && friend.username) && <span className="text-[9px] font-bold uppercase tracking-widest text-stone-400">@{friend.username}</span>}
                 </div>
               </div>
               {sentTo.includes(friend.id) ? (
@@ -975,64 +919,163 @@ const BitesRecipeModal = ({
   onSaveRecipe: (recipe: BiteRecipe) => void;
   onShareRecipe: (recipe: BiteRecipe) => void;
 }) => {
+  const [activeTab, setActiveTab] = useState<'ingredients' | 'steps' | 'nutrition'>('ingredients');
+
   if (!selectedRecipe) return null;
 
-  return (
-    <div className="fixed inset-0 z-[110] bg-stone-900/60 backdrop-blur-xl flex items-start justify-center p-4 md:p-10 overflow-y-auto">
-      <div className="bg-white w-full max-w-4xl rounded-[4rem] shadow-2xl overflow-hidden flex flex-col md:flex-row relative animate-in zoom-in duration-300">
-        <button onClick={onClose} className="absolute top-6 right-6 z-20 p-4 bg-stone-900 text-white rounded-3xl active:scale-90 transition-transform"><X size={24} /></button>
-        <div className="w-full md:w-1/2 h-64 md:h-auto overflow-hidden"><img src={selectedRecipe.image} alt={selectedRecipe.title || 'Selected recipe'} className="w-full h-full object-cover" /></div>
-        <div className="w-full md:w-1/2 p-8 md:p-14 overflow-y-auto hide-scrollbar flex flex-col gap-10">
-          <header className="space-y-4">
-            <div>
-              <Badge color="yellow">Studio Pack #{selectedRecipe.id}</Badge>
-              <h2 className="text-4xl font-black uppercase tracking-tighter mt-2 leading-none">{selectedRecipe.title}</h2>
-            </div>
-            <div className="flex gap-6">
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-stone-400"><Clock size={16} /> {selectedRecipe.readyInMinutes} Mins</div>
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-stone-400"><User size={16} /> {selectedRecipe.servings} Serves</div>
-            </div>
-          </header>
-          <section className="space-y-4">
-            <div className="flex items-center gap-4 text-stone-900"><PieChart size={20} /><h4 className="font-black uppercase text-xs tracking-widest">Nutritional Data</h4></div>
-            <div className="grid grid-cols-2 gap-4">
-              {getBiteKeyNutrients(selectedRecipe).map((n) => (
-                <div key={n.name} className="bg-stone-50 p-6 rounded-[2rem] border border-stone-100 flex flex-col justify-center">
-                  <p className="text-xl font-black">{Math.round(n.amount)} <span className="text-[10px] text-stone-400 font-bold">{n.unit}</span></p>
-                  <p className="text-[8px] font-black uppercase tracking-widest text-stone-400 mt-1 truncate">{n.name}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-          <section className="space-y-4">
-            <div className="flex items-center gap-4 text-stone-900"><List size={20} /><h4 className="font-black uppercase text-xs tracking-widest">Ingredients</h4></div>
-            <ul className="space-y-3">
-              {selectedRecipe.extendedIngredients?.map((ing) => (
-                <li key={String(ing.original)} className="flex gap-3 text-sm font-bold text-stone-500"><div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-1.5 shrink-0" /> {ing.original}</li>
-              ))}
-            </ul>
-          </section>
-          <section className="space-y-4 pb-10">
-            <div className="flex items-center gap-4 text-stone-900"><ChefHat size={20} /><h4 className="font-black uppercase text-xs tracking-widest">Instructions</h4></div>
-            <div className="text-sm font-bold text-stone-500 leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: selectedRecipe.instructions || 'Consult Chef FUZO for detailed steps.' }} />
-          </section>
+  const tabs = [
+    { id: 'ingredients', label: 'Ingredients', icon: List },
+    { id: 'steps', label: 'Steps', icon: ChefHat },
+    { id: 'nutrition', label: 'Nutrition', icon: PieChart },
+  ] as const;
 
-          <footer className="pt-4 flex gap-4 sticky bottom-0 bg-white/90 backdrop-blur-md pb-2">
+  return (
+    <div className="fixed inset-0 z-[500] bg-stone-950/40 backdrop-blur-2xl flex items-center justify-center p-4 md:p-10 overflow-y-auto">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        className="bg-white w-full max-w-4xl rounded-[4rem] shadow-2xl overflow-hidden flex flex-col md:flex-row relative max-h-[90vh]"
+      >
+        <button 
+          onClick={onClose} 
+          className="absolute top-6 right-6 z-50 w-12 h-12 bg-stone-900 text-white rounded-2xl flex items-center justify-center active:scale-90 transition-transform shadow-xl"
+        >
+          <X size={24} />
+        </button>
+
+        {/* Left Side: Image */}
+        <div className="w-full md:w-1/2 h-64 md:h-auto overflow-hidden relative">
+          <img src={selectedRecipe.image} alt={selectedRecipe.title || 'Selected recipe'} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent md:hidden" />
+          <div className="absolute bottom-6 left-8 md:hidden text-white">
+             <Badge color="yellow">Studio Pack #{selectedRecipe.id}</Badge>
+             <h2 className="text-3xl font-black uppercase tracking-tighter mt-2 leading-none">{selectedRecipe.title}</h2>
+          </div>
+        </div>
+
+        {/* Right Side: Content */}
+        <div className="w-full md:w-1/2 flex flex-col h-full bg-white relative">
+          {/* Header (Desktop) */}
+          <div className="hidden md:block p-10 pb-0 space-y-4">
+            <Badge color="yellow">Studio Pack #{selectedRecipe.id}</Badge>
+            <h2 className="text-4xl font-black uppercase tracking-tighter leading-none text-stone-900">{selectedRecipe.title}</h2>
+            <div className="flex gap-6">
+              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-stone-400">
+                <Clock size={16} /> {selectedRecipe.readyInMinutes} Mins
+              </div>
+              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-stone-400">
+                <User size={16} /> {selectedRecipe.servings} Serves
+              </div>
+            </div>
+          </div>
+
+          {/* Stats (Mobile) */}
+          <div className="flex md:hidden px-8 py-6 gap-6 border-b border-stone-50">
+              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-stone-400">
+                <Clock size={16} /> {selectedRecipe.readyInMinutes} Mins
+              </div>
+              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-stone-400">
+                <User size={16} /> {selectedRecipe.servings} Serves
+              </div>
+          </div>
+
+          {/* Tab Bar */}
+          <div className="px-8 mt-6">
+            <div className="flex bg-stone-50 p-1.5 rounded-2xl gap-1">
+              {tabs.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTab(t.id)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === t.id ? 'bg-white shadow-sm text-stone-900' : 'text-stone-400 hover:text-stone-600'}`}
+                >
+                  <t.icon size={14} />
+                  <span className="hidden sm:inline">{t.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Scrollable Content */}
+          <div className="flex-grow overflow-y-auto p-8 md:p-10 hide-scrollbar min-h-[300px]">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                {activeTab === 'ingredients' && (
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-4 text-stone-900">
+                      <List size={20} />
+                      <h4 className="font-black uppercase text-xs tracking-widest">Fresh Ingredients</h4>
+                    </div>
+                    <ul className="grid grid-cols-1 gap-3">
+                      {selectedRecipe.extendedIngredients?.map((ing) => (
+                        <li key={String(ing.original)} className="group flex items-center gap-4 p-4 bg-stone-50 rounded-2xl border border-stone-100/50 hover:bg-white hover:border-yellow-200 transition-all">
+                          <div className="w-2 h-2 bg-yellow-400 rounded-full group-hover:scale-125 transition-transform shrink-0" />
+                          <span className="text-xs font-bold text-stone-600 leading-tight">{ing.original}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {activeTab === 'steps' && (
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-4 text-stone-900">
+                      <ChefHat size={20} />
+                      <h4 className="font-black uppercase text-xs tracking-widest">Chef Instructions</h4>
+                    </div>
+                    <div 
+                      className="text-sm font-medium text-stone-500 leading-relaxed whitespace-pre-wrap studio-instructions prose prose-stone max-w-none" 
+                      dangerouslySetInnerHTML={{ __html: selectedRecipe.instructions || 'Consult Chef FUZO for detailed steps.' }} 
+                    />
+                  </div>
+                )}
+
+                {activeTab === 'nutrition' && (
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-4 text-stone-900">
+                      <PieChart size={20} />
+                      <h4 className="font-black uppercase text-xs tracking-widest">Nutrition Pulse</h4>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      {getBiteKeyNutrients(selectedRecipe).map((n) => (
+                        <div key={n.name} className="bg-stone-50 p-6 rounded-[2.5rem] border border-stone-100 flex flex-col justify-center hover:bg-white hover:shadow-md transition-all group">
+                          <p className="text-2xl font-black text-stone-900 group-hover:text-yellow-600 transition-colors">
+                            {Math.round(n.amount)} <span className="text-[10px] text-stone-400 font-bold uppercase tracking-widest ml-1">{n.unit}</span>
+                          </p>
+                          <p className="text-[9px] font-black uppercase tracking-widest text-stone-400 mt-1 truncate">{n.name}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Sticky Footer */}
+          <footer className="p-8 md:p-10 pt-4 bg-white/90 backdrop-blur-md border-t border-stone-50 flex gap-4 shrink-0 transition-all">
             <button
               onClick={() => onSaveRecipe(selectedRecipe)}
-              className="flex-grow py-5 bg-stone-900 text-white rounded-[2rem] flex items-center justify-center active:scale-95 transition-all shadow-xl"
+              className="flex-grow py-5 bg-stone-900 text-white rounded-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all shadow-xl group"
             >
-              <Bookmark size={22} />
+              <Bookmark size={22} className="group-hover:fill-white transition-all" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Save to Plate</span>
             </button>
             <button
               onClick={() => onShareRecipe(selectedRecipe)}
-              className="py-5 px-10 bg-yellow-400 text-stone-900 rounded-[2rem] flex items-center justify-center active:scale-95 transition-all shadow-xl"
+              className="py-5 px-10 bg-yellow-400 text-stone-900 rounded-2xl flex items-center justify-center hover:scale-[1.02] active:scale-95 transition-all shadow-xl"
             >
-              <Share2 size={22} />
+              <Share2 size={22} strokeWidth={3} />
             </button>
           </footer>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };
@@ -1043,7 +1086,6 @@ const BitesControls = ({
   activeDiet,
   activeCuisine,
   showFilters,
-  onOpenAIStudio,
   onSearchQueryChange,
   onSearchSubmit,
   onRefresh,
@@ -1056,7 +1098,6 @@ const BitesControls = ({
   activeDiet: string | null;
   activeCuisine: string | null;
   showFilters: boolean;
-  onOpenAIStudio: () => void;
   onSearchQueryChange: (value: string) => void;
   onSearchSubmit: () => void;
   onRefresh: () => void;
@@ -1069,22 +1110,9 @@ const BitesControls = ({
       <header className="hidden md:flex justify-between items-end">
         <div><Badge color="yellow">Daily Bites</Badge><h2 className="text-4xl font-black uppercase tracking-tighter mt-1">Recipe Packs</h2></div>
         <div className="flex gap-3">
-          <button
-            onClick={onOpenAIStudio}
-            className="px-6 py-4 bg-stone-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:scale-105 transition-transform shadow-xl"
-          >
-            <Sparkles size={16} /> AI Studio
-          </button>
           <button onClick={onRefresh} className="p-4 bg-white rounded-2xl shadow-sm hover:scale-105 transition-transform"><RefreshCw size={24} className={loading ? 'animate-spin' : ''} /></button>
         </div>
       </header>
-
-      <button
-        onClick={onOpenAIStudio}
-        className="md:hidden w-full py-5 bg-stone-900 text-white rounded-[2rem] font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 shadow-xl"
-      >
-        <Sparkles size={18} /> Launch AI Recipe Studio
-      </button>
 
       <div className="flex flex-row gap-3 items-center">
         <div className="relative flex-grow">
@@ -1750,7 +1778,6 @@ const FeedView = ({ onSave, onShareRequest, onOpenUserProfile }: { onSave: (item
 const BitesView = ({ onSave, onShareRequest }: { onSave: (item: BiteActionItem) => void, onShareRequest: (item: BiteActionItem) => void }) => {
   const [selectedRecipe, setSelectedRecipe] = useState<BiteRecipe | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [showAIStudio, setShowAIStudio] = useState(false);
   const {
     loading,
     serviceError,
@@ -1783,7 +1810,6 @@ const BitesView = ({ onSave, onShareRequest }: { onSave: (item: BiteActionItem) 
         activeDiet={activeDiet}
         activeCuisine={activeCuisine}
         showFilters={showFilters}
-        onOpenAIStudio={() => setShowAIStudio(true)}
         onSearchQueryChange={setSearchQuery}
         onSearchSubmit={handleSearchSubmit}
         onRefresh={() => fetchBites(true)}
@@ -1805,14 +1831,6 @@ const BitesView = ({ onSave, onShareRequest }: { onSave: (item: BiteActionItem) 
         onSaveRecipe={handleSaveRecipe}
         onShareRecipe={handleShareRecipe}
       />
-
-      {showAIStudio && (
-        <AIRecipeStudio
-          onSave={onSave}
-          onShareRequest={onShareRequest}
-          onClose={() => setShowAIStudio(false)}
-        />
-      )}
     </div>
   );
 };
@@ -2125,7 +2143,6 @@ const TrimsView = ({ onSave, onShareRequest, authUser }: { onSave: (item: AppIte
   const [serviceError, setServiceError] = useState('');
   const [feedSource, setFeedSource] = useState<'live' | 'cache' | 'fallback'>('fallback');
   const [locationLabel, setLocationLabel] = useState('Localized');
-  const [showAIStudio, setShowAIStudio] = useState(false);
   const trimsMountedRef = useRef(true);
   const trimsScrollRootRef = useRef<HTMLDivElement | null>(null);
   const trimCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -2317,13 +2334,6 @@ const TrimsView = ({ onSave, onShareRequest, authUser }: { onSave: (item: AppIte
 
   return (
     <div className="h-[80vh] w-full max-w-md mx-auto relative">
-      <button
-        onClick={() => setShowAIStudio(true)}
-        className="absolute top-6 left-6 z-30 px-6 py-3 bg-white/20 backdrop-blur-xl border border-white/30 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-white/40 transition-all shadow-2xl"
-      >
-        <Sparkles size={16} /> AI Trim Studio
-      </button>
-
       <div className="absolute top-6 right-6 z-30 px-4 py-2 bg-black/35 border border-white/20 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest backdrop-blur-md">
         {feedSourceLabel} · {locationLabel}
       </div>
@@ -2384,14 +2394,6 @@ const TrimsView = ({ onSave, onShareRequest, authUser }: { onSave: (item: AppIte
         </div>
       ))}
       </div>
-
-      {showAIStudio && (
-        <AITrimStudio
-          onSave={onSave}
-          onShareRequest={onShareRequest}
-          onClose={() => setShowAIStudio(false)}
-        />
-      )}
     </div>
   );
 };
@@ -2558,7 +2560,7 @@ const ChatView = ({
   }, [activeId, messages.length]);
 
   const formatFriendTime = (item: ChatInboxItem) => {
-    if (item?.time) return item.time;
+    if ('time' in item && item.time) return item.time;
     if ('online' in item && item.online) return 'now';
     if ('lastSeen' in item && item.lastSeen) return 'recent';
     return '—';
@@ -2663,7 +2665,7 @@ const ChatView = ({
     const sentMessage = sent.data;
     setMessages(prev => prev
       .filter((message) => message.id !== optimisticId)
-      .concat([{ ...mapMessageToUi(sentMessage), status: 'sent', senderName: authUser.name || 'You' }]));
+      .concat([{ ...mapMessageToUi(sentMessage), status: 'sent', senderName: (authUser.user_metadata?.full_name as string) || (authUser.user_metadata?.name as string) || 'You' }]));
   };
 
   const createGroup = async () => {
@@ -3884,1013 +3886,7 @@ const ScoutView = ({ onSave, onShareRequest, savedItems }: { onSave: (item: AppI
   );
 };
 
-const ProfileView = ({ savedItems, authUser, friends, onSave, onUnsave, onShareRequest }: { savedItems: AppItem[]; authUser: AuthUser | null; friends: ChatFriend[]; onSave: (item: AppItem) => void; onUnsave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void }) => {
-  const [activeTab, setActiveTab] = useState('places');
-  const [persistedProfile, setPersistedProfile] = useState<SettingsProfile | null>(null);
-  const [selectedSavedItem, setSelectedSavedItem] = useState<AppItem | null>(null);
 
-  const hasIdPrefix = useCallback((item: AppItem, prefix: string) => {
-    return typeof item.id === 'string' && item.id.startsWith(prefix);
-  }, []);
-
-  const profileDisplay = useMemo(() => {
-    const metadata = (authUser?.user_metadata || {}) as Record<string, string | undefined>;
-    const email = authUser?.email || '';
-    const emailName = email.includes('@') ? email.split('@')[0] : 'Chef Studio';
-    const persisted = persistedProfile;
-
-    return {
-      name: persisted?.name || metadata.full_name || metadata.name || 'Chef Studio',
-      username: persisted?.username || metadata.username || metadata.user_name || emailName,
-      bio: persisted?.bio || metadata.bio || 'Discovery engine architect. Exploring the world of fine dining and culinary hacks.',
-      avatar: metadata.avatar_url || `https://i.pravatar.cc/150?u=${email || 'me'}`,
-    };
-  }, [authUser, persistedProfile]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadPersistedProfile = async () => {
-      if (!authUser?.id) {
-        setPersistedProfile(null);
-        return;
-      }
-
-      const result = await SettingsService.getUserSettings(authUser);
-      if (cancelled) return;
-
-      if (result.success && result.data) {
-        setPersistedProfile(result.data);
-      }
-    };
-
-    loadPersistedProfile();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [authUser]);
-
-  const socialLinks = useMemo(() => {
-    const metadata = (authUser?.user_metadata || {}) as Record<string, string | undefined>;
-    const persisted = persistedProfile;
-
-    return {
-      instagram: normalizeExternalUrl(persisted?.instagram || metadata.instagram_url || metadata.instagram || metadata.ig, 'https://instagram.com'),
-      facebook: normalizeExternalUrl(persisted?.facebook || metadata.facebook_url || metadata.facebook || metadata.fb, 'https://facebook.com'),
-      tiktok: normalizeExternalUrl(persisted?.tiktok || metadata.tiktok_url || metadata.tiktok, 'https://tiktok.com'),
-      pinterest: normalizeExternalUrl(persisted?.pinterest || metadata.pinterest_url || metadata.pinterest, 'https://pinterest.com'),
-    };
-  }, [authUser, persistedProfile]);
-
-  const tabs = [
-    { id: 'places', label: 'Saved Places', icon: MapPin },
-    { id: 'recipes', label: 'Recipes', icon: ChefHat },
-    { id: 'videos', label: 'Videos', icon: PlayCircle },
-    { id: 'crew', label: 'Crew', icon: User },
-    { id: 'posts', label: 'Posts', icon: LayoutGrid },
-  ];
-
-  const filteredItems = useMemo(() => {
-    if (activeTab === 'places') return savedItems.filter(i => !hasIdPrefix(i, 'recipe-') && !hasIdPrefix(i, 'video-') && !hasIdPrefix(i, 'post-'));
-    if (activeTab === 'recipes') return savedItems.filter(i => hasIdPrefix(i, 'recipe-'));
-    if (activeTab === 'videos') return savedItems.filter(i => hasIdPrefix(i, 'video-'));
-    if (activeTab === 'posts') return savedItems.filter(i => hasIdPrefix(i, 'post-'));
-    return [];
-  }, [savedItems, activeTab, hasIdPrefix]);
-
-  const activeCount = activeTab === 'crew' ? friends.length : filteredItems.length;
-
-  return (
-    <div className="max-w-2xl mx-auto space-y-10 animate-in fade-in pb-20">
-      <div className="relative h-64 bg-stone-900 rounded-[4rem] overflow-hidden shadow-2xl">
-        <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80" alt="Profile cover" className="w-full h-full object-cover opacity-60" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent" />
-        <div className="absolute -bottom-2 right-12"><div className="w-28 h-28 rounded-[2.5rem] border-8 border-white bg-white shadow-2xl overflow-hidden"><img src={profileDisplay.avatar} alt={`${profileDisplay.name} avatar`} /></div></div>
-      </div>
-      <div className="px-8 space-y-4">
-        <h2 className="text-5xl font-black uppercase tracking-tighter">{profileDisplay.name}</h2>
-        <p className="text-stone-400 font-bold text-xs uppercase tracking-widest">@{profileDisplay.username}</p>
-        <p className="text-stone-500 font-bold max-w-md">{profileDisplay.bio}</p>
-        <div className="flex items-center gap-4 pt-4">
-          <div className="text-center"><p className="text-2xl font-black">{savedItems.length}</p><p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Saves</p></div>
-          <div className="w-px h-10 bg-stone-100" />
-          <div className="text-center"><p className="text-2xl font-black">42</p><p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Reviews</p></div>
-          <div className="w-px h-10 bg-stone-100" />
-          <div className="flex items-center gap-2">
-            <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="Instagram profile">
-              <InstagramMark size={18} />
-            </a>
-            <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="Facebook profile">
-              <FacebookMark size={18} />
-            </a>
-            <a href={socialLinks.tiktok} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="TikTok profile">
-              <Music2 size={18} />
-            </a>
-            <a href={socialLinks.pinterest} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="Pinterest profile">
-              <Pin size={18} />
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="px-8">
-        <div className="flex bg-stone-100 p-2 rounded-[2.5rem] gap-1">
-          {tabs.map(t => (
-            <button
-              key={t.id}
-              onClick={() => setActiveTab(t.id)}
-              className={`flex-1 flex items-center justify-center py-5 rounded-[2rem] transition-all ${activeTab === t.id ? 'bg-white shadow-md text-stone-900' : 'text-stone-300 hover:text-stone-600'}`}
-            >
-              <t.icon size={22} strokeWidth={activeTab === t.id ? 3 : 2} />
-            </button>
-          ))}
-        </div>
-      </div>
-      
-      <div className="px-8 space-y-6">
-        <div className="flex justify-between items-center">
-          <h4 className="font-black uppercase text-xs tracking-widest text-stone-900">
-            {tabs.find(t => t.id === activeTab)?.label}
-          </h4>
-          <Badge color="yellow">{activeCount} Items</Badge>
-        </div>
-
-        {activeTab === 'crew' ? (
-          <div className="space-y-4">
-            {friends.length === 0 ? (
-              <div className="p-12 bg-stone-100 rounded-[3rem] text-center text-stone-300 font-black uppercase text-[10px] tracking-widest">
-                No crew connections yet
-              </div>
-            ) : (
-              friends.map((friend) => (
-                <div key={friend.id} className="bg-white p-6 rounded-[2.5rem] border border-stone-100 shadow-sm flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <img src={friend.avatar} alt={friend.name || 'Crew member'} className="w-14 h-14 rounded-2xl object-cover border-2 border-stone-100" />
-                    <div>
-                      <p className="font-black uppercase tracking-widest text-xs text-stone-900">{friend.name}</p>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Last active {friend.time}</p>
-                    </div>
-                  </div>
-                  <button className="px-4 py-2 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest">View</button>
-                </div>
-              ))
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-6">
-            {filteredItems.length === 0 ? (
-              <div className="col-span-2 p-12 bg-stone-100 rounded-[3rem] text-center text-stone-300 font-black uppercase text-[10px] tracking-widest">
-                No {activeTab} saved yet
-              </div>
-            ) : (
-              filteredItems.map((item) => (
-                <button
-                  type="button"
-                  key={item.id || `${item.name}-${item.cat}`}
-                  onClick={() => setSelectedSavedItem(item)}
-                  className="aspect-square bg-stone-100 rounded-[3rem] border-4 border-white shadow-md overflow-hidden relative group text-left active:scale-[0.98] transition-transform"
-                >
-                  <img src={item.img} alt={item.name || 'Saved item'} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white p-4 text-center">
-                    <p className="font-black uppercase text-[10px] tracking-tighter leading-tight mb-2">{item.name}</p>
-                    <Badge color="yellow">{item.cat}</Badge>
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-
-      {selectedSavedItem && (
-        <SavedItemDetailModal item={selectedSavedItem} onClose={() => setSelectedSavedItem(null)} onSave={onSave} onUnsave={onUnsave} onShareRequest={onShareRequest} savedItems={savedItems} />
-      )}
-    </div>
-  );
-};
-
-const useModalSwipeToClose = (onClose: () => void) => {
-  const dragStartYRef = useRef<number | null>(null);
-  const [dragOffset, setDragOffset] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-
-  const handleTouchStart = (event: React.TouchEvent<HTMLButtonElement>) => {
-    dragStartYRef.current = event.touches[0]?.clientY ?? null;
-    setIsDragging(true);
-  };
-
-  const handleTouchMove = (event: React.TouchEvent<HTMLButtonElement>) => {
-    if (dragStartYRef.current === null) {
-      return;
-    }
-
-    const nextOffset = Math.max(0, (event.touches[0]?.clientY ?? dragStartYRef.current) - dragStartYRef.current);
-    setDragOffset(nextOffset);
-  };
-
-  const handleTouchEnd = () => {
-    setIsDragging(false);
-
-    if (dragOffset > 120) {
-      onClose();
-    }
-
-    dragStartYRef.current = null;
-    setDragOffset(0);
-  };
-
-  return {
-    dragOffset,
-    isDragging,
-    handleTouchStart,
-    handleTouchMove,
-    handleTouchEnd,
-  };
-};
-
-const SavedItemActionFooter = ({
-  canSave,
-  isAlreadySaved,
-  onSaveClick,
-  onUnsaveClick,
-  onShareClick,
-}: {
-  canSave: boolean;
-  isAlreadySaved: boolean;
-  onSaveClick: () => void;
-  onUnsaveClick?: () => void;
-  onShareClick?: () => void;
-}) => {
-  if (!canSave && !onUnsaveClick && !onShareClick) {
-    return null;
-  }
-
-  let primaryAction: React.ReactNode = null;
-  if (isAlreadySaved && onUnsaveClick) {
-    primaryAction = (
-      <button
-        type="button"
-        onClick={onUnsaveClick}
-        className="flex-1 py-4 rounded-[1.5rem] flex items-center justify-center gap-3 transition-transform shadow-xl bg-red-50 text-red-600 border border-red-100 active:scale-95"
-      >
-        <X size={20} />
-        <span className="font-black uppercase tracking-widest text-[10px]">Remove</span>
-      </button>
-    );
-  } else if (canSave) {
-    primaryAction = (
-      <button
-        type="button"
-        onClick={onSaveClick}
-        className="flex-1 py-4 rounded-[1.5rem] flex items-center justify-center gap-3 transition-transform shadow-xl bg-stone-900 text-white active:scale-95"
-      >
-        <Bookmark size={20} />
-        <span className="font-black uppercase tracking-widest text-[10px]">Save</span>
-      </button>
-    );
-  }
-
-  return (
-    <footer className="sticky bottom-0 bg-white/95 backdrop-blur-md pt-2">
-      <div className="flex gap-3">
-        {primaryAction}
-        {onShareClick && (
-          <button
-            type="button"
-            onClick={onShareClick}
-            className="flex-1 py-4 bg-yellow-400 text-stone-900 rounded-[1.5rem] flex items-center justify-center gap-3 active:scale-95 transition-transform shadow-xl"
-          >
-            <Share2 size={20} />
-            <span className="font-black uppercase tracking-widest text-[10px]">Share</span>
-          </button>
-        )}
-      </div>
-    </footer>
-  );
-};
-
-const SavedItemRecipeSections = ({
-  recipeIngredients,
-  recipeInstructions,
-}: {
-  recipeIngredients: string[];
-  recipeInstructions: string;
-}) => {
-  return (
-    <>
-      {recipeIngredients.length > 0 && (
-        <section className="space-y-3">
-          <h4 className="font-black uppercase text-[10px] tracking-[0.25em] text-stone-400">Ingredients</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {recipeIngredients.map((ingredient) => (
-              <div key={ingredient} className="p-4 bg-stone-50 rounded-[1.5rem] border border-stone-100 text-sm font-bold text-stone-700">
-                {ingredient}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {recipeInstructions && (
-        <section className="space-y-3">
-          <h4 className="font-black uppercase text-[10px] tracking-[0.25em] text-stone-400">Instructions</h4>
-          <div className="p-5 bg-stone-50 rounded-[2rem] border border-stone-100 text-sm font-bold text-stone-700 whitespace-pre-wrap leading-relaxed">
-            {recipeInstructions}
-          </div>
-        </section>
-      )}
-    </>
-  );
-};
-
-const SavedItemVideoSection = ({
-  keyFoodItem,
-  summary,
-  sourceUrl,
-}: {
-  keyFoodItem: string;
-  summary: string;
-  sourceUrl: string;
-}) => {
-  if (!keyFoodItem && !summary && !sourceUrl) {
-    return null;
-  }
-
-  return (
-    <section className="space-y-3">
-      <h4 className="font-black uppercase text-[10px] tracking-[0.25em] text-stone-400">Trim Details</h4>
-      <div className="p-5 bg-stone-50 rounded-[2rem] border border-stone-100 space-y-3 text-sm font-bold text-stone-700">
-        {keyFoodItem && <p><span className="text-stone-400 uppercase tracking-widest text-[10px] mr-2">Key Food</span>{keyFoodItem}</p>}
-        {summary && <p>{summary}</p>}
-        {sourceUrl && (
-          <a href={sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-blue-600 hover:underline">
-            <PlayCircle size={16} /> Open Source
-          </a>
-        )}
-      </div>
-    </section>
-  );
-};
-
-const SavedItemGenericDetailsSection = ({
-  phone,
-  sourceUrl,
-  vibe,
-}: {
-  phone: string;
-  sourceUrl: string;
-  vibe: string[];
-}) => {
-  if (!phone && !sourceUrl && vibe.length === 0) {
-    return null;
-  }
-
-  return (
-    <section className="space-y-3">
-      <h4 className="font-black uppercase text-[10px] tracking-[0.25em] text-stone-400">Details</h4>
-      <div className="p-5 bg-stone-50 rounded-[2rem] border border-stone-100 space-y-4 text-sm font-bold text-stone-700">
-        {phone && <p><span className="text-stone-400 uppercase tracking-widest text-[10px] mr-2">Phone</span>{phone}</p>}
-        {sourceUrl && (
-          <a href={sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-blue-600 hover:underline">
-            <MapPin size={16} /> Open Link
-          </a>
-        )}
-        {vibe.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {vibe.map((entry) => (
-              <div key={entry} className="px-3 py-2 bg-white rounded-full border border-stone-200 text-[10px] font-black uppercase tracking-widest text-stone-600">
-                {entry}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-};
-
-const SavedItemNutritionSection = ({
-  nutrition,
-}: {
-  nutrition?: { calories?: number; protein?: number; fat?: number; carbs?: number };
-}) => {
-  if (!nutrition) {
-    return null;
-  }
-
-  return (
-    <section className="space-y-3">
-      <h4 className="font-black uppercase text-[10px] tracking-[0.25em] text-stone-400">Nutrition</h4>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: 'Calories', value: nutrition.calories },
-          { label: 'Protein', value: nutrition.protein },
-          { label: 'Fat', value: nutrition.fat },
-          { label: 'Carbs', value: nutrition.carbs },
-        ].map((entry) => (
-          <div key={entry.label} className="p-4 bg-stone-50 rounded-[1.5rem] border border-stone-100">
-            <p className="text-xl font-black text-stone-900">{entry.value ?? '--'}</p>
-            <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-1">{entry.label}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-};
-
-const SavedItemContentSections = ({
-  resolvedType,
-  address,
-  recipeIngredients,
-  recipeInstructions,
-  keyFoodItem,
-  summary,
-  sourceUrl,
-  phone,
-  vibe,
-  nutrition,
-}: {
-  resolvedType: string;
-  address: string;
-  recipeIngredients: string[];
-  recipeInstructions: string;
-  keyFoodItem: string;
-  summary: string;
-  sourceUrl: string;
-  phone: string;
-  vibe: string[];
-  nutrition?: { calories?: number; protein?: number; fat?: number; carbs?: number };
-}) => {
-  return (
-    <>
-      {address && (
-        <section className="space-y-3">
-          <h4 className="font-black uppercase text-[10px] tracking-[0.25em] text-stone-400">Location</h4>
-          <div className="flex items-start gap-3 p-5 bg-stone-50 rounded-[2rem] border border-stone-100 text-stone-700">
-            <MapPin size={18} className="shrink-0 mt-0.5 text-stone-400" />
-            <p className="text-sm font-bold leading-relaxed">{address}</p>
-          </div>
-        </section>
-      )}
-
-      {resolvedType === 'recipe' && <SavedItemRecipeSections recipeIngredients={recipeIngredients} recipeInstructions={recipeInstructions} />}
-      {resolvedType === 'video' && <SavedItemVideoSection keyFoodItem={keyFoodItem} summary={summary} sourceUrl={sourceUrl} />}
-      {(resolvedType === 'restaurant' || resolvedType === 'other' || resolvedType === 'photo') && <SavedItemGenericDetailsSection phone={phone} sourceUrl={sourceUrl} vibe={vibe} />}
-      <SavedItemNutritionSection nutrition={nutrition} />
-    </>
-  );
-};
-
-const SavedItemDetailModal = ({ item, onClose, onSave, onUnsave, onShareRequest, savedItems = [] }: { item: AppItem; onClose: () => void; onSave?: (item: AppItem) => void; onUnsave?: (item: AppItem) => void; onShareRequest?: (item: AppItem) => void; savedItems?: AppItem[] }) => {
-  const metadata = getMetadataRecord(item.metadata);
-  const generatedRecipe = getMetadataRecord(metadata?.generatedRecipe);
-  const generatedTrim = getMetadataRecord(metadata?.generatedTrim);
-  const nutrition = getNutritionRecord(
-    getMetadataRecord(generatedRecipe?.nutrition),
-    getMetadataRecord(generatedTrim?.nutrition),
-    getMetadataRecord(metadata?.nutrition),
-    getMetadataRecord(item.nutrition),
-  );
-  let resolvedType = 'other';
-  if (typeof item.itemType === 'string' && item.itemType) {
-    resolvedType = item.itemType;
-  } else if (typeof item.id === 'string') {
-    resolvedType = inferItemTypeFromId(item.id);
-  }
-  const title = item.name || item.title || getMetadataString(metadata, 'title', 'name') || 'Saved Item';
-  const category = item.cat || getMetadataString(metadata, 'cat', 'category') || 'Saved Item';
-  const imageSrc = item.img || item.image || item.imageUrl || item.thumbnailUrl || getMetadataString(metadata, 'image', 'img', 'image_url', 'thumbnailUrl') || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80';
-  const summary = getMetadataString(metadata, 'description', 'caption', 'summary') || item.description || item.caption || '';
-  const address = item.address || getMetadataString(metadata, 'address', 'locationName', 'location') || '';
-  const sourceUrlRaw = getMetadataString(metadata, 'sourceUrl', 'website') || item.website || '';
-  let sourceUrl = sourceUrlRaw;
-  if (sourceUrlRaw && !sourceUrlRaw.startsWith('http')) {
-    sourceUrl = `https://${sourceUrlRaw}`;
-  }
-  const recipeIngredients = Array.isArray(generatedRecipe?.ingredients)
-    ? generatedRecipe.ingredients.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
-    : getMetadataStringArray(metadata, 'ingredients');
-  const recipeInstructions = (typeof generatedRecipe?.instructions === 'string' && generatedRecipe.instructions) || getMetadataString(metadata, 'instructions');
-  const readyInMinutes = getMetadataNumber(generatedRecipe, 'readyInMinutes') ?? getMetadataNumber(metadata, 'readyInMinutes');
-  const servings = getMetadataNumber(generatedRecipe, 'servings') ?? getMetadataNumber(metadata, 'servings');
-  const author = getMetadataString(metadata, 'channelTitle', 'author') || item.author || '';
-  const likes = getMetadataString(metadata, 'likes') || item.likes || '';
-  const keyFoodItem = getMetadataString(metadata, 'keyFoodItem');
-  const trimSummary = getMetadataString(metadata, 'summary');
-  const tags = getMetadataStringArray(metadata, 'cuisineTags', 'tags', 'vibe');
-  const vibe = item.vibe && item.vibe.length > 0 ? item.vibe : tags;
-  const rating = typeof item.rating === 'number' ? item.rating : getMetadataNumber(metadata, 'rating');
-  const reviews = typeof item.reviews === 'number' ? item.reviews : getMetadataNumber(metadata, 'reviews');
-  const phone = item.phone || getMetadataString(metadata, 'phone');
-  const isAlreadySaved = useMemo(() => savedItems.some((savedItem) => areSavedItemsEquivalent(savedItem, item)), [item, savedItems]);
-  const {
-    dragOffset,
-    isDragging,
-    handleTouchStart,
-    handleTouchMove,
-    handleTouchEnd,
-  } = useModalSwipeToClose(onClose);
-
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    globalThis.addEventListener('keydown', handleEscape);
-    return () => globalThis.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
-
-  const handleSaveClick = () => {
-    if (!onSave || isAlreadySaved) {
-      return;
-    }
-    onSave(item);
-  };
-
-  const handleUnsaveClick = () => {
-    if (!onUnsave || !isAlreadySaved) {
-      return;
-    }
-
-    onUnsave(item);
-    onClose();
-  };
-
-  const handleShareClick = () => {
-    if (!onShareRequest) {
-      return;
-    }
-    onShareRequest(item);
-    onClose();
-  };
-
-  return (
-    <div className="fixed inset-0 z-[140] flex items-end md:items-center justify-center p-0 md:p-8 animate-in fade-in duration-300">
-      <button
-        type="button"
-        aria-label="Close saved item details"
-        className="absolute inset-0 bg-stone-900/70 backdrop-blur-xl"
-        onClick={onClose}
-      />
-      <dialog
-        open
-        className="relative bg-white w-full max-w-3xl max-h-[100dvh] md:max-h-[92vh] rounded-t-[3rem] md:rounded-[3rem] shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-8 md:zoom-in duration-300"
-        style={{
-          transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
-          transition: isDragging ? 'none' : 'transform 220ms ease-out',
-        }}
-      >
-        <button
-          type="button"
-          aria-label="Swipe down to close"
-          className="flex justify-center pt-3 pb-1 md:hidden"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-          <div className="w-14 h-1.5 rounded-full bg-stone-200" />
-        </button>
-        <div className="relative h-64 md:h-80 bg-stone-900 shrink-0">
-          <img src={imageSrc} alt={title} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close saved item details"
-            className="absolute top-5 right-5 z-20 p-3 bg-white/15 text-white rounded-2xl backdrop-blur-xl hover:bg-white/25 transition-colors"
-          >
-            <X size={24} />
-          </button>
-          <div className="absolute bottom-0 inset-x-0 p-6 md:p-8 text-white space-y-3">
-            <Badge color="yellow">{category}</Badge>
-            <div className="space-y-1">
-              <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tighter leading-none">{title}</h3>
-              {summary && (
-                <p className="text-sm md:text-base font-bold text-white/85 max-w-2xl">{summary}</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="p-6 md:p-8 overflow-y-auto space-y-8">
-          <div className="flex flex-wrap gap-3">
-            {readyInMinutes !== undefined && (
-              <div className="px-4 py-3 bg-stone-50 rounded-2xl border border-stone-100 text-xs font-black uppercase tracking-widest text-stone-500">
-                {readyInMinutes} Min
-              </div>
-            )}
-            {servings !== undefined && (
-              <div className="px-4 py-3 bg-stone-50 rounded-2xl border border-stone-100 text-xs font-black uppercase tracking-widest text-stone-500">
-                {servings} Servings
-              </div>
-            )}
-            {author && (
-              <div className="px-4 py-3 bg-stone-50 rounded-2xl border border-stone-100 text-xs font-black uppercase tracking-widest text-stone-500">
-                @{author}
-              </div>
-            )}
-            {likes && (
-              <div className="px-4 py-3 bg-stone-50 rounded-2xl border border-stone-100 text-xs font-black uppercase tracking-widest text-stone-500">
-                {likes} Likes
-              </div>
-            )}
-            {rating !== undefined && (
-              <div className="px-4 py-3 bg-stone-50 rounded-2xl border border-stone-100 text-xs font-black uppercase tracking-widest text-stone-500">
-                {rating.toFixed(1)} Rating
-              </div>
-            )}
-            {reviews !== undefined && (
-              <div className="px-4 py-3 bg-stone-50 rounded-2xl border border-stone-100 text-xs font-black uppercase tracking-widest text-stone-500">
-                {reviews.toLocaleString()} Reviews
-              </div>
-            )}
-          </div>
-
-          <SavedItemContentSections resolvedType={resolvedType} address={address} recipeIngredients={recipeIngredients} recipeInstructions={recipeInstructions} keyFoodItem={keyFoodItem} summary={trimSummary} sourceUrl={sourceUrl} phone={phone} vibe={vibe} nutrition={nutrition} />
-
-          <SavedItemActionFooter canSave={Boolean(onSave)} isAlreadySaved={isAlreadySaved} onSaveClick={handleSaveClick} onUnsaveClick={onUnsave ? handleUnsaveClick : undefined} onShareClick={onShareRequest ? handleShareClick : undefined} />
-        </div>
-      </dialog>
-    </div>
-  );
-};
-
-const SettingsView = ({ onSignOut, authUser }: { onSignOut: () => Promise<void>; authUser: AuthUser | null }) => {
-  const defaults = useMemo<SettingsProfile>(() => {
-    const metadata = (authUser?.user_metadata || {}) as Record<string, string | undefined>;
-    const email = authUser?.email || '';
-    const emailName = email.includes('@') ? email.split('@')[0] : 'chef_studio_lab';
-
-    return {
-      name: metadata.full_name || metadata.name || 'Chef Studio',
-      username: metadata.username || metadata.user_name || emailName,
-      bio: metadata.bio || 'Discovery engine architect. Exploring the world of fine dining and culinary hacks.',
-      email: email || 'chef@fuzo.studio',
-      phone: metadata.phone || '+1 (555) 0123-4567',
-      location: metadata.location || 'Toronto, ON',
-      diet: 'None',
-      cuisine: 'Italian, Japanese',
-      instagram: metadata.instagram_url || metadata.instagram || metadata.ig || '',
-      facebook: metadata.facebook_url || metadata.facebook || metadata.fb || '',
-      tiktok: metadata.tiktok_url || metadata.tiktok || '',
-      pinterest: metadata.pinterest_url || metadata.pinterest || '',
-    };
-  }, [authUser]);
-
-  const [profile, setProfile] = useState<SettingsProfile>(defaults);
-  const [notifications, setNotifications] = useState(true);
-  const [signingOut, setSigningOut] = useState(false);
-  const [loadingSettings, setLoadingSettings] = useState(false);
-  const [savingSettings, setSavingSettings] = useState(false);
-  const [updatingPassword, setUpdatingPassword] = useState(false);
-  const [sendingResetEmail, setSendingResetEmail] = useState(false);
-  const [settingsError, setSettingsError] = useState('');
-  const [settingsMessage, setSettingsMessage] = useState('');
-  const [isDirty, setIsDirty] = useState(false);
-
-  useEffect(() => {
-    setProfile(defaults);
-    setIsDirty(false);
-  }, [defaults]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadSettings = async () => {
-      if (!authUser?.id) {
-        setProfile(defaults);
-        return;
-      }
-
-      setLoadingSettings(true);
-      setSettingsError('');
-
-      const result = await SettingsService.getUserSettings(authUser);
-      if (cancelled) return;
-
-      if (!result.success || !result.data) {
-        setProfile(defaults);
-        setSettingsError(result.error || 'Unable to load saved settings.');
-      } else {
-        setProfile({
-          ...defaults,
-          ...result.data,
-          email: defaults.email,
-        });
-      }
-
-      setLoadingSettings(false);
-      setIsDirty(false);
-    };
-
-    loadSettings();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [authUser, defaults]);
-
-  const handleSignOutClick = async () => {
-    if (signingOut) return;
-    setSigningOut(true);
-    await onSignOut();
-    setSigningOut(false);
-  };
-
-  const updateProfileField = (field: keyof SettingsProfile, nextValue: string) => {
-    setProfile(prev => ({ ...prev, [field]: nextValue }));
-    setIsDirty(true);
-    setSettingsMessage('');
-  };
-
-  const editField = (field: keyof SettingsProfile, label: string, options?: { readOnly?: boolean }) => {
-    if (options?.readOnly) {
-      setSettingsMessage(`${label} is managed by your account and cannot be edited here.`);
-      return;
-    }
-
-    const currentValue = profile[field] || '';
-    const nextValue = globalThis.prompt(`Update ${label}`, currentValue);
-    if (nextValue === null) return;
-    updateProfileField(field, nextValue.trim());
-  };
-
-  const handleSaveSettings = async () => {
-    if (!authUser?.id || !isDirty || savingSettings) return;
-
-    setSavingSettings(true);
-    setSettingsError('');
-    setSettingsMessage('');
-
-    const result = await SettingsService.updateUserSettings(authUser, profile);
-
-    if (!result.success || !result.data) {
-      setSettingsError(result.error || 'Unable to save settings right now.');
-      setSavingSettings(false);
-      return;
-    }
-
-    setProfile(prev => ({
-      ...prev,
-      ...result.data,
-      email: prev.email,
-    }));
-    setIsDirty(false);
-    setSavingSettings(false);
-    setSettingsMessage('Settings saved.');
-  };
-
-  const handleChangePassword = async () => {
-    if (!supabase || updatingPassword) {
-      return;
-    }
-
-    const nextPassword = globalThis.prompt('Enter a new password (minimum 8 characters)');
-    if (nextPassword === null) return;
-
-    const trimmedPassword = nextPassword.trim();
-    if (trimmedPassword.length < 8) {
-      setSettingsError('Password must be at least 8 characters.');
-      setSettingsMessage('');
-      return;
-    }
-
-    const confirmPassword = globalThis.prompt('Confirm your new password');
-    if (confirmPassword === null) return;
-
-    if (trimmedPassword !== confirmPassword.trim()) {
-      setSettingsError('Password confirmation does not match.');
-      setSettingsMessage('');
-      return;
-    }
-
-    setUpdatingPassword(true);
-    setSettingsError('');
-    setSettingsMessage('');
-
-    const { error } = await supabase.auth.updateUser({ password: trimmedPassword });
-    if (error) {
-      setSettingsError(error.message);
-    } else {
-      setSettingsMessage('Password updated successfully.');
-    }
-
-    setUpdatingPassword(false);
-  };
-
-  const handleSendPasswordReset = async () => {
-    if (!supabase || sendingResetEmail) {
-      return;
-    }
-
-    if (!profile.email) {
-      setSettingsError('No account email is available for password reset.');
-      setSettingsMessage('');
-      return;
-    }
-
-    setSendingResetEmail(true);
-    setSettingsError('');
-    setSettingsMessage('');
-
-    const { error } = await supabase.auth.resetPasswordForEmail(profile.email, {
-      redirectTo: getOAuthRedirectUrl(),
-    });
-
-    if (error) {
-      setSettingsError(error.message);
-    } else {
-      setSettingsMessage('Password reset email sent. Check your inbox.');
-    }
-
-    setSendingResetEmail(false);
-  };
-
-  return (
-    <div className="max-w-2xl mx-auto space-y-10 animate-in fade-in pb-32 px-4">
-      <header className="flex flex-col items-center text-center space-y-6 py-8">
-        <div className="relative group">
-          <div className="w-32 h-32 rounded-[3rem] border-8 border-white bg-white shadow-2xl overflow-hidden">
-            <img src="https://i.pravatar.cc/150?u=me" alt="Settings avatar" className="w-full h-full object-cover" />
-          </div>
-          <button className="absolute bottom-0 right-0 p-3 bg-stone-900 text-white rounded-2xl shadow-xl hover:scale-110 transition-transform">
-            <Camera size={16} />
-          </button>
-        </div>
-        <div>
-          <h2 className="text-4xl font-black uppercase tracking-tighter leading-none">{profile.name}</h2>
-          <p className="text-stone-400 font-bold mt-2">@{profile.username}</p>
-        </div>
-        <div className="flex flex-col items-center gap-3 pt-2">
-          <button
-            onClick={handleSaveSettings}
-            disabled={!authUser?.id || !isDirty || savingSettings || loadingSettings}
-            className="px-8 py-3 bg-stone-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {savingSettings ? 'Saving...' : 'Save Settings'}
-          </button>
-          {loadingSettings && <p className="text-[10px] font-black uppercase tracking-widest text-stone-300">Loading saved settings...</p>}
-          {settingsError && <p className="text-[10px] font-black uppercase tracking-widest text-red-500">{settingsError}</p>}
-          {settingsMessage && !settingsError && <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">{settingsMessage}</p>}
-        </div>
-      </header>
-
-      <SettingsSection title="Personal Profile">
-        <SettingsItem
-          icon={User} 
-          label="Display Name" 
-          value={profile.name} 
-          onClick={() => editField('name', 'Display Name')} 
-        />
-        <SettingsItem
-          icon={Bot} 
-          label="Bio" 
-          value={profile.bio} 
-          onClick={() => editField('bio', 'Bio')} 
-        />
-        <SettingsItem
-          icon={MapPin} 
-          label="Location" 
-          value={profile.location} 
-          onClick={() => editField('location', 'Location')} 
-        />
-      </SettingsSection>
-
-      <SettingsSection title="Account Settings">
-        <SettingsItem
-          icon={Mail} 
-          label="Email Address" 
-          value={profile.email} 
-          onClick={() => editField('email', 'Email Address', { readOnly: true })} 
-        />
-        <SettingsItem
-          icon={Shield}
-          label="Password"
-          value={updatingPassword ? 'Updating...' : 'Change Password'}
-          onClick={() => {
-            handleChangePassword().catch((error) => {
-              console.warn('Password update failed:', error);
-              setSettingsError('Unable to update password right now.');
-            });
-          }}
-          color="indigo"
-        />
-        <SettingsItem
-          icon={AlertCircle}
-          label="Password Reset"
-          value={sendingResetEmail ? 'Sending reset email...' : 'Send reset email'}
-          onClick={() => {
-            handleSendPasswordReset().catch((error) => {
-              console.warn('Password reset email failed:', error);
-              setSettingsError('Unable to send password reset email right now.');
-            });
-          }}
-          color="blue"
-        />
-        <SettingsItem
-          icon={Phone} 
-          label="Phone Number" 
-          value={profile.phone} 
-          onClick={() => editField('phone', 'Phone Number')} 
-        />
-      </SettingsSection>
-
-      <SettingsSection title="Social Links">
-        <SettingsItem
-          icon={InstagramMark}
-          label="Instagram"
-          value={profile.instagram || 'Not set'}
-          onClick={() => editField('instagram', 'Instagram')}
-        />
-        <SettingsItem
-          icon={FacebookMark}
-          label="Facebook"
-          value={profile.facebook || 'Not set'}
-          onClick={() => editField('facebook', 'Facebook')}
-        />
-        <SettingsItem
-          icon={Music2}
-          label="TikTok"
-          value={profile.tiktok || 'Not set'}
-          onClick={() => editField('tiktok', 'TikTok')}
-        />
-        <SettingsItem
-          icon={Pin}
-          label="Pinterest"
-          value={profile.pinterest || 'Not set'}
-          onClick={() => editField('pinterest', 'Pinterest')}
-        />
-      </SettingsSection>
-
-      <SettingsSection title="Discovery Preferences">
-        <SettingsItem
-          icon={ChefHat} 
-          label="Dietary Focus" 
-          value={profile.diet} 
-          onClick={() => editField('diet', 'Dietary Focus')} 
-          color="emerald"
-        />
-        <SettingsItem
-          icon={Flame} 
-          label="Favorite Cuisines" 
-          value={profile.cuisine} 
-          onClick={() => editField('cuisine', 'Favorite Cuisines')} 
-          color="orange"
-        />
-      </SettingsSection>
-
-      <SettingsSection title="App Settings">
-        <div className="p-8 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="p-4 bg-blue-100 rounded-2xl text-blue-900">
-              <Bell size={20} />
-            </div>
-            <div>
-              <p className="font-black uppercase text-[10px] tracking-widest text-stone-400 leading-none mb-1.5">Notifications</p>
-              <p className="font-bold text-sm text-stone-900">Push & Email</p>
-            </div>
-          </div>
-          <button 
-            onClick={() => setNotifications(!notifications)}
-            className={`w-14 h-8 rounded-full transition-colors relative ${notifications ? 'bg-emerald-500' : 'bg-stone-200'}`}
-          >
-            <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${notifications ? 'left-7' : 'left-1'}`} />
-          </button>
-        </div>
-        <SettingsItem
-          icon={Shield} 
-          label="Privacy & Security" 
-          value="Standard Protection" 
-          onClick={() => {}} 
-          color="indigo"
-        />
-      </SettingsSection>
-
-      <div className="pt-4">
-        <button
-          onClick={handleSignOutClick}
-          disabled={signingOut}
-          className="w-full p-8 bg-red-50 text-red-600 rounded-[2.5rem] font-black uppercase tracking-widest flex items-center justify-center gap-4 hover:bg-red-100 transition-colors disabled:opacity-60"
-        >
-          <LogOut size={20} /> {signingOut ? 'Signing Out...' : 'Sign Out of Studio'}
-        </button>
-      </div>
-
-      <div className="text-center space-y-2 pt-8">
-        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-stone-200">FUZO Studio v2.5.0</p>
-        <div className="flex justify-center gap-4 text-[10px] font-bold text-stone-300 uppercase tracking-widest">
-          <button className="hover:text-stone-500">Terms</button>
-          <span>&bull;</span>
-          <button className="hover:text-stone-500">Privacy</button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const PhoneMockup = ({ image, className = "" }: { image: string, className?: string }) => (
   <div className={`relative w-64 h-[520px] bg-stone-950 rounded-[3rem] p-3 shadow-2xl border-4 border-stone-800/50 overflow-hidden ${className}`}>
@@ -5491,475 +4487,7 @@ const AuthView = ({
   );
 };
 
-const LeaderboardView = ({ userPoints, userLevel, leaderboardUsers, onOpenUserProfile }: { userPoints: number, userLevel: number, leaderboardUsers: LeaderboardEntry[]; onOpenUserProfile: (userId: string) => void }) => {
-  const medalClassByRank = (rank: number) => {
-    if (rank === 1) return 'text-yellow-500';
-    if (rank === 2) return 'text-stone-400';
-    return 'text-orange-400';
-  };
 
-  const medalLabelByRank = (rank: number) => {
-    if (rank === 1) return '🥇';
-    if (rank === 2) return '🥈';
-    return '🥉';
-  };
-
-  const leaders = leaderboardUsers.slice(0, 25).map((leader, index) => ({
-    id: leader.id,
-    name: leader.displayName,
-    username: leader.username,
-    points: leader.pointsTotal,
-    level: leader.pointsLevel,
-    avatar: `https://i.pravatar.cc/150?u=${leader.id}`,
-    rank: index + 1,
-  }));
-
-  return (
-    <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in pb-32">
-      <header className="text-center space-y-4 py-8">
-        <div className="inline-flex p-4 bg-yellow-400 rounded-3xl text-stone-900 shadow-2xl rotate-3 mb-4">
-          <Trophy size={32} strokeWidth={2.5} />
-        </div>
-        <h2 className="text-5xl font-black uppercase tracking-tighter leading-none">Studio Elite</h2>
-        <p className="text-stone-400 font-bold uppercase tracking-widest text-[10px]">Global Leaderboard</p>
-      </header>
-
-      <div className="bg-white rounded-[3rem] border-4 border-white shadow-2xl overflow-hidden divide-y">
-        {leaders.map((leader) => (
-          <button key={leader.id} onClick={() => onOpenUserProfile(leader.id)} className="w-full p-8 flex items-center justify-between hover:bg-stone-50 transition-colors text-left">
-            <div className="flex items-center gap-6">
-              <div className="w-10 text-center">
-                {leader.rank <= 3 ? (
-                  <span className={`text-2xl ${medalClassByRank(leader.rank)}`}>
-                    {medalLabelByRank(leader.rank)}
-                  </span>
-                ) : (
-                  <span className="text-lg font-black text-stone-200">#{leader.rank}</span>
-                )}
-              </div>
-              <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-stone-100">
-                <img src={leader.avatar} alt={`${leader.name} avatar`} className="w-full h-full object-cover" />
-              </div>
-              <div>
-                <p className="font-black uppercase text-sm tracking-tighter text-stone-900">{leader.name}</p>
-                <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">@{leader.username} • Level {leader.level}</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-xl font-black text-stone-900">{leader.points.toLocaleString()}</p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-stone-300">Points</p>
-            </div>
-          </button>
-        ))}
-      </div>
-
-      <div className="bg-stone-900 rounded-[3rem] p-10 text-white flex items-center justify-between shadow-2xl">
-        <div className="flex items-center gap-6">
-          <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-white/20">
-            <img src="https://i.pravatar.cc/150?u=me" alt="Your avatar" className="w-full h-full object-cover" />
-          </div>
-          <div>
-            <p className="font-black uppercase text-sm tracking-tighter">Your Rank</p>
-            <p className="text-stone-400 text-[10px] font-bold uppercase tracking-widest">Studio Apprentice</p>
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="text-2xl font-black text-yellow-400">{userPoints.toLocaleString()}</p>
-          <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Level {userLevel}</p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const PublicProfileView = ({ targetUserId, authUser, currentUserSavedItems, friends, onBackToOwnProfile, onSave, onUnsave, onShareRequest }: { targetUserId: string; authUser: AuthUser | null; currentUserSavedItems: AppItem[]; friends: ChatFriend[]; onBackToOwnProfile: () => void; onSave: (item: AppItem) => void; onUnsave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void }) => {
-  const [activeTab, setActiveTab] = useState('places');
-  const [profile, setProfile] = useState<PublicUserProfile | null>(null);
-  const [savedItems, setSavedItems] = useState<AppItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedSavedItem, setSelectedSavedItem] = useState<AppItem | null>(null);
-  const [relationship, setRelationship] = useState<FriendRequestRelationship>({ state: 'none', request: null });
-  const [relationshipLoading, setRelationshipLoading] = useState(false);
-  const [relationshipUpdating, setRelationshipUpdating] = useState(false);
-  const [relationshipError, setRelationshipError] = useState('');
-
-  const hasIdPrefix = useCallback((item: AppItem, prefix: string) => {
-    return typeof item.id === 'string' && item.id.startsWith(prefix);
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadProfile = async () => {
-      setIsLoading(true);
-
-      if (!targetUserId) {
-        setProfile(null);
-        setSavedItems([]);
-        setIsLoading(false);
-        return;
-      }
-
-      const profileResult = await SettingsService.getPublicUserProfile(targetUserId);
-      if (cancelled) return;
-
-      if (!profileResult.success || !profileResult.data) {
-        setProfile(null);
-        setSavedItems([]);
-        setIsLoading(false);
-        return;
-      }
-
-      setProfile(profileResult.data);
-
-      const savedResult = await PlateService.listSavedItemsByUserId(targetUserId);
-      if (cancelled) return;
-
-      if (!savedResult.success || !savedResult.data) {
-        setSavedItems([]);
-      } else {
-        setSavedItems(savedResult.data.map(normalizeSavedItemForUI));
-      }
-
-      setIsLoading(false);
-    };
-
-    loadProfile().catch((error) => {
-      if (!cancelled) {
-        console.warn('Failed to load public profile:', error);
-        setProfile(null);
-        setSavedItems([]);
-        setIsLoading(false);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [targetUserId]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadRelationship = async () => {
-      if (!authUser?.id || !targetUserId || authUser.id === targetUserId || !hasSupabaseConfig) {
-        setRelationship({ state: 'none', request: null });
-        setRelationshipLoading(false);
-        setRelationshipError('');
-        return;
-      }
-
-      setRelationshipLoading(true);
-      setRelationshipError('');
-
-      const result = await FriendRequestService.getRelationship(authUser.id, targetUserId);
-      if (cancelled) {
-        return;
-      }
-
-      if (!result.success || !result.data) {
-        setRelationship({ state: 'none', request: null });
-        setRelationshipError(result.error || 'Could not load follow status.');
-        setRelationshipLoading(false);
-        return;
-      }
-
-      setRelationship(result.data);
-      setRelationshipLoading(false);
-    };
-
-    loadRelationship().catch((error) => {
-      if (!cancelled) {
-        console.warn('Failed to load profile relationship:', error);
-        setRelationship({ state: 'none', request: null });
-        setRelationshipError('Could not load follow status.');
-        setRelationshipLoading(false);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [authUser?.id, targetUserId]);
-
-  const profileDisplay = useMemo(() => {
-    if (profile) {
-      return {
-        name: profile.name,
-        username: profile.username,
-        bio: profile.bio,
-        avatar: profile.avatarUrl,
-        location: profile.location,
-        pointsTotal: profile.pointsTotal,
-        pointsLevel: profile.pointsLevel,
-      };
-    }
-
-    const isSelfFallback = authUser?.id === targetUserId;
-    const metadata = (authUser?.user_metadata || {}) as Record<string, string | undefined>;
-    const email = authUser?.email || '';
-    const emailName = email.includes('@') ? email.split('@')[0] : 'Chef Studio';
-    const name = metadata.full_name || metadata.name || (isSelfFallback ? 'Your Profile' : 'Chef Studio');
-
-    return {
-      name,
-      username: metadata.username || metadata.user_name || emailName,
-      bio: isSelfFallback ? 'This profile is currently unavailable. Try again in a moment.' : 'This profile is currently limited.',
-      avatar: metadata.avatar_url || `https://i.pravatar.cc/150?u=${targetUserId || 'limited-profile'}`,
-      location: 'Location hidden',
-      pointsTotal: 0,
-      pointsLevel: 1,
-    };
-  }, [authUser, profile, targetUserId]);
-
-  const tabs = [
-    { id: 'places', label: 'Saved Places', icon: MapPin },
-    { id: 'recipes', label: 'Recipes', icon: ChefHat },
-    { id: 'videos', label: 'Videos', icon: PlayCircle },
-    { id: 'crew', label: 'Crew', icon: User },
-    { id: 'posts', label: 'Posts', icon: LayoutGrid },
-  ];
-
-  const filteredItems = useMemo(() => {
-    if (activeTab === 'places') return savedItems.filter(i => !hasIdPrefix(i, 'recipe-') && !hasIdPrefix(i, 'video-') && !hasIdPrefix(i, 'post-'));
-    if (activeTab === 'recipes') return savedItems.filter(i => hasIdPrefix(i, 'recipe-'));
-    if (activeTab === 'videos') return savedItems.filter(i => hasIdPrefix(i, 'video-'));
-    if (activeTab === 'posts') return savedItems.filter(i => hasIdPrefix(i, 'post-'));
-    return [];
-  }, [activeTab, hasIdPrefix, savedItems]);
-
-  const activeCount = activeTab === 'crew' ? friends.length : filteredItems.length;
-  const socialLinks = {
-    instagram: normalizeExternalUrl(profile?.instagram, 'https://instagram.com'),
-    facebook: normalizeExternalUrl(profile?.facebook, 'https://facebook.com'),
-    tiktok: normalizeExternalUrl(profile?.tiktok, 'https://tiktok.com'),
-    pinterest: normalizeExternalUrl(profile?.pinterest, 'https://pinterest.com'),
-  };
-
-  const showLimitedShell = !isLoading && !profile;
-  const visibleSavedItems = showLimitedShell ? [] : savedItems;
-  const canReturnToOwnProfile = Boolean(authUser?.id) && authUser?.id !== targetUserId;
-  const canFollowProfile = Boolean(authUser?.id) && authUser?.id !== targetUserId;
-  const relationshipHelperText = relationship.state === 'incoming-pending'
-    ? 'This user requested to connect with you.'
-    : relationship.state === 'outgoing-pending'
-      ? 'Request sent. Tap again to cancel.'
-      : relationship.state === 'accepted'
-        ? 'You are connected with this profile.'
-        : 'Follow this profile to stay connected.';
-
-  const handleRelationshipAction = useCallback(async () => {
-    if (!authUser?.id || !targetUserId || relationshipLoading || relationshipUpdating) {
-      return;
-    }
-
-    setRelationshipUpdating(true);
-    setRelationshipError('');
-
-    let nextRelationship: FriendRequestRelationship = relationship;
-
-    if (relationship.state === 'incoming-pending' && relationship.request?.id) {
-      const result = await FriendRequestService.acceptRequest(relationship.request.id);
-      if (!result.success || !result.data) {
-        setRelationshipError(result.error || 'Could not accept request.');
-        setRelationshipUpdating(false);
-        return;
-      }
-
-      nextRelationship = { state: 'accepted', request: result.data };
-    } else if (relationship.state === 'outgoing-pending' && relationship.request?.id) {
-      const result = await FriendRequestService.cancelRequest(relationship.request.id);
-      if (!result.success) {
-        setRelationshipError(result.error || 'Could not cancel request.');
-        setRelationshipUpdating(false);
-        return;
-      }
-
-      nextRelationship = { state: 'none', request: null };
-    } else if (relationship.state === 'none') {
-      const result = await FriendRequestService.sendRequest(authUser.id, targetUserId);
-      if (!result.success || !result.data) {
-        setRelationshipError(result.error || 'Could not send request.');
-        setRelationshipUpdating(false);
-        return;
-      }
-
-      nextRelationship = { state: 'outgoing-pending', request: result.data };
-    }
-
-    setRelationship(nextRelationship);
-    setRelationshipUpdating(false);
-  }, [authUser?.id, relationship, relationshipLoading, relationshipUpdating, targetUserId]);
-
-  const followButtonLabel = relationshipLoading
-    ? 'Loading...'
-    : relationshipUpdating
-      ? 'Working...'
-      : relationship.state === 'incoming-pending'
-        ? 'Accept Request'
-        : relationship.state === 'outgoing-pending'
-          ? 'Requested'
-          : relationship.state === 'accepted'
-            ? 'Following'
-            : 'Follow';
-
-  const followButtonClassName = relationship.state === 'incoming-pending'
-    ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-    : relationship.state === 'outgoing-pending'
-      ? 'bg-stone-100 text-stone-900 hover:bg-stone-200'
-      : relationship.state === 'accepted'
-        ? 'bg-stone-900 text-white'
-        : 'bg-yellow-400 text-stone-900 hover:bg-yellow-300';
-
-  return (
-    <div className="max-w-2xl mx-auto space-y-10 animate-in fade-in pb-20">
-      <div className="relative h-64 bg-stone-900 rounded-[4rem] overflow-hidden shadow-2xl">
-        <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80" alt="Profile cover" className="w-full h-full object-cover opacity-60" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent" />
-        <div className="absolute -bottom-2 right-12"><div className="w-28 h-28 rounded-[2.5rem] border-8 border-white bg-white shadow-2xl overflow-hidden"><img src={profileDisplay.avatar} alt={`${profileDisplay.name} avatar`} /></div></div>
-      </div>
-
-      <div className="px-8 space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          {canReturnToOwnProfile && (
-            <button
-              type="button"
-              onClick={onBackToOwnProfile}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest"
-            >
-              <ChevronLeft size={14} />
-              Back To My Profile
-            </button>
-          )}
-          {canFollowProfile && (
-            <button
-              type="button"
-              onClick={() => {
-                handleRelationshipAction().catch((error) => {
-                  console.warn('Failed to update profile relationship:', error);
-                  setRelationshipError('Could not update follow state.');
-                  setRelationshipUpdating(false);
-                });
-              }}
-              disabled={relationshipLoading || relationshipUpdating || relationship.state === 'accepted'}
-              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-colors disabled:cursor-default disabled:opacity-70 ${followButtonClassName}`}
-            >
-              {relationshipUpdating && <Loader2 size={14} className="animate-spin" />}
-              {followButtonLabel}
-            </button>
-          )}
-        </div>
-        <h2 className="text-5xl font-black uppercase tracking-tighter">{profileDisplay.name}</h2>
-        <p className="text-stone-400 font-bold text-xs uppercase tracking-widest">@{profileDisplay.username}</p>
-        <p className="text-stone-500 font-bold max-w-md">{profileDisplay.bio}</p>
-        {canFollowProfile && (
-          <div className="space-y-1">
-            <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">{relationshipHelperText}</p>
-            {relationshipError && <p className="text-[10px] font-black uppercase tracking-widest text-red-500">{relationshipError}</p>}
-          </div>
-        )}
-        <div className="flex items-center gap-4 pt-4">
-          <div className="text-center"><p className="text-2xl font-black">{visibleSavedItems.length}</p><p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Saves</p></div>
-          <div className="w-px h-10 bg-stone-100" />
-          <div className="text-center"><p className="text-2xl font-black">{profileDisplay.pointsTotal.toLocaleString()}</p><p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Points</p></div>
-          <div className="w-px h-10 bg-stone-100" />
-          <div className="text-center"><p className="text-2xl font-black">L{profileDisplay.pointsLevel}</p><p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Level</p></div>
-          <div className="w-px h-10 bg-stone-100" />
-          <div className="flex items-center gap-2">
-            <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="Instagram profile">
-              <InstagramMark size={18} />
-            </a>
-            <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="Facebook profile">
-              <FacebookMark size={18} />
-            </a>
-            <a href={socialLinks.tiktok} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="TikTok profile">
-              <Music2 size={18} />
-            </a>
-            <a href={socialLinks.pinterest} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="Pinterest profile">
-              <Pin size={18} />
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {isLoading && (
-        <div className="px-8">
-          <div className="p-12 bg-stone-100 rounded-[3rem] text-center text-stone-500 font-black uppercase text-[10px] tracking-widest">
-            Loading profile...
-          </div>
-        </div>
-      )}
-
-      {showLimitedShell && (
-        <div className="px-8">
-          <div className="p-12 bg-stone-100 rounded-[3rem] text-center text-stone-500 font-black uppercase text-[10px] tracking-widest">
-            Limited profile view
-          </div>
-        </div>
-      )}
-
-      {!isLoading && (
-        <>
-          <div className="px-8">
-            <div className="flex bg-stone-100 p-2 rounded-[2.5rem] gap-1">
-              {tabs.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => setActiveTab(t.id)}
-                  className={`flex-1 flex items-center justify-center py-5 rounded-[2rem] transition-all ${activeTab === t.id ? 'bg-white shadow-md text-stone-900' : 'text-stone-300 hover:text-stone-600'}`}
-                >
-                  <t.icon size={22} strokeWidth={activeTab === t.id ? 3 : 2} />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="px-8 space-y-6">
-            <div className="flex justify-between items-center">
-              <h4 className="font-black uppercase text-xs tracking-widest text-stone-900">
-                {tabs.find(t => t.id === activeTab)?.label}
-              </h4>
-              <Badge color="yellow">{activeCount} Items</Badge>
-            </div>
-
-            {activeTab === 'crew' ? (
-              <div className="p-12 bg-stone-100 rounded-[3rem] text-center text-stone-300 font-black uppercase text-[10px] tracking-widest">
-                Crew list is private
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-6">
-                {filteredItems.length === 0 ? (
-                  <div className="col-span-2 p-12 bg-stone-100 rounded-[3rem] text-center text-stone-300 font-black uppercase text-[10px] tracking-widest">
-                    No {activeTab} saved yet
-                  </div>
-                ) : (
-                  filteredItems.map((item) => (
-                    <button
-                      type="button"
-                      key={item.id || `${item.name}-${item.cat}`}
-                      onClick={() => setSelectedSavedItem(item)}
-                      className="aspect-square bg-stone-100 rounded-[3rem] border-4 border-white shadow-md overflow-hidden relative group text-left active:scale-[0.98] transition-transform"
-                    >
-                      <img src={item.img} alt={item.name || 'Saved item'} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white p-4 text-center">
-                        <p className="font-black uppercase text-[10px] tracking-tighter leading-tight mb-2">{item.name}</p>
-                        <Badge color="yellow">{item.cat}</Badge>
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {selectedSavedItem && (
-        <SavedItemDetailModal item={selectedSavedItem} onClose={() => setSelectedSavedItem(null)} onSave={onSave} onUnsave={onUnsave} onShareRequest={onShareRequest} savedItems={currentUserSavedItems} />
-      )}
-    </div>
-  );
-};
 
 const RewardsView = () => {
   type RewardColor = 'yellow' | 'indigo' | 'emerald' | 'blue';
@@ -6498,6 +5026,10 @@ const App = () => {
   const [tab, setTab] = useState(() => resolveInitialTab(globalThis.location.search, tabIds));
   const [publicProfileUserId, setPublicProfileUserId] = useState(() => new URLSearchParams(globalThis.location.search).get('userId') || '');
   const [showSnap, setShowSnap] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showUnifiedCreation, setShowUnifiedCreation] = useState(false);
+  const [showAIBitesStudio, setShowAIBitesStudio] = useState(false);
+  const [showAITrimStudio, setShowAITrimStudio] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [savedItems, setSavedItems] = useState<AppItem[]>(FALLBACK_SAVED_ITEMS);
   const [activeShareItem, setActiveShareItem] = useState<AppItem | null>(null);
@@ -6542,7 +5074,7 @@ const App = () => {
   const getFriendDisplayName = useCallback((friendId: string) => {
     const match = friends.find((friend) => String(friend.id) === String(friendId));
     if (!match) return 'Studio Contact';
-    return match.name || match.username || 'Studio Contact';
+    return match.name || ('username' in match ? match.username : '') || 'Studio Contact';
   }, [friends]);
 
   const incrementUnreadForFriend = useCallback((friendId: string) => {
@@ -6551,7 +5083,7 @@ const App = () => {
       return {
         ...friend,
         unreadCount: (friend.unreadCount || 0) + 1,
-        time: 'now',
+        ...('type' in friend && friend.type === 'group' ? {} : { time: 'now' }),
       };
     }));
   }, []);
@@ -7236,6 +5768,33 @@ const App = () => {
   return (
     <div className="min-h-screen bg-stone-50 flex flex-col md:flex-row pb-[env(safe-area-inset-bottom)] overflow-x-hidden">
       {showSnap && <SnapView onPost={handleSnap} onClose={() => setShowSnap(false)} />}
+      <NotificationsView isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+      <UnifiedCreationModal 
+        isOpen={showUnifiedCreation} 
+        onClose={() => setShowUnifiedCreation(false)}
+        onSelectOption={(option) => {
+          if (option === 'snap') setShowSnap(true);
+          else if (option === 'bites-ai') setShowAIBitesStudio(true);
+          else if (option === 'trim-ai') setShowAITrimStudio(true);
+        }}
+      />
+      
+      {showAIBitesStudio && (
+        <AIRecipeStudio 
+          onSave={(item) => handleSave(item as any)} 
+          onShareRequest={setActiveShareItem} 
+          onClose={() => setShowAIBitesStudio(false)} 
+        />
+      )}
+
+      {showAITrimStudio && (
+        <AITrimStudio 
+          onSave={handleSave} 
+          onShareRequest={setActiveShareItem} 
+          onClose={() => setShowAITrimStudio(false)} 
+        />
+      )}
+      
       {activeShareItem && (
         <ShareModal 
           item={activeShareItem} 
@@ -7249,6 +5808,14 @@ const App = () => {
         <div className="flex flex-col h-full p-4 overflow-y-auto hide-scrollbar items-center">
           <header className="flex flex-col items-center justify-center mb-12 md:mb-16 mt-4 gap-6">
             <div className="w-14 h-14 bg-stone-900 rounded-3xl items-center justify-center text-yellow-400 shadow-2xl rotate-3 shrink-0 hidden md:flex"><ChefHat size={32} /></div>
+            
+            <button 
+              onClick={() => setShowUnifiedCreation(true)}
+              className="w-12 h-12 bg-white border-2 border-stone-100 rounded-2xl flex items-center justify-center text-stone-900 shadow-sm hover:scale-105 active:scale-95 transition-all group"
+            >
+              <Plus size={24} strokeWidth={3} className="group-hover:rotate-90 transition-transform" />
+            </button>
+
             <button 
               onClick={() => { setTab('leaderboard'); setSidebarOpen(false); }}
               className="flex flex-col items-center gap-1 group"
@@ -7283,7 +5850,11 @@ const App = () => {
                       console.warn('Notification permission request failed:', error);
                     });
                   }
-                  setTab(item.id);
+                  if (item.id === 'notifications') {
+                    setShowNotifications(true);
+                  } else {
+                    setTab(item.id);
+                  }
                   setSidebarOpen(false);
                 }}
                 className={`w-full flex items-center justify-center py-5 rounded-[1.5rem] transition-all ${tab === item.id ? 'bg-stone-900 text-white shadow-xl' : 'text-stone-300 hover:bg-stone-50'}`}
@@ -7307,6 +5878,15 @@ const App = () => {
           <button onClick={() => setSidebarOpen(true)} className="p-2 bg-stone-900 text-yellow-400 rounded-2xl shadow-lg active:scale-90 transition-transform rotate-3">
             <ChefHat size={24} strokeWidth={2.5} />
           </button>
+          
+          <button 
+            onClick={() => setShowNotifications(true)}
+            className="p-2 bg-white text-stone-400 rounded-2xl shadow-sm border border-stone-100 active:scale-90 transition-transform relative"
+          >
+            <Bell size={24} />
+            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
+          </button>
+
           <button 
             onClick={() => setTab('leaderboard')}
             className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl shadow-sm border border-stone-100 active:scale-95 transition-all"
@@ -7324,7 +5904,7 @@ const App = () => {
         <NavIcon icon={ChefHat} active={tab === 'bites'} onClick={() => setTab('bites')} label="Bites" />
         
         <button 
-          onClick={() => setShowSnap(true)} 
+          onClick={() => setShowUnifiedCreation(true)} 
           className="w-[72px] h-[72px] -mt-14 bg-stone-900 rounded-[2.5rem] flex items-center justify-center text-yellow-400 shadow-[0_20px_40px_rgba(0,0,0,0.3)] border-4 border-white active:scale-90 transition-transform"
         >
           <Camera size={29} strokeWidth={3} />

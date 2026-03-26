@@ -22,7 +22,7 @@ export const SettingsService = {
 
     const { data, error } = await client
       .from('users')
-      .select('id, display_name, username, bio, phone, location, dietary_preferences, cuisine_preferences, instagram_url, facebook_url, tiktok_url, pinterest_url')
+      .select('id, display_name, username, bio, phone, location, dietary_preferences, cuisine_preferences, instagram_url, facebook_url, tiktok_url, pinterest_url, youtube_url')
       .eq('id', authUser.id)
       .maybeSingle<UserSettingsRow>();
 
@@ -49,7 +49,7 @@ export const SettingsService = {
 
     const { data, error } = await client
       .from('users')
-      .select('id, display_name, username, bio, location, avatar_url, points_total, points_level, instagram_url, facebook_url, tiktok_url, pinterest_url')
+      .select('id, display_name, username, bio, location, avatar_url, points_total, points_level, instagram_url, facebook_url, tiktok_url, pinterest_url, youtube_url, profile_type')
       .eq('id', trimmedUserId)
       .maybeSingle<PublicUserRow>();
 
@@ -76,6 +76,8 @@ export const SettingsService = {
         facebook: data.facebook_url || '',
         tiktok: data.tiktok_url || '',
         pinterest: data.pinterest_url || '',
+        youtube: data.youtube_url || '',
+        profile_type: data.profile_type || 'Chef',
       },
     };
   },
@@ -96,7 +98,7 @@ export const SettingsService = {
       .from('users')
       .update(updatePayload)
       .eq('id', authUser.id)
-      .select('id, display_name, username, bio, phone, location, dietary_preferences, cuisine_preferences, instagram_url, facebook_url, tiktok_url, pinterest_url')
+      .select('id, display_name, username, bio, phone, location, dietary_preferences, cuisine_preferences, instagram_url, facebook_url, tiktok_url, pinterest_url, youtube_url')
       .maybeSingle<UserSettingsRow>();
 
     if (error) {
@@ -111,7 +113,7 @@ export const SettingsService = {
           email: authUser.email || null,
           ...updatePayload,
         })
-        .select('id, display_name, username, bio, phone, location, dietary_preferences, cuisine_preferences, instagram_url, facebook_url, tiktok_url, pinterest_url')
+        .select('id, display_name, username, bio, phone, location, dietary_preferences, cuisine_preferences, instagram_url, facebook_url, tiktok_url, pinterest_url, youtube_url')
         .maybeSingle<UserSettingsRow>();
 
       if (upsertError) {

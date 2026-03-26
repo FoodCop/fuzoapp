@@ -1,0 +1,94 @@
+import React from 'react';
+import { Trophy } from 'lucide-react';
+import type { LeaderboardEntry } from '../services/pointsService';
+
+export const LeaderboardView = ({ 
+  userPoints, 
+  userLevel, 
+  leaderboardUsers, 
+  onOpenUserProfile 
+}: { 
+  userPoints: number; 
+  userLevel: number; 
+  leaderboardUsers: LeaderboardEntry[]; 
+  onOpenUserProfile: (userId: string) => void 
+}) => {
+  const medalClassByRank = (rank: number) => {
+    if (rank === 1) return 'text-yellow-500';
+    if (rank === 2) return 'text-stone-400';
+    return 'text-orange-400';
+  };
+
+  const medalLabelByRank = (rank: number) => {
+    if (rank === 1) return '🥇';
+    if (rank === 2) return '🥈';
+    return '🥉';
+  };
+
+  const leaders = leaderboardUsers.slice(0, 25).map((leader, index) => ({
+    id: leader.id,
+    name: leader.displayName,
+    username: leader.username,
+    points: leader.pointsTotal,
+    level: leader.pointsLevel,
+    avatar: `https://i.pravatar.cc/150?u=${leader.id}`,
+    rank: index + 1,
+  }));
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in pb-32">
+      <header className="text-center space-y-4 py-8">
+        <div className="inline-flex p-4 bg-yellow-400 rounded-3xl text-stone-900 shadow-2xl rotate-3 mb-4">
+          <Trophy size={32} strokeWidth={2.5} />
+        </div>
+        <h2 className="text-5xl font-black uppercase tracking-tighter leading-none">Studio Elite</h2>
+        <p className="text-stone-400 font-bold uppercase tracking-widest text-[10px]">Global Leaderboard</p>
+      </header>
+
+      <div className="bg-white rounded-[3rem] border-4 border-white shadow-2xl overflow-hidden divide-y">
+        {leaders.map((leader) => (
+          <button key={leader.id} onClick={() => onOpenUserProfile(leader.id)} className="w-full p-8 flex items-center justify-between hover:bg-stone-50 transition-colors text-left">
+            <div className="flex items-center gap-6">
+              <div className="w-10 text-center">
+                {leader.rank <= 3 ? (
+                  <span className={`text-2xl ${medalClassByRank(leader.rank)}`}>
+                    {medalLabelByRank(leader.rank)}
+                  </span>
+                ) : (
+                  <span className="text-lg font-black text-stone-200">#{leader.rank}</span>
+                )}
+              </div>
+              <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-stone-100">
+                <img src={leader.avatar} alt={`${leader.name} avatar`} className="w-full h-full object-cover" />
+              </div>
+              <div>
+                <p className="font-black uppercase text-sm tracking-tighter text-stone-900">{leader.name}</p>
+                <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">@{leader.username} • Level {leader.level}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xl font-black text-stone-900">{leader.points.toLocaleString()}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-stone-300">Points</p>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <div className="bg-stone-900 rounded-[3rem] p-10 text-white flex items-center justify-between shadow-2xl">
+        <div className="flex items-center gap-6">
+          <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-white/20">
+            <img src="https://i.pravatar.cc/150?u=me" alt="Your avatar" className="w-full h-full object-cover" />
+          </div>
+          <div>
+            <p className="font-black uppercase text-sm tracking-tighter">Your Rank</p>
+            <p className="text-stone-400 text-[10px] font-bold uppercase tracking-widest">Studio Apprentice</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-2xl font-black text-yellow-400">{userPoints.toLocaleString()}</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Level {userLevel}</p>
+        </div>
+      </div>
+    </div>
+  );
+};

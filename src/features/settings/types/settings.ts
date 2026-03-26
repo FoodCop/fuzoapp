@@ -11,6 +11,7 @@ export interface SettingsProfile {
   facebook: string;
   tiktok: string;
   pinterest: string;
+  youtube: string;
 }
 
 export interface UserSettingsRow {
@@ -26,6 +27,7 @@ export interface UserSettingsRow {
   facebook_url: string | null;
   tiktok_url: string | null;
   pinterest_url: string | null;
+  youtube_url: string | null;
 }
 
 export interface PublicUserProfile {
@@ -41,6 +43,8 @@ export interface PublicUserProfile {
   facebook: string;
   tiktok: string;
   pinterest: string;
+  youtube: string;
+  profile_type: string;
 }
 
 export interface PublicUserRow {
@@ -56,6 +60,8 @@ export interface PublicUserRow {
   facebook_url: string | null;
   tiktok_url: string | null;
   pinterest_url: string | null;
+  youtube_url: string | null;
+  profile_type: string | null;
 }
 
 export interface AuthContextUser {

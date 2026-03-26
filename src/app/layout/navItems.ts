@@ -1,6 +1,6 @@
-import { Bot, Camera, ChefHat, Gift, LayoutGrid, MapPin, MessageSquare, PlayCircle, Settings, Trophy, User } from 'lucide-react';
+import { Bell, Bot, Camera, ChefHat, Gift, LayoutGrid, MapPin, MessageSquare, PlayCircle, Settings, Trophy, User } from 'lucide-react';
 
-export const TAB_IDS = ['feed', 'bites', 'trims', 'chef', 'chat', 'scout', 'profile', 'user-profile', 'leaderboard', 'rewards', 'settings'] as const;
+export const TAB_IDS = ['feed', 'bites', 'trims', 'chef', 'chat', 'scout', 'profile', 'user-profile', 'leaderboard', 'rewards', 'settings', 'notifications'] as const;
 
 export const BOTTOM_NAV_ITEMS = [
   { id: 'feed', icon: LayoutGrid },
@@ -15,6 +15,7 @@ export const DRAWER_NAV_ITEMS = [
   { id: 'leaderboard', icon: Trophy },
   { id: 'rewards', icon: Gift },
   { id: 'chat', icon: MessageSquare },
+  { id: 'notifications', icon: Bell },
   { id: 'chef', icon: Bot },
   { id: 'settings', icon: Settings },
 ] as const;

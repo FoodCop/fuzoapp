@@ -33,6 +33,7 @@ export const buildDefaultSettingsProfile = (authUser: AuthContextUser | null | u
     facebook: getMetadataString(metadata, 'facebook_url', 'facebook', 'fb'),
     tiktok: getMetadataString(metadata, 'tiktok_url', 'tiktok'),
     pinterest: getMetadataString(metadata, 'pinterest_url', 'pinterest'),
+    youtube: getMetadataString(metadata, 'youtube_url', 'youtube'),
   };
 };
 
@@ -57,6 +58,7 @@ export const mergeSettingsFromRow = (base: SettingsProfile, row: UserSettingsRow
     facebook: row.facebook_url || base.facebook,
     tiktok: row.tiktok_url || base.tiktok,
     pinterest: row.pinterest_url || base.pinterest,
+    youtube: row.youtube_url || base.youtube,
   };
 };
 
@@ -82,5 +84,6 @@ export const mapProfileToSettingsUpdate = (profile: SettingsProfile) => {
     facebook_url: profile.facebook.trim() || null,
     tiktok_url: profile.tiktok.trim() || null,
     pinterest_url: profile.pinterest.trim() || null,
+    youtube_url: profile.youtube.trim() || null,
   };
 };
