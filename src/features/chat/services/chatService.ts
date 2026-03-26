@@ -298,14 +298,18 @@ export const ChatService = {
         table: 'dm_messages',
         filter: `conversation_id=eq.${conversationId}`,
       }, (payload: SupabaseRealtimePayload) => {
-        const message = toChatMessage(payload.new);
-        if (!message.id || !message.conversationId || !message.senderId) return;
-        onMessage(message);
+        try {
+          const message = toChatMessage(payload.new);
+          if (!message.id || !message.conversationId || !message.senderId) return;
+          onMessage(message);
+        } catch (err) {
+          console.error('Realtime message error:', err);
+        }
       })
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      client.removeChannel(channel).catch(e => console.error('Unsubscribe error:', e));
     };
   },
 
@@ -322,27 +326,31 @@ export const ChatService = {
         schema: 'public',
         table: 'dm_messages',
       }, async (payload: SupabaseRealtimePayload) => {
-        const message = toChatMessage(payload.new);
-        if (!message.id || !message.conversationId || !message.senderId) return;
-        if (message.senderId === currentUserId) return;
+        try {
+          const message = toChatMessage(payload.new);
+          if (!message.id || !message.conversationId || !message.senderId) return;
+          if (message.senderId === currentUserId) return;
 
-        const conversation = await ChatService.getConversationParticipants(message.conversationId);
-        if (!conversation.success || !conversation.data) return;
+          const conversation = await ChatService.getConversationParticipants(message.conversationId);
+          if (!conversation.success || !conversation.data) return;
 
-        const { participant1, participant2 } = conversation.data;
-        if (participant1 !== currentUserId && participant2 !== currentUserId) return;
+          const { participant1, participant2 } = conversation.data;
+          if (participant1 !== currentUserId && participant2 !== currentUserId) return;
 
-        const otherUserId = participant1 === currentUserId ? participant2 : participant1;
+          const otherUserId = participant1 === currentUserId ? participant2 : participant1;
 
-        onIncoming({
-          otherUserId,
-          message,
-        });
+          onIncoming({
+            otherUserId,
+            message,
+          });
+        } catch (err) {
+          console.error('Realtime incoming message error:', err);
+        }
       })
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      client.removeChannel(channel).catch(e => console.error('Unsubscribe error:', e));
     };
   },
 
@@ -498,14 +506,18 @@ export const ChatService = {
         table: 'group_messages',
         filter: `group_id=eq.${groupId}`,
       }, (payload: SupabaseRealtimePayload) => {
-        const message = toChatMessage(payload.new);
-        if (!message.id || !message.groupId || !message.senderId) return;
-        onMessage(message);
+        try {
+          const message = toChatMessage(payload.new);
+          if (!message.id || !message.groupId || !message.senderId) return;
+          onMessage(message);
+        } catch (err) {
+          console.error('Realtime group message error:', err);
+        }
       })
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      client.removeChannel(channel).catch(e => console.error('Unsubscribe error:', e));
     };
   },
 };

@@ -95,26 +95,73 @@ export const ScoutView = ({ mapsApiKey, savedItems, onAction }: ScoutViewProps) 
       const google = getGoogleMaps();
       if (!google) throw new Error('Google Maps not loaded');
 
-      const service = new (google as any).places.PlacesService(map);
+      // Use modern searchNearby if available, fallback to legacy PlacesService
       const center = (map as any).getCenter();
-      
-      const request = {
-        location: center,
-        radius: 2000,
-        type: ['restaurant', 'cafe', 'bar']
-      };
+      const lat = typeof center.lat === 'function' ? center.lat() : center.lat;
+      const lng = typeof center.lng === 'function' ? center.lng() : center.lng;
 
-      service.nearbySearch(request, (results: any[], status: any) => {
+      try {
+        const { Place } = await (google as any).importLibrary('places');
+        const { places } = await Place.searchNearby({
+          fields: ['displayName', 'location', 'rating', 'userRatingCount', 'vicinity', 'types', 'photos'],
+          locationRestriction: { 
+            center: { lat, lng }, 
+            radius: 2000 
+          },
+          includedPrimaryTypes: ['restaurant', 'cafe', 'bar'],
+          maxResultCount: 15,
+        });
+
         if (!shouldApplyLatestRequest(mounted, seq, requestSeq)) return;
         setIsLoading(false);
 
-        if (status === (google as any).places.PlacesServiceStatus.OK && results) {
-          const transformed = results.slice(0, 15).map((r, i) => toScoutPlace(r, i, mapsApiKey));
+        if (places && places.length > 0) {
+          const transformed = places.map((p: any, i: number) => {
+            const loc = p.location;
+            return {
+              id: p.id || `google-${i}`,
+              placeId: p.id,
+              markerSource: 'google',
+              name: p.displayName || 'Unnamed Place',
+              cat: p.types?.[0]?.replace(/_/g, ' ') || 'Restaurant',
+              rating: p.rating || 0,
+              reviews: p.userRatingCount || 0,
+              address: p.vicinity || '',
+              phone: '',
+              website: '',
+              vibe: [],
+              img: p.photos?.[0]?.getURI({ maxWidth: 400 }) || '',
+              lat: loc?.lat?.() || loc?.lat || 0,
+              lng: loc?.lng?.() || loc?.lng || 0,
+              timings: {},
+              menu: [],
+              userReviews: [],
+              photos: []
+            };
+          });
           setMainMapPlaces(transformed);
         } else {
           setMainMapPlaces(SCOUT_FALLBACK_PLACES);
         }
-      });
+      } catch (innerErr) {
+        // Fallback to legacy PlacesService if modern API fails or is unavailable
+        const service = new (google as any).places.PlacesService(map);
+        service.nearbySearch({
+          location: { lat, lng },
+          radius: 2000,
+          type: ['restaurant', 'cafe', 'bar']
+        }, (results: any[], status: any) => {
+          if (!shouldApplyLatestRequest(mounted, seq, requestSeq)) return;
+          setIsLoading(false);
+
+          if (status === (google as any).places.PlacesServiceStatus.OK && results) {
+            const transformed = results.slice(0, 15).map((r, i) => toScoutPlace(r, i, mapsApiKey));
+            setMainMapPlaces(transformed);
+          } else {
+            setMainMapPlaces(SCOUT_FALLBACK_PLACES);
+          }
+        });
+      }
     } catch (err) {
       if (shouldApplyLatestRequest(mounted, seq, requestSeq)) {
         setIsLoading(false);
