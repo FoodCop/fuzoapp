@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 import { API_KEYS } from '../../../shared/constants/apiKeys';
 import type { AppItem } from '../../../shared/types/appItem';
@@ -140,14 +140,14 @@ export const MiniMapWidget = ({
       {!isLoaded && !error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-stone-50/80 backdrop-blur-sm z-10">
           <Loader2 className="w-8 h-8 text-yellow-500 animate-spin mb-4" />
-          <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Gourmet Map Loading...</p>
+          <p className="text-[12px] font-black uppercase tracking-widest text-stone-400">Gourmet Map Loading...</p>
         </div>
       )}
 
       {error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-stone-50/80 backdrop-blur-sm z-10 px-8 text-center">
           <AlertCircle className="w-8 h-8 text-red-400 mb-4" />
-          <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">{error}</p>
+          <p className="text-[12px] font-black uppercase tracking-widest text-stone-400">{error}</p>
         </div>
       )}
 
@@ -157,8 +157,8 @@ export const MiniMapWidget = ({
             <MapPin size={16} />
           </div>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-stone-900">{validPins.length} Locations</p>
-            <p className="text-[8px] font-bold uppercase tracking-widest text-stone-400">Activity Density Active</p>
+            <p className="text-[12px] font-black uppercase tracking-widest text-stone-900">{validPins.length} Locations</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-stone-400">Activity Density Active</p>
           </div>
         </div>
       )}

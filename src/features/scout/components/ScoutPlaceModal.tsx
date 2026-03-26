@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { motion } from 'framer-motion';
 import { X, Star, Info, Clock, List, MapPin, Zap, PlayCircle, Bookmark, Share2 } from 'lucide-react';
 import { ScoutPlace } from '../types/scoutUi';
@@ -46,7 +46,7 @@ export const ScoutPlaceModal = ({
               <Badge color="yellow">{place.cat}</Badge>
               <h2 className="text-4xl font-black uppercase tracking-tighter mt-2 leading-none">{place.name}</h2>
             </div>
-            {isLoadingDetails && <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Loading live details...</p>}
+            {isLoadingDetails && <p className="text-[12px] font-black uppercase tracking-widest text-stone-400">Loading live details...</p>}
             
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
@@ -54,7 +54,7 @@ export const ScoutPlaceModal = ({
                   {[1,2,3,4,5].map(i => <Star key={i} size={16} fill={i <= Math.floor(place.rating) ? "currentColor" : "none"} />)}
                 </div>
                 <span className="text-xs font-black">{place.rating}</span>
-                <span className="text-[10px] font-bold text-stone-300 uppercase tracking-widest">({place.reviews} Reviews)</span>
+                <span className="text-[12px] font-bold text-stone-300 uppercase tracking-widest">({place.reviews} Reviews)</span>
               </div>
             </div>
           </header>
@@ -100,10 +100,10 @@ export const ScoutPlaceModal = ({
                 </div>
 
                 <section className="space-y-4">
-                  <h4 className="font-black uppercase text-[10px] tracking-[0.2em] text-stone-300 px-2">The Vibe</h4>
+                  <h4 className="font-black uppercase text-[12px] tracking-[0.2em] text-stone-300 px-2">The Vibe</h4>
                   <div className="flex flex-wrap gap-3">
                     {(place.vibe || []).map((v) => (
-                      <div key={v} className="px-6 py-3 bg-stone-50 rounded-full text-[10px] font-black uppercase tracking-widest text-stone-900 border border-stone-100">
+                      <div key={v} className="px-6 py-3 bg-stone-50 rounded-full text-[12px] font-black uppercase tracking-widest text-stone-900 border border-stone-100">
                         {v}
                       </div>
                     ))}
@@ -114,7 +114,7 @@ export const ScoutPlaceModal = ({
 
             {modalTab === 'timings' && (
               <div className="space-y-4 animate-in fade-in duration-300">
-                <h4 className="font-black uppercase text-[10px] tracking-[0.2em] text-stone-300 px-2">Opening Hours</h4>
+                <h4 className="font-black uppercase text-[12px] tracking-[0.2em] text-stone-300 px-2">Opening Hours</h4>
                 <div className="bg-stone-50 p-8 rounded-[3rem] border border-stone-100 space-y-3">
                   {Object.entries(place.timings || {}).map(([day, hours]) => (
                     <div key={day} className="flex justify-between items-center">
@@ -130,7 +130,7 @@ export const ScoutPlaceModal = ({
               <div className="space-y-8 animate-in fade-in duration-300">
                 {(place.menu || []).map((section) => (
                   <div key={section.section} className="space-y-4">
-                    <h4 className="font-black uppercase text-[10px] tracking-[0.2em] text-stone-300 px-2">{section.section}</h4>
+                    <h4 className="font-black uppercase text-[12px] tracking-[0.2em] text-stone-300 px-2">{section.section}</h4>
                     <div className="bg-stone-50 p-8 rounded-[3rem] border border-stone-100 space-y-3">
                       {section.items.map((item) => (
                         <div key={`${section.section}-${item}`} className="flex justify-between items-center border-b border-stone-100/50 pb-2 last:border-0 last:pb-0">
@@ -141,15 +141,15 @@ export const ScoutPlaceModal = ({
                     </div>
                   </div>
                 ))}
-                <button className="w-full py-5 border-4 border-stone-100 rounded-[2rem] font-black uppercase text-[10px] tracking-widest text-stone-400 hover:bg-stone-50 transition-colors">View Full Menu</button>
+                <button className="w-full py-5 border-4 border-stone-100 rounded-[2rem] font-black uppercase text-[12px] tracking-widest text-stone-400 hover:bg-stone-50 transition-colors">View Full Menu</button>
               </div>
             )}
 
             {modalTab === 'reviews' && (
               <div className="space-y-6 animate-in fade-in duration-300">
                 <div className="flex items-center justify-between px-2">
-                  <h4 className="font-black uppercase text-[10px] tracking-[0.2em] text-stone-300">User Reviews</h4>
-                  <button className="text-[10px] font-black uppercase tracking-widest text-blue-500">Write Review</button>
+                  <h4 className="font-black uppercase text-[12px] tracking-[0.2em] text-stone-300">User Reviews</h4>
+                  <button className="text-[12px] font-black uppercase tracking-widest text-blue-500">Write Review</button>
                 </div>
                 {(place.userReviews || []).map((review) => (
                   <div key={`${review.user}-${review.text}`} className="bg-stone-50 p-8 rounded-[3rem] border border-stone-100 space-y-4">

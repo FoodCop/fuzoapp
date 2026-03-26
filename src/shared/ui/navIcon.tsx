@@ -1,4 +1,4 @@
-import type { NavIconProps } from '../types/ui';
+﻿import type { NavIconProps } from '../types/ui';
 
 export const NavIcon = ({ icon: Icon, active, onClick, label }: NavIconProps) => (
   <button

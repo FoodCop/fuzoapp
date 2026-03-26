@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import type { AuthUser } from '../../features/auth/types/auth';
 import type { ChatFriend, ChatInboxItem } from '../../features/chat/types/chatUi';
 import type { LeaderboardEntry } from '../../features/points/services/pointsService';

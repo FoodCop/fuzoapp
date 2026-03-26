@@ -1,10 +1,10 @@
-import type React from 'react';
+﻿import type React from 'react';
 import { ChevronRight } from 'lucide-react';
 import type { SettingsItemProps } from '../types/ui';
 
 export const SettingsSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div className="space-y-4">
-    <h4 className="px-6 text-[10px] font-black uppercase tracking-[0.3em] text-stone-300">{title}</h4>
+    <h4 className="px-6 text-[12px] font-black uppercase tracking-[0.3em] text-stone-300">{title}</h4>
     <div className="bg-white rounded-[2.5rem] border-4 border-white overflow-hidden divide-y shadow-xl">
       {children}
     </div>
@@ -21,7 +21,7 @@ export const SettingsItem = ({ icon: Icon, label, value, onClick, color = 'stone
         <Icon size={20} />
       </div>
       <div>
-        <p className="font-black uppercase text-[10px] tracking-widest text-stone-400 leading-none mb-1.5">{label}</p>
+        <p className="font-black uppercase text-[12px] tracking-widest text-stone-400 leading-none mb-1.5">{label}</p>
         <p className="font-bold text-sm text-stone-900">{value}</p>
       </div>
     </div>

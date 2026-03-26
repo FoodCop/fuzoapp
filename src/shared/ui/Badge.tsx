@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 
 export type BadgeColor = 'yellow' | 'stone' | 'blue' | 'emerald' | 'indigo' | 'red';
 
@@ -18,7 +18,7 @@ interface BadgeProps {
 }
 
 export const Badge = ({ children, color = 'yellow', className = '' }: BadgeProps) => (
-  <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${BADGE_COLOR_CLASSES[color]} ${className}`}>
+  <span className={`px-2.5 py-1 rounded-full text-[12px] font-black uppercase tracking-widest whitespace-nowrap ${BADGE_COLOR_CLASSES[color]} ${className}`}>
     {children}
   </span>
 );

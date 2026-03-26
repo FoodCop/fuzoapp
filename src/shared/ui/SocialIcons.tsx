@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import type { IconComponent } from '../types/ui';
 
 export const InstagramMark: IconComponent = ({ size = 18, className }) => (

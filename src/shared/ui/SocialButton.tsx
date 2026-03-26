@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 
@@ -68,7 +68,7 @@ export const SocialButton = ({ provider, onClick, isLoading, disabled }: SocialB
           <span className="shrink-0 transition-transform group-hover:scale-110 duration-300">
             {config.icon}
           </span>
-          <span className="font-black uppercase tracking-[0.15em] text-[10px] md:text-xs">
+          <span className="font-black uppercase tracking-[0.15em] text-[12px] md:text-xs">
             {config.label}
           </span>
         </>

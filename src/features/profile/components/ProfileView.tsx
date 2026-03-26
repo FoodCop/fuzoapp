@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   MapPin, ChefHat, PlayCircle, User, LayoutGrid, Music2, Pin, Youtube 
 } from 'lucide-react';
@@ -138,12 +138,12 @@ export const ProfileView = ({
         <div className="flex items-center gap-4 pt-4">
           <div className="text-center group cursor-pointer" onClick={() => setShowLeaderboard(true)}>
             <p className="text-2xl font-black group-hover:text-yellow-500 transition-colors">#12</p>
-            <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 group-hover:text-stone-900">Rank</p>
+            <p className="text-[12px] font-black uppercase tracking-widest text-stone-400 group-hover:text-stone-900">Rank</p>
           </div>
           <div className="w-px h-10 bg-stone-100" />
-          <div className="text-center"><p className="text-2xl font-black">{savedItems.length}</p><p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Saves</p></div>
+          <div className="text-center"><p className="text-2xl font-black">{savedItems.length}</p><p className="text-[12px] font-black uppercase tracking-widest text-stone-400">Saves</p></div>
           <div className="w-px h-10 bg-stone-100" />
-          <div className="text-center"><p className="text-2xl font-black">42</p><p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Reviews</p></div>
+          <div className="text-center"><p className="text-2xl font-black">42</p><p className="text-[12px] font-black uppercase tracking-widest text-stone-400">Reviews</p></div>
           <div className="w-px h-10 bg-stone-100" />
           <div className="flex items-center gap-2">
             <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="Instagram profile">
@@ -188,14 +188,14 @@ export const ProfileView = ({
         {activeTab === 'map' ? (
           <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
             <MiniMapWidget savedItems={savedItems} />
-            <div className="p-8 bg-stone-50 rounded-[3rem] border border-stone-100 italic text-stone-400 text-[10px] font-bold text-center uppercase tracking-widest leading-relaxed">
+            <div className="p-8 bg-stone-50 rounded-[3rem] border border-stone-100 italic text-stone-400 text-[12px] font-bold text-center uppercase tracking-widest leading-relaxed">
               Your personal food territory. <br/> Heatmap reflects density of your culinary explorations.
             </div>
           </div>
         ) : activeTab === 'crew' ? (
           <div className="space-y-4">
             {friends.length === 0 ? (
-              <div className="p-12 bg-stone-100 rounded-[3rem] text-center text-stone-300 font-black uppercase text-[10px] tracking-widest">
+              <div className="p-12 bg-stone-100 rounded-[3rem] text-center text-stone-300 font-black uppercase text-[12px] tracking-widest">
                 No crew connections yet
               </div>
             ) : (
@@ -205,12 +205,12 @@ export const ProfileView = ({
                     <img src={friend.avatar} alt={friend.name || 'Crew member'} className="w-14 h-14 rounded-2xl object-cover border-2 border-stone-100" />
                     <div>
                       <p className="font-black uppercase tracking-widest text-xs text-stone-900">{friend.name}</p>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">
+                      <p className="text-[12px] font-bold uppercase tracking-widest text-stone-400">
                         {'time' in friend && friend.time ? `Last active ${friend.time}` : 'Team Member'}
                       </p>
                     </div>
                   </div>
-                  <button className="px-4 py-2 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest">View</button>
+                  <button className="px-4 py-2 rounded-xl bg-stone-900 text-white text-[12px] font-black uppercase tracking-widest">View</button>
                 </div>
               ))
             )}
@@ -218,7 +218,7 @@ export const ProfileView = ({
         ) : (
           <div className="grid grid-cols-2 gap-6">
             {filteredItems.length === 0 ? (
-              <div className="col-span-2 p-12 bg-stone-100 rounded-[3rem] text-center text-stone-300 font-black uppercase text-[10px] tracking-widest">
+              <div className="col-span-2 p-12 bg-stone-100 rounded-[3rem] text-center text-stone-300 font-black uppercase text-[12px] tracking-widest">
                 No {activeTab} saved yet
               </div>
             ) : (
@@ -231,7 +231,7 @@ export const ProfileView = ({
                 >
                   <img src={item.img} alt={item.name || 'Saved item'} className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white p-4 text-center">
-                    <p className="font-black uppercase text-[10px] tracking-tighter leading-tight mb-2">{item.name}</p>
+                    <p className="font-black uppercase text-[12px] tracking-tighter leading-tight mb-2">{item.name}</p>
                     <Badge color="yellow">{item.cat}</Badge>
                   </div>
                 </button>

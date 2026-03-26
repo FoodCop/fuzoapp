@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import './src/styles/tailwind.css';
 import { mountApp } from './src/app/bootstrap/mountApp';
@@ -487,7 +487,7 @@ const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friend
           </div>
           <div>
             <h4 className="font-black uppercase text-xl leading-none">{item.name}</h4>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400 mt-2">{item.cat}</p>
+            <p className="text-[12px] font-black uppercase tracking-[0.2em] text-stone-400 mt-2">{item.cat}</p>
           </div>
         </div>
 
@@ -501,7 +501,7 @@ const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friend
               className="w-full bg-stone-50 pl-12 pr-4 py-3 rounded-2xl text-xs font-black uppercase tracking-widest outline-none border border-stone-100 focus:ring-4 focus:ring-yellow-400/10"
             />
           </div>
-          <h5 className="px-2 text-[10px] font-black uppercase tracking-widest text-stone-300">Active Contacts</h5>
+          <h5 className="px-2 text-[12px] font-black uppercase tracking-widest text-stone-500">Active Contacts</h5>
           {filteredFriends.map(friend => (
             <button
               type="button"
@@ -520,7 +520,7 @@ const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friend
                 <img src={friend.avatar} alt={friend.name || 'Friend avatar'} className="w-12 h-12 rounded-full border-2 border-stone-100" />
                 <div>
                   <span className="font-black uppercase text-xs tracking-widest block">{friend.name}</span>
-                  {!!('username' in friend && friend.username) && <span className="text-[9px] font-bold uppercase tracking-widest text-stone-400">@{friend.username}</span>}
+                  {!!('username' in friend && friend.username) && <span className="text-[11px] font-bold uppercase tracking-widest text-stone-400">@{friend.username}</span>}
                 </div>
               </div>
               {sentTo.includes(friend.id) ? (
@@ -535,7 +535,7 @@ const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friend
             </button>
           ))}
           {filteredFriends.length === 0 && (
-            <div className="p-5 rounded-2xl bg-stone-50 border border-stone-100 text-[10px] font-black uppercase tracking-widest text-stone-400 text-center">
+            <div className="p-5 rounded-2xl bg-stone-50 border border-stone-100 text-[12px] font-black uppercase tracking-widest text-stone-400 text-center">
               No friends found.
             </div>
           )}
@@ -634,7 +634,7 @@ const DealCard = ({ item, index, onAction, onAuthorClick }: { item: AppItem, ind
                       e.stopPropagation();
                       onAuthorClick(item);
                     }}
-                    className="text-[10px] font-black uppercase tracking-widest text-yellow-300 hover:text-yellow-100 transition-colors"
+                    className="text-[12px] font-black uppercase tracking-widest text-yellow-300 hover:text-yellow-100 transition-colors"
                   >
                     By @{item.author}
                   </button>
@@ -783,7 +783,7 @@ const BitesGrid = ({
       <div className="py-20 text-center space-y-6">
         <Search size={48} className="mx-auto text-stone-200" />
         <p className="font-black uppercase text-xs tracking-widest text-stone-400">No matches in current pack</p>
-        <button onClick={onReset} className="px-8 py-4 bg-stone-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest">Refresh Feed</button>
+        <button onClick={onReset} className="px-8 py-4 bg-stone-900 text-white rounded-2xl font-black uppercase text-[12px] tracking-widest">Refresh Feed</button>
       </div>
     );
   }
@@ -809,7 +809,7 @@ const BitesGrid = ({
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent" />
             <div className="absolute bottom-10 left-10 right-10 text-white">
               <h3 className="text-2xl font-black uppercase tracking-tighter mb-2 leading-none">{recipe.title}</h3>
-              <div className="flex gap-2 items-center text-[10px] font-bold uppercase tracking-widest opacity-80">
+              <div className="flex gap-2 items-center text-[12px] font-bold uppercase tracking-widest opacity-80">
                 <Clock size={14} /> {recipe.readyInMinutes} Min
               </div>
             </div>
@@ -873,10 +873,10 @@ const BitesRecipeModal = ({
             <Badge color="yellow">Studio Pack #{selectedRecipe.id}</Badge>
             <h2 className="text-4xl font-black uppercase tracking-tighter leading-none text-stone-900">{selectedRecipe.title}</h2>
             <div className="flex gap-6">
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-stone-400">
+              <div className="flex items-center gap-2 text-[12px] font-black uppercase tracking-widest text-stone-400">
                 <Clock size={16} /> {selectedRecipe.readyInMinutes} Mins
               </div>
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-stone-400">
+              <div className="flex items-center gap-2 text-[12px] font-black uppercase tracking-widest text-stone-400">
                 <User size={16} /> {selectedRecipe.servings} Serves
               </div>
             </div>
@@ -884,10 +884,10 @@ const BitesRecipeModal = ({
 
           {/* Stats (Mobile) */}
           <div className="flex md:hidden px-8 py-6 gap-6 border-b border-stone-50">
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-stone-400">
+              <div className="flex items-center gap-2 text-[12px] font-black uppercase tracking-widest text-stone-400">
                 <Clock size={16} /> {selectedRecipe.readyInMinutes} Mins
               </div>
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-stone-400">
+              <div className="flex items-center gap-2 text-[12px] font-black uppercase tracking-widest text-stone-400">
                 <User size={16} /> {selectedRecipe.servings} Serves
               </div>
           </div>
@@ -899,7 +899,7 @@ const BitesRecipeModal = ({
                 <button
                   key={t.id}
                   onClick={() => setActiveTab(t.id)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === t.id ? 'bg-white shadow-sm text-stone-900' : 'text-stone-400 hover:text-stone-600'}`}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${activeTab === t.id ? 'bg-white shadow-sm text-stone-900' : 'text-stone-400 hover:text-stone-600'}`}
                 >
                   <t.icon size={14} />
                   <span className="hidden sm:inline">{t.label}</span>
@@ -958,9 +958,9 @@ const BitesRecipeModal = ({
                       {getBiteKeyNutrients(selectedRecipe).map((n) => (
                         <div key={n.name} className="bg-stone-50 p-6 rounded-[2.5rem] border border-stone-100 flex flex-col justify-center hover:bg-white hover:shadow-md transition-all group">
                           <p className="text-2xl font-black text-stone-900 group-hover:text-yellow-600 transition-colors">
-                            {Math.round(n.amount)} <span className="text-[10px] text-stone-400 font-bold uppercase tracking-widest ml-1">{n.unit}</span>
+                            {Math.round(n.amount)} <span className="text-[12px] text-stone-400 font-bold uppercase tracking-widest ml-1">{n.unit}</span>
                           </p>
-                          <p className="text-[9px] font-black uppercase tracking-widest text-stone-400 mt-1 truncate">{n.name}</p>
+                          <p className="text-[11px] font-black uppercase tracking-widest text-stone-400 mt-1 truncate">{n.name}</p>
                         </div>
                       ))}
                     </div>
@@ -977,7 +977,7 @@ const BitesRecipeModal = ({
               className="flex-grow py-5 bg-stone-900 text-white rounded-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all shadow-xl group"
             >
               <Bookmark size={22} className="group-hover:fill-white transition-all" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Save to Plate</span>
+              <span className="text-[12px] font-black uppercase tracking-widest">Save to Plate</span>
             </button>
             <button
               onClick={() => onShareRecipe(selectedRecipe)}
@@ -1061,13 +1061,13 @@ const BitesControls = ({
       {showFilters && (
         <div className="bg-white p-10 rounded-[3rem] shadow-2xl border-4 border-white space-y-8 animate-in slide-in-from-top-4 duration-500">
           <div className="space-y-4">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-300 px-2">Dietary Preferences</h4>
+            <h4 className="text-[12px] font-black uppercase tracking-[0.2em] text-stone-300 px-2">Dietary Preferences</h4>
             <div className="flex flex-wrap gap-3">
               {BITE_DIETS.map((diet) => (
                 <button
                   key={diet}
                   onClick={() => onToggleDiet(diet)}
-                  className={`px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeDiet === diet ? 'bg-yellow-400 text-stone-900 shadow-lg' : 'bg-stone-50 text-stone-400 hover:bg-stone-100'}`}
+                  className={`px-6 py-3 rounded-full text-[12px] font-black uppercase tracking-widest transition-all ${activeDiet === diet ? 'bg-yellow-400 text-stone-900 shadow-lg' : 'bg-stone-50 text-stone-400 hover:bg-stone-100'}`}
                 >
                   {diet}
                 </button>
@@ -1075,13 +1075,13 @@ const BitesControls = ({
             </div>
           </div>
           <div className="space-y-4">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-300 px-2">Global Cuisines</h4>
+            <h4 className="text-[12px] font-black uppercase tracking-[0.2em] text-stone-300 px-2">Global Cuisines</h4>
             <div className="flex flex-wrap gap-3">
               {BITE_CUISINES.map((cuisine) => (
                 <button
                   key={cuisine}
                   onClick={() => onToggleCuisine(cuisine)}
-                  className={`px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeCuisine === cuisine ? 'bg-yellow-400 text-stone-900 shadow-lg' : 'bg-stone-50 text-stone-400 hover:bg-stone-100'}`}
+                  className={`px-6 py-3 rounded-full text-[12px] font-black uppercase tracking-widest transition-all ${activeCuisine === cuisine ? 'bg-yellow-400 text-stone-900 shadow-lg' : 'bg-stone-50 text-stone-400 hover:bg-stone-100'}`}
                 >
                   {cuisine}
                 </button>
@@ -1266,7 +1266,7 @@ User description: ${description}`;
         <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12">
           <div className="space-y-8">
             <div className="space-y-4">
-              <label htmlFor="ai-recipe-image" className="text-[10px] font-black uppercase tracking-widest text-stone-500">Upload Image (Optional)</label>
+              <label htmlFor="ai-recipe-image" className="text-[12px] font-black uppercase tracking-widest text-stone-500">Upload Image (Optional)</label>
               <div className="relative aspect-video bg-stone-900 rounded-[2.5rem] border-4 border-dashed border-stone-800 overflow-hidden group hover:border-yellow-400/50 transition-all">
                 {image ? (
                   <>
@@ -1276,7 +1276,7 @@ User description: ${description}`;
                 ) : (
                   <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer">
                     <ImageIcon size={48} className="text-stone-700 group-hover:text-yellow-400 transition-colors mb-4" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-stone-600">Upload Dish Image</span>
+                    <span className="text-[12px] font-black uppercase tracking-widest text-stone-600">Upload Dish Image</span>
                     <input id="ai-recipe-image" type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                   </label>
                 )}
@@ -1284,7 +1284,7 @@ User description: ${description}`;
             </div>
 
             <div className="space-y-4">
-              <label htmlFor="ai-recipe-description" className="text-[10px] font-black uppercase tracking-widest text-stone-500">Recipe Description</label>
+              <label htmlFor="ai-recipe-description" className="text-[12px] font-black uppercase tracking-widest text-stone-500">Recipe Description</label>
               <textarea
                 id="ai-recipe-description"
                 value={description}
@@ -1295,14 +1295,14 @@ User description: ${description}`;
             </div>
 
             <div className="space-y-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-stone-500">Card Tag</p>
+              <p className="text-[12px] font-black uppercase tracking-widest text-stone-500">Card Tag</p>
               <div className="flex flex-wrap gap-2">
                 {BITES_AI_TAG_OPTIONS.map((tag) => (
                   <button
                     type="button"
                     key={tag}
                     onClick={() => setSelectedTag(tag)}
-                    className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-colors ${selectedTag === tag ? 'bg-yellow-400 text-stone-900' : 'bg-stone-900 text-stone-300 border border-stone-700 hover:text-white'}`}
+                    className={`px-4 py-2 rounded-full text-[12px] font-black uppercase tracking-widest transition-colors ${selectedTag === tag ? 'bg-yellow-400 text-stone-900' : 'bg-stone-900 text-stone-300 border border-stone-700 hover:text-white'}`}
                   >
                     {tag}
                   </button>
@@ -1328,15 +1328,15 @@ User description: ${description}`;
                   <Badge color="yellow">AI Generated</Badge>
                   <Badge color="stone">{selectedTag}</Badge>
                   <h3 className="text-4xl font-black uppercase tracking-tighter leading-none">{generatedRecipe.title}</h3>
-                  <div className="flex gap-4 text-[10px] font-black uppercase tracking-widest text-stone-400">
+                  <div className="flex gap-4 text-[12px] font-black uppercase tracking-widest text-stone-400">
                     <span>{generatedRecipe.readyInMinutes || 20} Mins</span>
-                    <span>•</span>
+                    <span>â€¢</span>
                     <span>{generatedRecipe.servings || 2} Servings</span>
                   </div>
                 </header>
 
                 <div className="space-y-4">
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-stone-400">Ingredients</h4>
+                  <h4 className="text-[12px] font-black uppercase tracking-widest text-stone-400">Ingredients</h4>
                   <ul className="space-y-2">
                     {(generatedRecipe.ingredients || []).slice(0, 6).map((ing: string) => (
                       <li key={ing} className="text-xs font-bold text-stone-600 flex gap-2">
@@ -1350,7 +1350,7 @@ User description: ${description}`;
                 <div className="flex gap-4 pt-4">
                   <button
                     onClick={handleSave}
-                    className="flex-grow py-5 bg-stone-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-transform"
+                    className="flex-grow py-5 bg-stone-900 text-white rounded-2xl font-black uppercase text-[12px] tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-transform"
                   >
                     <Bookmark size={16} /> Save to Plate
                   </button>
@@ -1369,7 +1369,7 @@ User description: ${description}`;
                 </div>
                 <div>
                   <h4 className="text-xl font-black uppercase tracking-tighter text-stone-600">AI Recipe Studio</h4>
-                  <p className="text-[10px] font-bold text-stone-700 uppercase tracking-widest mt-2">Generated recipe card appears here</p>
+                  <p className="text-[12px] font-bold text-stone-700 uppercase tracking-widest mt-2">Generated recipe card appears here</p>
                 </div>
               </div>
             )}
@@ -1541,7 +1541,7 @@ const FeedView = ({ onSave, onShareRequest, onOpenUserProfile }: { onSave: (item
       return (
         <div className="min-h-[550px] w-full flex flex-col items-center justify-center gap-4 text-stone-300">
           <p className="font-black uppercase tracking-widest text-xs">No discovery cards available</p>
-          <button onClick={handleRetryFeed} className="px-8 py-4 bg-stone-900 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px]">Retry Feed</button>
+          <button onClick={handleRetryFeed} className="px-8 py-4 bg-stone-900 text-white rounded-[2rem] font-black uppercase tracking-widest text-[12px]">Retry Feed</button>
         </div>
       );
     }
@@ -1584,7 +1584,7 @@ const FeedView = ({ onSave, onShareRequest, onOpenUserProfile }: { onSave: (item
         <div className="h-full flex flex-col items-center justify-center text-stone-200 gap-4">
            <RefreshCw size={48} className="animate-spin-slow opacity-20" />
            <p className="font-black uppercase tracking-widest text-xs">End of the discovery</p>
-           <button onClick={handleRetryFeed} className="px-6 py-3 bg-stone-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest">Retry Feed</button>
+           <button onClick={handleRetryFeed} className="px-6 py-3 bg-stone-900 text-white rounded-2xl font-black uppercase text-[12px] tracking-widest">Retry Feed</button>
         </div>
       );
     }
@@ -1648,7 +1648,7 @@ const FeedView = ({ onSave, onShareRequest, onOpenUserProfile }: { onSave: (item
           <Badge color="yellow">Studio Dealer</Badge>
           <h2 className="text-6xl font-black uppercase tracking-tighter leading-none">Discovery Hand</h2>
           {feedSource === 'local' && FEED_USE_SERVICE && (
-            <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-2">Curated Feed Fallback Active</p>
+            <p className="text-[12px] font-black uppercase tracking-widest text-stone-400 mt-2">Curated Feed Fallback Active</p>
           )}
         </header>
 
@@ -1662,7 +1662,7 @@ const FeedView = ({ onSave, onShareRequest, onOpenUserProfile }: { onSave: (item
           <RefreshCw size={24} /> Deal Next Hand
         </button>
         {!!feedError && (
-          <div className="text-[10px] font-black uppercase tracking-widest text-red-500">{feedError}</div>
+          <div className="text-[12px] font-black uppercase tracking-widest text-red-500">{feedError}</div>
         )}
       </div>
     );
@@ -1674,14 +1674,14 @@ const FeedView = ({ onSave, onShareRequest, onOpenUserProfile }: { onSave: (item
         <Badge color="yellow">Studio Stack</Badge>
         <h2 className="text-4xl font-black uppercase tracking-tighter mt-1">Discovery</h2>
         {feedSource === 'local' && FEED_USE_SERVICE && (
-          <p className="text-[10px] font-black uppercase tracking-widest text-stone-300 mt-2">Curated Feed Fallback Active</p>
+          <p className="text-[12px] font-black uppercase tracking-widest text-stone-500 mt-2">Curated Feed Fallback Active</p>
         )}
       </div>
       <div className="relative w-full max-w-[400px] aspect-[3/4.6]">
         {renderMobileFeedContent()}
       </div>
       {!!feedError && (
-        <div className="text-[10px] font-black uppercase tracking-widest text-red-500 px-4 text-center">{feedError}</div>
+        <div className="text-[12px] font-black uppercase tracking-widest text-red-500 px-4 text-center">{feedError}</div>
       )}
     </div>
   );
@@ -1887,7 +1887,7 @@ const AITrimStudio = ({
         <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12">
           <div className="space-y-8">
             <div className="space-y-4">
-              <label htmlFor="ai-trim-video" className="text-[10px] font-black uppercase tracking-widest text-stone-500">Upload Video (Optional)</label>
+              <label htmlFor="ai-trim-video" className="text-[12px] font-black uppercase tracking-widest text-stone-500">Upload Video (Optional)</label>
               <div className="relative aspect-[9/16] bg-stone-900 rounded-[2.5rem] border-4 border-dashed border-stone-800 overflow-hidden group hover:border-emerald-400/50 transition-all">
                 {video ? (
                   <>
@@ -1897,7 +1897,7 @@ const AITrimStudio = ({
                 ) : (
                   <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer">
                     <PlayCircle size={48} className="text-stone-700 group-hover:text-emerald-400 transition-colors mb-4" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-stone-600 px-8 text-center">Upload Vertical Trim</span>
+                    <span className="text-[12px] font-black uppercase tracking-widest text-stone-600 px-8 text-center">Upload Vertical Trim</span>
                     <input id="ai-trim-video" type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} />
                   </label>
                 )}
@@ -1905,7 +1905,7 @@ const AITrimStudio = ({
             </div>
 
             <div className="space-y-4">
-              <label htmlFor="ai-trim-link-url" className="text-[10px] font-black uppercase tracking-widest text-stone-500">YouTube URL (Optional)</label>
+              <label htmlFor="ai-trim-link-url" className="text-[12px] font-black uppercase tracking-widest text-stone-500">YouTube URL (Optional)</label>
               <input
                 id="ai-trim-link-url"
                 value={linkURL}
@@ -1917,12 +1917,12 @@ const AITrimStudio = ({
                 className="w-full bg-stone-900 border-4 border-stone-800 rounded-[2rem] px-6 py-4 font-bold text-xs outline-none focus:border-emerald-400 transition-all"
               />
               {!!linkURL.trim() && !isYouTubeUrl(linkURL) && (
-                <p className="text-[10px] font-bold uppercase tracking-widest text-amber-500">Enter a valid YouTube URL.</p>
+                <p className="text-[12px] font-bold uppercase tracking-widest text-amber-500">Enter a valid YouTube URL.</p>
               )}
             </div>
 
             <div className="space-y-4">
-              <label htmlFor="ai-trim-description" className="text-[10px] font-black uppercase tracking-widest text-stone-500">Trim Description</label>
+              <label htmlFor="ai-trim-description" className="text-[12px] font-black uppercase tracking-widest text-stone-500">Trim Description</label>
               <textarea
                 id="ai-trim-description"
                 value={description}
@@ -1964,14 +1964,14 @@ const AITrimStudio = ({
 
                   <div className="absolute bottom-12 left-8 right-24 text-white space-y-3 z-20">
                     <h3 className="text-2xl font-black uppercase tracking-tighter leading-tight">{generatedTrim.title}</h3>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-white/80">@{generatedTrim.author || 'FUZO AI Studio'}</p>
+                    <p className="text-[12px] font-black uppercase tracking-widest text-white/80">@{generatedTrim.author || 'FUZO AI Studio'}</p>
                     <p className="text-xs font-bold text-white/90 line-clamp-3">{generatedTrim.caption || 'AI generated Studio trim card ready to post.'}</p>
                   </div>
 
                   <div className="absolute right-6 bottom-28 flex flex-col gap-7 text-white items-center z-20">
                     <button onClick={handleSave} className="flex flex-col items-center gap-1 hover:scale-110 transition-transform">
                       <Heart size={28} className="fill-white" />
-                      <span className="text-[10px] font-black">{generatedTrim.likes || '1k'}</span>
+                      <span className="text-[12px] font-black">{generatedTrim.likes || '1k'}</span>
                     </button>
                     <button onClick={handleShare} className="flex flex-col items-center gap-1">
                       <Share2 size={28} />
@@ -1982,7 +1982,7 @@ const AITrimStudio = ({
                 <div className="flex gap-4">
                   <button
                     onClick={handleSave}
-                    className="flex-grow py-5 bg-stone-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-transform"
+                    className="flex-grow py-5 bg-stone-900 text-white rounded-2xl font-black uppercase text-[12px] tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-transform"
                   >
                     <Bookmark size={16} /> Save to Plate
                   </button>
@@ -2001,7 +2001,7 @@ const AITrimStudio = ({
                 </div>
                 <div>
                   <h4 className="text-xl font-black uppercase tracking-tighter text-stone-600">AI Trim Studio</h4>
-                  <p className="text-[10px] font-bold text-stone-700 uppercase tracking-widest mt-2">Generated trim card appears here</p>
+                  <p className="text-[12px] font-bold text-stone-700 uppercase tracking-widest mt-2">Generated trim card appears here</p>
                 </div>
               </div>
             )}
@@ -2246,13 +2246,13 @@ const TrimsView = ({ onSave, onShareRequest, authUser }: { onSave: (item: AppIte
 
   return (
     <div className="h-[80vh] w-full max-w-md mx-auto relative">
-      <div className="absolute top-6 right-6 z-30 px-4 py-2 bg-black/35 border border-white/20 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest backdrop-blur-md">
-        {feedSourceLabel} · {locationLabel}
+      <div className="absolute top-6 right-6 z-30 px-4 py-2 bg-black/35 border border-white/20 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest backdrop-blur-md">
+        {feedSourceLabel} Â· {locationLabel}
       </div>
 
       <div ref={trimsScrollRootRef} className="h-full w-full relative snap-y snap-mandatory overflow-y-auto hide-scrollbar rounded-[3.5rem] bg-stone-900 shadow-2xl border-4 border-white">
       {serviceError && (
-        <div className="absolute top-4 left-4 right-4 z-30 px-4 py-3 bg-yellow-50/95 border border-yellow-100 rounded-2xl text-[10px] font-bold text-yellow-800 backdrop-blur-sm">
+        <div className="absolute top-4 left-4 right-4 z-30 px-4 py-3 bg-yellow-50/95 border border-yellow-100 rounded-2xl text-[12px] font-bold text-yellow-800 backdrop-blur-sm">
           {serviceError}
         </div>
       )}
@@ -2291,15 +2291,15 @@ const TrimsView = ({ onSave, onShareRequest, authUser }: { onSave: (item: AppIte
              <h3 className="text-2xl font-black uppercase tracking-tighter leading-tight">{v.title}</h3>
              <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md" />
-                <p className="text-[10px] font-black uppercase tracking-widest">@{v.author}</p>
+                <p className="text-[12px] font-black uppercase tracking-widest">@{v.author}</p>
              </div>
           </div>
           <div className="absolute right-6 bottom-32 flex flex-col gap-8 text-white items-center">
             <button onClick={() => handleSaveVideo(v)} className="flex flex-col items-center gap-1 hover:scale-110 transition-transform">
               <Heart size={28} className="fill-white" />
-              <span className="text-[10px] font-black">{v.likes}</span>
+              <span className="text-[12px] font-black">{v.likes}</span>
             </button>
-            <button className="flex flex-col items-center gap-1"><MessageSquare size={28} /><span className="text-[10px] font-black">2k</span></button>
+            <button className="flex flex-col items-center gap-1"><MessageSquare size={28} /><span className="text-[12px] font-black">2k</span></button>
             <button onClick={() => handleShareVideo(v)} className="flex flex-col items-center gap-1"><Share2 size={28} /></button>
             <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center animate-spin-slow"><Music2 size={20} /></div>
           </div>
@@ -2358,7 +2358,7 @@ const ChefAIView = () => {
       <header className="p-8 border-b bg-stone-50 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-stone-900 rounded-2xl flex items-center justify-center text-yellow-400 shadow-xl"><Bot size={24} /></div>
-          <div><h4 className="font-black text-xs uppercase tracking-widest">Chef FUZO AI</h4><p className="text-[8px] text-emerald-500 font-bold uppercase tracking-widest">Online</p></div>
+          <div><h4 className="font-black text-xs uppercase tracking-widest">Chef FUZO AI</h4><p className="text-[11px] text-emerald-500 font-bold uppercase tracking-widest">Online</p></div>
         </div>
       </header>
       <div className="flex-grow p-8 overflow-y-auto hide-scrollbar space-y-6">
@@ -2368,7 +2368,7 @@ const ChefAIView = () => {
               key={prompt}
               type="button"
               onClick={() => handleSuggestedPrompt(prompt)}
-              className="px-4 py-2 rounded-full bg-stone-100 hover:bg-yellow-400 text-stone-900 text-[10px] font-black uppercase tracking-widest transition-colors"
+              className="px-4 py-2 rounded-full bg-stone-100 hover:bg-yellow-400 text-stone-900 text-[12px] font-black uppercase tracking-widest transition-colors"
             >
               {prompt}
             </button>
@@ -2475,7 +2475,7 @@ const ChatView = ({
     if ('time' in item && item.time) return item.time;
     if ('online' in item && item.online) return 'now';
     if ('lastSeen' in item && item.lastSeen) return 'recent';
-    return '—';
+    return 'â€”';
   };
 
   const getMessageStatusIcon = (status?: string) => {
@@ -2621,7 +2621,7 @@ const ChatView = ({
             <h4 className="font-black text-xs uppercase tracking-widest">{active.name}</h4>
             <div className="flex items-center gap-1.5 mt-0.5">
               <div className={`w-1.5 h-1.5 rounded-full ${active.type === 'group' ? 'bg-stone-400' : (('online' in active && active.online) ? 'bg-emerald-500' : 'bg-stone-300')}`} />
-              <p className="text-[8px] font-bold text-stone-400 uppercase tracking-widest">
+              <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest">
                 {active.type === 'group' ? 'Studio Group' : (('online' in active && active.online) ? 'Online' : 'Offline')}
               </p>
             </div>
@@ -2637,13 +2637,13 @@ const ChatView = ({
           <div className="flex gap-3 w-full">
             <button
               onClick={() => {}}
-              className="flex-grow py-3 bg-stone-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest"
+              className="flex-grow py-3 bg-stone-900 text-white rounded-2xl font-black uppercase text-[12px] tracking-widest"
             >
               Accept
             </button>
             <button
               onClick={() => setActiveId(null)}
-              className="flex-grow py-3 bg-stone-100 text-stone-900 rounded-2xl font-black uppercase text-[10px] tracking-widest"
+              className="flex-grow py-3 bg-stone-100 text-stone-900 rounded-2xl font-black uppercase text-[12px] tracking-widest"
             >
               Decline
             </button>
@@ -2655,13 +2655,13 @@ const ChatView = ({
         {messages.map((m) => (
           <div key={`${m.id || ''}-${m.role}-${m.type || 'text'}-${m.text || ''}-${m.item?.id || ''}`} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
             {activeType === 'group' && m.role !== 'user' && m.senderName && (
-              <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-1 ml-4">{m.senderName}</span>
+              <span className="text-[12px] font-black uppercase tracking-widest text-stone-400 mb-1 ml-4">{m.senderName}</span>
             )}
             <div className={`max-w-[85%] p-6 rounded-[2.5rem] font-bold text-sm shadow-sm ${m.role === 'user' ? 'bg-stone-900 text-white' : 'bg-stone-50 text-stone-900'}`}>
               {m.type === 'share' ? (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <p className="opacity-60 text-[10px] uppercase font-black tracking-widest">Shared Studio Item</p>
+                    <p className="opacity-60 text-[12px] uppercase font-black tracking-widest">Shared Studio Item</p>
                     <Badge color="yellow">{m.item?.cat || 'Item'}</Badge>
                   </div>
                   <div className="rounded-2xl overflow-hidden shadow-md aspect-video relative group">
@@ -2681,7 +2681,7 @@ const ChatView = ({
                   </div>
                   <div className="space-y-1">
                     <p className="font-black uppercase tracking-tighter text-lg">{m.item?.name}</p>
-                    <p className="text-[10px] opacity-50 font-bold uppercase tracking-widest">Sent via FUZO Studio</p>
+                    <p className="text-[12px] opacity-50 font-bold uppercase tracking-widest">Sent via FUZO Studio</p>
                   </div>
                   <div className="grid grid-cols-3 gap-2 pt-2">
                     <button
@@ -2693,7 +2693,7 @@ const ChatView = ({
                       className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-stone-100 transition-colors"
                     >
                       <div className="w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center text-stone-600"><Eye size={16} /></div>
-                      <span className="text-[8px] font-black uppercase tracking-widest">View</span>
+                      <span className="text-[11px] font-black uppercase tracking-widest">View</span>
                     </button>
                     <button
                       onClick={() => {
@@ -2702,7 +2702,7 @@ const ChatView = ({
                       className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-stone-100 transition-colors"
                     >
                       <div className="w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center text-stone-600"><Bookmark size={16} /></div>
-                      <span className="text-[8px] font-black uppercase tracking-widest">Save</span>
+                      <span className="text-[11px] font-black uppercase tracking-widest">Save</span>
                     </button>
                     <button
                       onClick={() => {
@@ -2711,7 +2711,7 @@ const ChatView = ({
                       className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-stone-100 transition-colors"
                     >
                       <div className="w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center text-stone-600"><Share2 size={16} /></div>
-                      <span className="text-[8px] font-black uppercase tracking-widest">Share</span>
+                      <span className="text-[11px] font-black uppercase tracking-widest">Share</span>
                     </button>
                   </div>
                 </div>
@@ -2731,7 +2731,7 @@ const ChatView = ({
               <div className="w-1.5 h-1.5 bg-stone-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
               <div className="w-1.5 h-1.5 bg-stone-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
             </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">Typing...</span>
+            <span className="text-[12px] font-black uppercase tracking-widest text-stone-400">Typing...</span>
           </div>
         )}
       </div>
@@ -2761,10 +2761,10 @@ const ChatView = ({
         <div>
           <h2 className="text-4xl font-black uppercase tracking-tighter">Studio Inbox</h2>
           <div className="flex items-center gap-4 mt-2">
-            <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Find Friends</p>
+            <p className="text-[12px] font-black uppercase tracking-widest text-stone-400">Find Friends</p>
             <button
               onClick={() => setIsCreatingGroup(true)}
-              className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-yellow-600 hover:text-yellow-700 transition-colors"
+              className="flex items-center gap-1.5 text-[12px] font-black uppercase tracking-widest text-yellow-600 hover:text-yellow-700 transition-colors"
             >
               <LayoutGrid size={12} />
               Create Group
@@ -2773,7 +2773,7 @@ const ChatView = ({
         </div>
         <div className="flex items-center gap-2 px-4 py-2 bg-yellow-400 rounded-full">
           <div className="w-2 h-2 bg-stone-900 rounded-full animate-pulse" />
-          <span className="text-[10px] font-black uppercase tracking-widest">Live</span>
+          <span className="text-[12px] font-black uppercase tracking-widest">Live</span>
         </div>
       </header>
 
@@ -2791,7 +2791,7 @@ const ChatView = ({
               className="w-full bg-white px-6 py-4 rounded-2xl font-bold outline-none border focus:border-yellow-400"
             />
             <div className="space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 px-2">Select Members</p>
+              <p className="text-[12px] font-black uppercase tracking-widest text-stone-400 px-2">Select Members</p>
               <div className="flex flex-wrap gap-2">
                 {friends.filter(f => f.type !== 'group').map(f => (
                   <button
@@ -2803,7 +2803,7 @@ const ChatView = ({
                           : [...prev, String(f.id)]
                       );
                     }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${
                       selectedMemberIds.includes(String(f.id))
                         ? 'bg-stone-900 text-white shadow-lg'
                         : 'bg-white text-stone-500 border hover:border-stone-300'
@@ -2862,12 +2862,12 @@ const ChatView = ({
                   <div className="flex items-center gap-2">
                     <h4 className="font-black text-sm uppercase tracking-widest">{c.name}</h4>
                     {c.type === 'group' && (
-                      <span className="bg-stone-100 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest text-stone-500">
+                      <span className="bg-stone-100 text-[11px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest text-stone-500">
                         Group
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] text-stone-300 font-bold">
+                  <span className="text-[12px] text-stone-300 font-bold">
                     {formatFriendTime(c)}
                   </span>
                 </div>
@@ -2878,7 +2878,7 @@ const ChatView = ({
                       : 'Open to chat...'}
                   </p>
                   {(c.unreadCount ?? 0) > 0 && (
-                    <div className="bg-yellow-400 text-stone-900 text-[10px] font-black px-2 py-1 rounded-full shadow-sm">
+                    <div className="bg-yellow-400 text-stone-900 text-[12px] font-black px-2 py-1 rounded-full shadow-sm">
                       {c.unreadCount}
                     </div>
                   )}
@@ -2890,7 +2890,7 @@ const ChatView = ({
               <button
                 type="button"
                 onClick={() => onOpenUserProfile(String(c.id))}
-                className="px-3 py-2 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-stone-800 transition-colors"
+                className="px-3 py-2 rounded-xl bg-stone-900 text-white text-[12px] font-black uppercase tracking-widest hover:bg-stone-800 transition-colors"
               >
                 Profile
               </button>
@@ -2898,7 +2898,7 @@ const ChatView = ({
           </div>
         ))}
         {filteredFriends.length === 0 && (
-          <div className="p-8 text-center bg-stone-50 rounded-[2rem] border border-stone-100 text-[10px] font-black uppercase tracking-widest text-stone-400">
+          <div className="p-8 text-center bg-stone-50 rounded-[2rem] border border-stone-100 text-[12px] font-black uppercase tracking-widest text-stone-400">
             No contacts or groups found.
           </div>
         )}
@@ -2949,7 +2949,7 @@ const FeatureFold = ({
         <div className="space-y-4">
           <div className={`inline-flex items-center gap-3 px-4 py-2 ${reverse ? 'bg-stone-100 text-stone-900' : 'bg-stone-900 text-yellow-400'} rounded-full`}>
             <Icon size={18} />
-            <span className="text-[10px] font-black uppercase tracking-widest">{subtitle}</span>
+            <span className="text-[12px] font-black uppercase tracking-widest">{subtitle}</span>
           </div>
           <h2 className="text-6xl md:text-7xl font-black uppercase tracking-tighter leading-[0.85] text-stone-900">
             {(() => {
@@ -2982,7 +2982,7 @@ const FeatureFold = ({
               </div>
             ))}
           </div>
-          <p className={`text-[10px] font-black uppercase tracking-widest ${reverse ? 'text-stone-400' : 'text-stone-900/60'}`}>Joined by 12k+ members</p>
+          <p className={`text-[12px] font-black uppercase tracking-widest ${reverse ? 'text-stone-400' : 'text-stone-900/60'}`}>Joined by 12k+ members</p>
         </div>
       </motion.div>
 
@@ -2999,7 +2999,7 @@ const FeatureFold = ({
           <p className="font-black uppercase text-xs tracking-widest leading-tight">
             "The most intuitive culinary interface I've ever used."
           </p>
-          <p className="text-[8px] font-bold text-stone-400 mt-4 uppercase tracking-widest">— Chef Marcus</p>
+          <p className="text-[11px] font-bold text-stone-400 mt-4 uppercase tracking-widest">â€” Chef Marcus</p>
         </div>
         </div>
       </motion.div>
@@ -3058,7 +3058,7 @@ const LandingPage = ({ onStart }: { onStart: () => void }) => {
         subtitle="Discovery"
         title="YOUR PERSONALIZED FOOD GRAPH"
         description="Your feed adapts in real time, with recipes, short-form videos, and places curated to your taste, location, and behavior."
-        microline="Discover → Save → Share → Refine"
+        microline="Discover â†’ Save â†’ Share â†’ Refine"
         image="https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80"
         icon={Sparkles}
         color="stone"
@@ -3068,7 +3068,7 @@ const LandingPage = ({ onStart }: { onStart: () => void }) => {
         subtitle="Studio Bites"
         title="RECIPES, REWIRED"
         description="Break dishes into structured components: ingredients, techniques, and logic, so you don't just follow recipes, you understand them."
-        microline="From consumption → comprehension"
+        microline="From consumption â†’ comprehension"
         image="https://images.unsplash.com/photo-1550317138-10000687ad32?auto=format&fit=crop&w=800&q=80"
         icon={ChefHat}
         color="stone"
@@ -3100,7 +3100,7 @@ const LandingPage = ({ onStart }: { onStart: () => void }) => {
         subtitle="Fuzo Elite"
         title="TURN ACTION INTO PROGRESSION"
         description="Every save, share, and post earns points. Climb the leaderboard, unlock rewards, and build your culinary identity."
-        microline="Engagement → Status → Access"
+        microline="Engagement â†’ Status â†’ Access"
         image="https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&w=800&q=80"
         icon={Trophy}
         color="stone"
@@ -3138,7 +3138,7 @@ const LandingPage = ({ onStart }: { onStart: () => void }) => {
             onClick={onStart}
             className="px-16 py-8 bg-yellow-400 text-stone-900 rounded-[3rem] font-black uppercase tracking-widest text-xl hover:scale-105 active:scale-95 transition-all shadow-2xl"
           >
-            Start Exploring →
+            Start Exploring â†’
           </button>
         </div>
       </section>
@@ -3149,12 +3149,12 @@ const LandingPage = ({ onStart }: { onStart: () => void }) => {
           <div className="w-10 h-10 bg-stone-900 rounded-2xl flex items-center justify-center text-yellow-400"><ChefHat size={20} /></div>
           <h1 className="text-xl font-black uppercase tracking-[0.4em]">FUZO</h1>
         </div>
-        <div className="flex justify-center gap-8 text-[10px] font-black uppercase tracking-widest text-stone-500">
+        <div className="flex justify-center gap-8 text-[12px] font-black uppercase tracking-widest text-stone-500">
           <a href="#" className="hover:text-stone-900 transition-colors">Privacy</a>
           <a href="#" className="hover:text-stone-900 transition-colors">Terms</a>
           <a href="#" className="hover:text-stone-900 transition-colors">Contact</a>
         </div>
-        <p className="text-stone-400 font-bold uppercase tracking-widest text-[10px]">© 2026 FUZO. All rights reserved.</p>
+        <p className="text-stone-400 font-bold uppercase tracking-widest text-[12px]">Â© 2026 FUZO. All rights reserved.</p>
       </footer>
  
     </div>
@@ -3193,7 +3193,7 @@ const RewardsView = () => {
           <Gift size={32} strokeWidth={2.5} />
         </div>
         <h2 className="text-5xl font-black uppercase tracking-tighter leading-none">Studio Rewards</h2>
-        <p className="text-stone-400 font-bold uppercase tracking-widest text-[10px]">Redeem your culinary points</p>
+        <p className="text-stone-400 font-bold uppercase tracking-widest text-[12px]">Redeem your culinary points</p>
       </header>
 
       <div className="grid grid-cols-1 gap-6 px-4">
@@ -3208,7 +3208,7 @@ const RewardsView = () => {
                 <p className="text-stone-400 font-bold text-sm">{reward.desc}</p>
               </div>
             </div>
-            <button className="px-8 py-4 bg-stone-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-stone-800 transition-colors">
+            <button className="px-8 py-4 bg-stone-900 text-white rounded-2xl font-black uppercase text-[12px] tracking-widest hover:bg-stone-800 transition-colors">
               {reward.cost.toLocaleString()} Pts
             </button>
           </div>
@@ -3266,7 +3266,7 @@ const TaggingForm = ({
         <img src={image} alt="Snap preview" className="w-full h-full object-cover" />
         <button onClick={onBack} className="absolute top-8 left-8 w-14 h-14 bg-black/20 backdrop-blur-xl rounded-2xl flex items-center justify-center text-white"><X size={28} /></button>
         {location && (
-          <div className="absolute bottom-8 left-8 flex items-center gap-2 px-4 py-2 bg-black/40 backdrop-blur-xl rounded-full text-white text-[10px] font-black uppercase tracking-widest">
+          <div className="absolute bottom-8 left-8 flex items-center gap-2 px-4 py-2 bg-black/40 backdrop-blur-xl rounded-full text-white text-[12px] font-black uppercase tracking-widest">
             <MapPin size={12} /> {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
           </div>
         )}
@@ -3276,12 +3276,12 @@ const TaggingForm = ({
         <div className="max-w-md mx-auto space-y-10">
           <header>
             <h2 className="text-4xl font-black uppercase tracking-tighter italic">Tag Your Snap</h2>
-            <p className="text-stone-400 font-bold uppercase tracking-widest text-[10px]">Neural Metadata Entry</p>
+            <p className="text-stone-400 font-bold uppercase tracking-widest text-[12px]">Neural Metadata Entry</p>
           </header>
 
           <div className="space-y-6">
             <div className="space-y-2">
-              <label htmlFor="snap-restaurant" className="text-[10px] font-black uppercase tracking-widest text-stone-400">Restaurant Name *</label>
+              <label htmlFor="snap-restaurant" className="text-[12px] font-black uppercase tracking-widest text-stone-400">Restaurant Name *</label>
               <input
                 id="snap-restaurant"
                 value={restaurant}
@@ -3292,7 +3292,7 @@ const TaggingForm = ({
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="snap-location-name" className="text-[10px] font-black uppercase tracking-widest text-stone-400">Location Name *</label>
+              <label htmlFor="snap-location-name" className="text-[12px] font-black uppercase tracking-widest text-stone-400">Location Name *</label>
               <input
                 id="snap-location-name"
                 value={locationName}
@@ -3303,7 +3303,7 @@ const TaggingForm = ({
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="snap-address" className="text-[10px] font-black uppercase tracking-widest text-stone-400">Address *</label>
+              <label htmlFor="snap-address" className="text-[12px] font-black uppercase tracking-widest text-stone-400">Address *</label>
               <input
                 id="snap-address"
                 value={address}
@@ -3314,7 +3314,7 @@ const TaggingForm = ({
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="snap-cuisine" className="text-[10px] font-black uppercase tracking-widest text-stone-400">Cuisine Type *</label>
+              <label htmlFor="snap-cuisine" className="text-[12px] font-black uppercase tracking-widest text-stone-400">Cuisine Type *</label>
               <input
                 id="snap-cuisine"
                 value={cuisine}
@@ -3325,7 +3325,7 @@ const TaggingForm = ({
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="snap-rating" className="text-[10px] font-black uppercase tracking-widest text-stone-400">Rating</label>
+              <label htmlFor="snap-rating" className="text-[12px] font-black uppercase tracking-widest text-stone-400">Rating</label>
               <div id="snap-rating" className="sr-only">Snap rating controls</div>
               <div className="flex gap-2">
                 {[1, 2, 3, 4, 5].map(star => (
@@ -3341,7 +3341,7 @@ const TaggingForm = ({
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="snap-description" className="text-[10px] font-black uppercase tracking-widest text-stone-400">Description</label>
+              <label htmlFor="snap-description" className="text-[12px] font-black uppercase tracking-widest text-stone-400">Description</label>
               <textarea
                 id="snap-description"
                 value={description}
@@ -3353,7 +3353,7 @@ const TaggingForm = ({
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="snap-tags" className="text-[10px] font-black uppercase tracking-widest text-stone-400">Tags</label>
+              <label htmlFor="snap-tags" className="text-[12px] font-black uppercase tracking-widest text-stone-400">Tags</label>
               <input
                 id="snap-tags"
                 value={tagsInput}
@@ -3364,7 +3364,7 @@ const TaggingForm = ({
             </div>
           </div>
           {!hasGps && (
-            <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">
+            <p className="text-[12px] font-black uppercase tracking-widest text-amber-600">
               GPS coordinates required. Enable location to save this Snap.
             </p>
           )}
@@ -3649,7 +3649,7 @@ const SnapDesktop = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onC
         </div>
         <div>
           <h3 className="text-2xl font-black uppercase tracking-tighter text-white">Upload Culinary Data</h3>
-          <p className="text-stone-500 font-bold uppercase tracking-widest text-[10px] mt-2">Max file size: 10MB (JPEG, PNG)</p>
+          <p className="text-stone-500 font-bold uppercase tracking-widest text-[12px] mt-2">Max file size: 10MB (JPEG, PNG)</p>
         </div>
         <label className="px-10 py-5 bg-white text-stone-900 rounded-[2rem] font-black uppercase tracking-widest cursor-pointer hover:scale-105 active:scale-95 transition-all shadow-2xl">
           <span>Choose File</span>
@@ -4377,7 +4377,7 @@ const App = () => {
         <div className="max-w-6xl mx-auto px-6 pt-10 pb-4">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Client Preview</p>
+              <p className="text-[12px] font-black uppercase tracking-widest text-stone-400">Client Preview</p>
               <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-stone-900">Onboarding V2 Demo</h1>
             </div>
             <button
@@ -4387,7 +4387,7 @@ const App = () => {
                 setTab('feed');
                 globalThis.history.replaceState(null, '', `${APP_PATH}?view=feed`);
               }}
-              className="px-4 py-2 rounded-2xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest"
+              className="px-4 py-2 rounded-2xl bg-stone-900 text-white text-[12px] font-black uppercase tracking-widest"
             >
               Exit Demo
             </button>
@@ -4404,7 +4404,7 @@ const App = () => {
         {onboardingDemoPayload && (
           <div className="max-w-3xl mx-auto px-6 pb-12">
             <div className="bg-white border border-stone-100 rounded-3xl p-6 shadow-sm">
-              <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-3">Latest Demo Submission</p>
+              <p className="text-[12px] font-black uppercase tracking-widest text-stone-400 mb-3">Latest Demo Submission</p>
               <pre className="text-xs text-stone-700 overflow-x-auto whitespace-pre-wrap">{JSON.stringify(onboardingDemoPayload, null, 2)}</pre>
             </div>
           </div>
@@ -4543,7 +4543,7 @@ const App = () => {
                 <div className="relative">
                   <item.icon size={28} strokeWidth={tab === item.id ? 3 : 2} />
                   {item.id === 'chat' && totalUnread > 0 && (
-                    <span className="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-yellow-400 text-stone-900 text-[10px] font-black flex items-center justify-center">
+                    <span className="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-yellow-400 text-stone-900 text-[12px] font-black flex items-center justify-center">
                       {totalUnread > 99 ? '99+' : totalUnread}
                     </span>
                   )}

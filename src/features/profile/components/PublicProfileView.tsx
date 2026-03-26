@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   MapPin, ChefHat, PlayCircle, User, LayoutGrid, Music2, Pin, Youtube, ChevronLeft, Loader2 
 } from 'lucide-react';
@@ -309,10 +309,10 @@ export const PublicProfileView = ({
         <div className="flex items-center gap-4 pt-4">
           <div className="text-center group cursor-pointer" onClick={() => setShowLeaderboard(true)}>
             <p className="text-2xl font-black group-hover:text-yellow-500 transition-colors">#{profileDisplay.pointsLevel > 1 ? '5' : '15'}</p>
-            <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 group-hover:text-stone-900">Rank</p>
+            <p className="text-[12px] font-black uppercase tracking-widest text-stone-400 group-hover:text-stone-900">Rank</p>
           </div>
           <div className="w-px h-10 bg-stone-100" />
-          <div className="text-center"><p className="text-2xl font-black">{savedItems.length}</p><p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Saves</p></div>
+          <div className="text-center"><p className="text-2xl font-black">{savedItems.length}</p><p className="text-[12px] font-black uppercase tracking-widest text-stone-400">Saves</p></div>
           <div className="w-px h-10 bg-stone-100" />
           <div className="flex items-center gap-2">
             <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="Instagram profile">
@@ -338,7 +338,7 @@ export const PublicProfileView = ({
             <button
               type="button"
               onClick={onBackToOwnProfile}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-stone-900 text-white text-[12px] font-black uppercase tracking-widest"
             >
               <ChevronLeft size={14} />
               Back To My Profile
@@ -355,7 +355,7 @@ export const PublicProfileView = ({
                 });
               }}
               disabled={relationshipLoading || relationshipUpdating || relationship.state === 'accepted'}
-              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-colors disabled:cursor-default disabled:opacity-70 ${followButtonClassName}`}
+              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-colors disabled:cursor-default disabled:opacity-70 ${followButtonClassName}`}
             >
               {relationshipUpdating && <Loader2 size={14} className="animate-spin" />}
               {followButtonLabel}
@@ -365,15 +365,15 @@ export const PublicProfileView = ({
 
         {canFollowProfile && (
           <div className="space-y-1">
-            <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">{relationshipHelperText}</p>
-            {relationshipError && <p className="text-[10px] font-black uppercase tracking-widest text-red-500">{relationshipError}</p>}
+            <p className="text-[12px] font-black uppercase tracking-widest text-stone-400">{relationshipHelperText}</p>
+            {relationshipError && <p className="text-[12px] font-black uppercase tracking-widest text-red-500">{relationshipError}</p>}
           </div>
         )}
       </div>
 
       {isLoading && (
         <div className="px-8">
-          <div className="p-12 bg-stone-100 rounded-[3rem] text-center text-stone-500 font-black uppercase text-[10px] tracking-widest">
+          <div className="p-12 bg-stone-100 rounded-[3rem] text-center text-stone-500 font-black uppercase text-[12px] tracking-widest">
             Loading profile...
           </div>
         </div>
@@ -381,7 +381,7 @@ export const PublicProfileView = ({
 
       {showLimitedShell && (
         <div className="px-8">
-          <div className="p-12 bg-stone-100 rounded-[3rem] text-center text-stone-500 font-black uppercase text-[10px] tracking-widest">
+          <div className="p-12 bg-stone-100 rounded-[3rem] text-center text-stone-500 font-black uppercase text-[12px] tracking-widest">
             Limited profile view
           </div>
         </div>
@@ -414,18 +414,18 @@ export const PublicProfileView = ({
             {activeTab === 'map' ? (
               <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
                 <MiniMapWidget savedItems={savedItems} />
-                <div className="p-8 bg-stone-50 rounded-[3rem] border border-stone-100 italic text-stone-400 text-[10px] font-bold text-center uppercase tracking-widest leading-relaxed">
+                <div className="p-8 bg-stone-50 rounded-[3rem] border border-stone-100 italic text-stone-400 text-[12px] font-bold text-center uppercase tracking-widest leading-relaxed">
                   Food territory of {profileDisplay.name}. <br/> Heatmap reflects density of their culinary explorations.
                 </div>
               </div>
             ) : activeTab === 'crew' ? (
-              <div className="p-12 bg-stone-100 rounded-[3rem] text-center text-stone-300 font-black uppercase text-[10px] tracking-widest">
+              <div className="p-12 bg-stone-100 rounded-[3rem] text-center text-stone-300 font-black uppercase text-[12px] tracking-widest">
                 Crew list is private
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-6">
                 {filteredItems.length === 0 ? (
-                  <div className="col-span-2 p-12 bg-stone-100 rounded-[3rem] text-center text-stone-300 font-black uppercase text-[10px] tracking-widest">
+                  <div className="col-span-2 p-12 bg-stone-100 rounded-[3rem] text-center text-stone-300 font-black uppercase text-[12px] tracking-widest">
                     No {activeTab} saved yet
                   </div>
                 ) : (
@@ -438,7 +438,7 @@ export const PublicProfileView = ({
                     >
                       <img src={item.img} alt={item.name || 'Saved item'} className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white p-4 text-center">
-                        <p className="font-black uppercase text-[10px] tracking-tighter leading-tight mb-2">{item.name}</p>
+                        <p className="font-black uppercase text-[12px] tracking-tighter leading-tight mb-2">{item.name}</p>
                         <Badge color="yellow">{item.cat}</Badge>
                       </div>
                     </button>

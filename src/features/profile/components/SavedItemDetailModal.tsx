@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+﻿import React, { useEffect, useMemo } from 'react';
 import { X, MapPin, Bookmark, Share2, PlayCircle } from 'lucide-react';
 import type { AppItem } from '../../../shared/types/appItem';
 import { Badge } from '../../../shared/ui/Badge';
@@ -41,7 +41,7 @@ const SavedActionFooter = ({
         className="flex-1 py-4 rounded-[1.5rem] flex items-center justify-center gap-3 transition-transform shadow-xl bg-red-50 text-red-600 border border-red-100 active:scale-95"
       >
         <X size={20} />
-        <span className="font-black uppercase tracking-widest text-[10px]">Remove</span>
+        <span className="font-black uppercase tracking-widest text-[12px]">Remove</span>
       </button>
     );
   } else if (canSave) {
@@ -52,7 +52,7 @@ const SavedActionFooter = ({
         className="flex-1 py-4 rounded-[1.5rem] flex items-center justify-center gap-3 transition-transform shadow-xl bg-stone-900 text-white active:scale-95"
       >
         <Bookmark size={20} />
-        <span className="font-black uppercase tracking-widest text-[10px]">Save</span>
+        <span className="font-black uppercase tracking-widest text-[12px]">Save</span>
       </button>
     );
   }
@@ -68,7 +68,7 @@ const SavedActionFooter = ({
             className="flex-1 py-4 bg-yellow-400 text-stone-900 rounded-[1.5rem] flex items-center justify-center gap-3 active:scale-95 transition-transform shadow-xl"
           >
             <Share2 size={20} />
-            <span className="font-black uppercase tracking-widest text-[10px]">Share</span>
+            <span className="font-black uppercase tracking-widest text-[12px]">Share</span>
           </button>
         )}
       </div>
@@ -87,7 +87,7 @@ const SavedRecipeSections = ({
     <>
       {recipeIngredients.length > 0 && (
         <section className="space-y-3">
-          <h4 className="font-black uppercase text-[10px] tracking-[0.25em] text-stone-400">Ingredients</h4>
+          <h4 className="font-black uppercase text-[12px] tracking-[0.25em] text-stone-400">Ingredients</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {recipeIngredients.map((ingredient) => (
               <div key={ingredient} className="p-4 bg-stone-50 rounded-[1.5rem] border border-stone-100 text-sm font-bold text-stone-700">
@@ -100,7 +100,7 @@ const SavedRecipeSections = ({
 
       {recipeInstructions && (
         <section className="space-y-3">
-          <h4 className="font-black uppercase text-[10px] tracking-[0.25em] text-stone-400">Instructions</h4>
+          <h4 className="font-black uppercase text-[12px] tracking-[0.25em] text-stone-400">Instructions</h4>
           <div className="p-5 bg-stone-50 rounded-[2rem] border border-stone-100 text-sm font-bold text-stone-700 whitespace-pre-wrap leading-relaxed">
             {recipeInstructions}
           </div>
@@ -125,9 +125,9 @@ const SavedVideoSection = ({
 
   return (
     <section className="space-y-3">
-      <h4 className="font-black uppercase text-[10px] tracking-[0.25em] text-stone-400">Trim Details</h4>
+      <h4 className="font-black uppercase text-[12px] tracking-[0.25em] text-stone-400">Trim Details</h4>
       <div className="p-5 bg-stone-50 rounded-[2rem] border border-stone-100 space-y-3 text-sm font-bold text-stone-700">
-        {keyFoodItem && <p><span className="text-stone-400 uppercase tracking-widest text-[10px] mr-2">Key Food</span>{keyFoodItem}</p>}
+        {keyFoodItem && <p><span className="text-stone-400 uppercase tracking-widest text-[12px] mr-2">Key Food</span>{keyFoodItem}</p>}
         {summary && <p>{summary}</p>}
         {sourceUrl && (
           <a href={sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-blue-600 hover:underline">
@@ -154,9 +154,9 @@ const SavedGenericDetailsSection = ({
 
   return (
     <section className="space-y-3">
-      <h4 className="font-black uppercase text-[10px] tracking-[0.25em] text-stone-400">Details</h4>
+      <h4 className="font-black uppercase text-[12px] tracking-[0.25em] text-stone-400">Details</h4>
       <div className="p-5 bg-stone-50 rounded-[2rem] border border-stone-100 space-y-4 text-sm font-bold text-stone-700">
-        {phone && <p><span className="text-stone-400 uppercase tracking-widest text-[10px] mr-2">Phone</span>{phone}</p>}
+        {phone && <p><span className="text-stone-400 uppercase tracking-widest text-[12px] mr-2">Phone</span>{phone}</p>}
         {sourceUrl && (
           <a href={sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-blue-600 hover:underline">
             <MapPin size={16} /> Open Link
@@ -165,7 +165,7 @@ const SavedGenericDetailsSection = ({
         {vibe.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {vibe.map((entry) => (
-              <div key={entry} className="px-3 py-2 bg-white rounded-full border border-stone-200 text-[10px] font-black uppercase tracking-widest text-stone-600">
+              <div key={entry} className="px-3 py-2 bg-white rounded-full border border-stone-200 text-[12px] font-black uppercase tracking-widest text-stone-600">
                 {entry}
               </div>
             ))}
@@ -187,7 +187,7 @@ const SavedNutritionSection = ({
 
   return (
     <section className="space-y-3">
-      <h4 className="font-black uppercase text-[10px] tracking-[0.25em] text-stone-400">Nutrition</h4>
+      <h4 className="font-black uppercase text-[12px] tracking-[0.25em] text-stone-400">Nutrition</h4>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: 'Calories', value: nutrition.calories },
@@ -197,7 +197,7 @@ const SavedNutritionSection = ({
         ].map((entry) => (
           <div key={entry.label} className="p-4 bg-stone-50 rounded-[1.5rem] border border-stone-100">
             <p className="text-xl font-black text-stone-900">{entry.value ?? '--'}</p>
-            <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-1">{entry.label}</p>
+            <p className="text-[12px] font-black uppercase tracking-widest text-stone-400 mt-1">{entry.label}</p>
           </div>
         ))}
       </div>
@@ -232,7 +232,7 @@ const SavedContentSections = ({
     <>
       {address && (
         <section className="space-y-3">
-          <h4 className="font-black uppercase text-[10px] tracking-[0.25em] text-stone-400">Location</h4>
+          <h4 className="font-black uppercase text-[12px] tracking-[0.25em] text-stone-400">Location</h4>
           <div className="flex items-start gap-3 p-5 bg-stone-50 rounded-[2rem] border border-stone-100 text-stone-700">
             <MapPin size={18} className="shrink-0 mt-0.5 text-stone-400" />
             <p className="text-sm font-bold leading-relaxed">{address}</p>

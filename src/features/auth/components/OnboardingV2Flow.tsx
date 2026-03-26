@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import { CheckCircle2, ChevronRight, MapPin, Phone, RefreshCw } from 'lucide-react';
 import { AUTH_ONBOARDING_V2_DATA } from '../constants/onboardingV2Data';
 import type { OnboardingLocation, OnboardingV2Payload } from '../types/onboarding';
@@ -71,7 +71,7 @@ export const OnboardingV2Flow = ({
     <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-xl bg-white p-8 sm:p-12 md:p-16 rounded-[2.5rem] sm:rounded-[4rem] shadow-2xl border-4 border-white space-y-8 md:space-y-10">
         <div className="flex justify-between items-center">
-          <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-yellow-100 text-yellow-800 whitespace-nowrap">
+          <span className="px-2.5 py-1 rounded-full text-[12px] font-black uppercase tracking-widest bg-yellow-100 text-yellow-800 whitespace-nowrap">
             Step {stepIndex + 1} of {totalSteps}
           </span>
           <div className="flex gap-1">
@@ -82,7 +82,7 @@ export const OnboardingV2Flow = ({
         </div>
 
         {mode === 'demo' && (
-          <div className="px-4 py-3 rounded-2xl bg-blue-50 border border-blue-100 text-[10px] font-black uppercase tracking-widest text-blue-700">
+          <div className="px-4 py-3 rounded-2xl bg-blue-50 border border-blue-100 text-[12px] font-black uppercase tracking-widest text-blue-700">
             Demo mode enabled: this does not gate app access.
           </div>
         )}
@@ -149,7 +149,7 @@ export const OnboardingV2Flow = ({
                     <CheckCircle2 size={28} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600/60">Detected</p>
+                    <p className="text-[12px] font-black uppercase tracking-widest text-emerald-600/60">Detected</p>
                     <p className="text-xl font-black text-emerald-900">{locationLabel || 'Detected location'}</p>
                   </div>
                 </div>
@@ -169,7 +169,7 @@ export const OnboardingV2Flow = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label htmlFor="onboarding-v2-country" className="text-[10px] font-black uppercase tracking-widest text-stone-400 px-4">Country</label>
+                <label htmlFor="onboarding-v2-country" className="text-[12px] font-black uppercase tracking-widest text-stone-400 px-4">Country</label>
                 <input
                   id="onboarding-v2-country"
                   value={location.country}
@@ -178,7 +178,7 @@ export const OnboardingV2Flow = ({
                 />
               </div>
               <div className="space-y-2">
-                <label htmlFor="onboarding-v2-state" className="text-[10px] font-black uppercase tracking-widest text-stone-400 px-4">State</label>
+                <label htmlFor="onboarding-v2-state" className="text-[12px] font-black uppercase tracking-widest text-stone-400 px-4">State</label>
                 <input
                   id="onboarding-v2-state"
                   value={location.state}
@@ -187,7 +187,7 @@ export const OnboardingV2Flow = ({
                 />
               </div>
               <div className="space-y-2 sm:col-span-2">
-                <label htmlFor="onboarding-v2-city" className="text-[10px] font-black uppercase tracking-widest text-stone-400 px-4">City</label>
+                <label htmlFor="onboarding-v2-city" className="text-[12px] font-black uppercase tracking-widest text-stone-400 px-4">City</label>
                 <input
                   id="onboarding-v2-city"
                   value={location.city}

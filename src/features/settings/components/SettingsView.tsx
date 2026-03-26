@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { 
   User, Bot, MapPin, Mail, Shield, AlertCircle, Phone, 
   Music2, Pin, ChefHat, Flame, Bell, LogOut, Camera 
@@ -228,13 +228,13 @@ export const SettingsView = ({
           <button
             onClick={handleSaveSettings}
             disabled={!authUser?.id || !isDirty || savingSettings || loadingSettings}
-            className="px-8 py-3 bg-stone-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-8 py-3 bg-stone-900 text-white rounded-2xl font-black uppercase tracking-widest text-[12px] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {savingSettings ? 'Saving...' : 'Save Settings'}
           </button>
-          {loadingSettings && <p className="text-[10px] font-black uppercase tracking-widest text-stone-300">Loading saved settings...</p>}
-          {settingsError && <p className="text-[10px] font-black uppercase tracking-widest text-red-500">{settingsError}</p>}
-          {settingsMessage && !settingsError && <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">{settingsMessage}</p>}
+          {loadingSettings && <p className="text-[12px] font-black uppercase tracking-widest text-stone-500">Loading saved settings...</p>}
+          {settingsError && <p className="text-[12px] font-black uppercase tracking-widest text-red-500">{settingsError}</p>}
+          {settingsMessage && !settingsError && <p className="text-[12px] font-black uppercase tracking-widest text-emerald-600">{settingsMessage}</p>}
         </div>
       </header>
 
@@ -349,7 +349,7 @@ export const SettingsView = ({
               <Bell size={20} />
             </div>
             <div>
-              <p className="font-black uppercase text-[10px] tracking-widest text-stone-400 leading-none mb-1.5">Notifications</p>
+              <p className="font-black uppercase text-[12px] tracking-widest text-stone-400 leading-none mb-1.5">Notifications</p>
               <p className="font-bold text-sm text-stone-900">Push & Email</p>
             </div>
           </div>
@@ -380,8 +380,8 @@ export const SettingsView = ({
       </div>
 
       <div className="text-center space-y-2 pt-8">
-        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-stone-200">FUZO Studio v2.5.0</p>
-        <div className="flex justify-center gap-4 text-[10px] font-bold text-stone-300 uppercase tracking-widest">
+        <p className="text-[12px] font-black uppercase tracking-[0.4em] text-stone-200">FUZO Studio v2.5.0</p>
+        <div className="flex justify-center gap-4 text-[12px] font-bold text-stone-300 uppercase tracking-widest">
           <button className="hover:text-stone-500">Terms</button>
           <span>&bull;</span>
           <button className="hover:text-stone-500">Privacy</button>

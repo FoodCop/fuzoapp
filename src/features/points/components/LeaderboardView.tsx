@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Trophy } from 'lucide-react';
 import type { LeaderboardEntry } from '../services/pointsService';
 
@@ -20,9 +20,9 @@ export const LeaderboardView = ({
   };
 
   const medalLabelByRank = (rank: number) => {
-    if (rank === 1) return '🥇';
-    if (rank === 2) return '🥈';
-    return '🥉';
+    if (rank === 1) return 'ðŸ¥‡';
+    if (rank === 2) return 'ðŸ¥ˆ';
+    return 'ðŸ¥‰';
   };
 
   const leaders = leaderboardUsers.slice(0, 25).map((leader, index) => ({
@@ -42,7 +42,7 @@ export const LeaderboardView = ({
           <Trophy size={32} strokeWidth={2.5} />
         </div>
         <h2 className="text-5xl font-black uppercase tracking-tighter leading-none">Studio Elite</h2>
-        <p className="text-stone-400 font-bold uppercase tracking-widest text-[10px]">Global Leaderboard</p>
+        <p className="text-stone-400 font-bold uppercase tracking-widest text-[12px]">Global Leaderboard</p>
       </header>
 
       <div className="bg-white rounded-[3rem] border-4 border-white shadow-2xl overflow-hidden divide-y">
@@ -63,12 +63,12 @@ export const LeaderboardView = ({
               </div>
               <div>
                 <p className="font-black uppercase text-sm tracking-tighter text-stone-900">{leader.name}</p>
-                <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">@{leader.username} • Level {leader.level}</p>
+                <p className="text-[12px] font-bold text-stone-400 uppercase tracking-widest">@{leader.username} â€¢ Level {leader.level}</p>
               </div>
             </div>
             <div className="text-right">
               <p className="text-xl font-black text-stone-900">{leader.points.toLocaleString()}</p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-stone-300">Points</p>
+              <p className="text-[12px] font-black uppercase tracking-widest text-stone-500">Points</p>
             </div>
           </button>
         ))}
@@ -81,12 +81,12 @@ export const LeaderboardView = ({
           </div>
           <div>
             <p className="font-black uppercase text-sm tracking-tighter">Your Rank</p>
-            <p className="text-stone-400 text-[10px] font-bold uppercase tracking-widest">Studio Apprentice</p>
+            <p className="text-stone-400 text-[12px] font-bold uppercase tracking-widest">Studio Apprentice</p>
           </div>
         </div>
         <div className="text-right">
           <p className="text-2xl font-black text-yellow-400">{userPoints.toLocaleString()}</p>
-          <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Level {userLevel}</p>
+          <p className="text-[12px] font-black uppercase tracking-widest text-white/40">Level {userLevel}</p>
         </div>
       </div>
     </div>

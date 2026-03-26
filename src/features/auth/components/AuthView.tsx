@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ChefHat, ChevronRight, Loader2 } from 'lucide-react';
 import { supabase } from '../../../services/supabaseClient';
@@ -205,7 +205,7 @@ export const AuthView = ({
 
           <div className="relative py-4">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-stone-100" /></div>
-            <div className="relative flex justify-center text-[10px] font-black uppercase tracking-widest">
+            <div className="relative flex justify-center text-[12px] font-black uppercase tracking-widest">
               <span className="bg-white px-4 text-stone-300">Or continue with email</span>
             </div>
           </div>
@@ -217,7 +217,7 @@ export const AuthView = ({
                 placeholder="DISPLAY NAME" 
                 value={name} 
                 onChange={e => setName(e.target.value)}
-                className="w-full px-8 py-5 bg-stone-50 rounded-[2rem] border-2 border-transparent focus:border-yellow-400 focus:bg-white transition-all font-black uppercase tracking-widest text-[10px] outline-none"
+                className="w-full px-8 py-5 bg-stone-50 rounded-[2rem] border-2 border-transparent focus:border-yellow-400 focus:bg-white transition-all font-black uppercase tracking-widest text-[12px] outline-none"
               />
             )}
             <input 
@@ -225,23 +225,23 @@ export const AuthView = ({
               placeholder="EMAIL ADDRESS" 
               value={email} 
               onChange={e => setEmail(e.target.value)}
-              className="w-full px-8 py-5 bg-stone-50 rounded-[2rem] border-2 border-transparent focus:border-yellow-400 focus:bg-white transition-all font-black uppercase tracking-widest text-[10px] outline-none"
+              className="w-full px-8 py-5 bg-stone-50 rounded-[2rem] border-2 border-transparent focus:border-yellow-400 focus:bg-white transition-all font-black uppercase tracking-widest text-[12px] outline-none"
             />
             <input 
               type="password" 
               placeholder="PASSWORD" 
               value={password} 
               onChange={e => setPassword(e.target.value)}
-              className="w-full px-8 py-5 bg-stone-50 rounded-[2rem] border-2 border-transparent focus:border-yellow-400 focus:bg-white transition-all font-black uppercase tracking-widest text-[10px] outline-none"
+              className="w-full px-8 py-5 bg-stone-50 rounded-[2rem] border-2 border-transparent focus:border-yellow-400 focus:bg-white transition-all font-black uppercase tracking-widest text-[12px] outline-none"
             />
             
             {authError && (
-              <p className="text-red-500 font-black uppercase tracking-widest text-[9px] text-center px-4">
+              <p className="text-red-500 font-black uppercase tracking-widest text-[11px] text-center px-4">
                 {authError}
               </p>
             )}
             {authMessage && (
-              <p className="text-emerald-500 font-black uppercase tracking-widest text-[9px] text-center px-4">
+              <p className="text-emerald-500 font-black uppercase tracking-widest text-[11px] text-center px-4">
                 {authMessage}
               </p>
             )}
@@ -249,7 +249,7 @@ export const AuthView = ({
             <button 
               onClick={completeEmailAuth}
               disabled={authLoading}
-              className="w-full py-5 bg-stone-900 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+              className="w-full py-5 bg-stone-900 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[12px] shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
             >
               {authLoading ? <Loader2 className="animate-spin" size={16} /> : (step === 'signin' ? 'Secure Login' : 'Create Studio')}
             </button>
@@ -259,7 +259,7 @@ export const AuthView = ({
         <div className="text-center pt-4">
           <button 
             onClick={() => setStep(step === 'signin' ? 'signup' : 'signin')}
-            className="text-[10px] font-black uppercase tracking-widest text-stone-400 hover:text-stone-900 transition-colors"
+            className="text-[12px] font-black uppercase tracking-widest text-stone-400 hover:text-stone-900 transition-colors"
           >
             {step === 'signin' ? "Don't have an account? Create one" : "Already have an account? Sign in"}
           </button>

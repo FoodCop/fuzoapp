@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Trophy, Users, Globe, MapPin, ArrowUpRight, Loader2 } from 'lucide-react';
 import { Badge } from '../../../shared/ui/Badge';
@@ -107,7 +107,7 @@ export const LeaderboardModal = ({
                   </div>
                   <div>
                     <h2 className="text-2xl font-black uppercase tracking-tighter text-stone-900">Leaderboard</h2>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mt-0.5">
+                    <p className="text-[12px] font-bold uppercase tracking-widest text-stone-400 mt-0.5">
                       {filter === 'local' && userCity ? `Top in ${userCity}` : `Your Position: #${currentUserRank}`}
                     </p>
                   </div>
@@ -126,7 +126,7 @@ export const LeaderboardModal = ({
                   <button
                     key={f.id}
                     onClick={() => setFilter(f.id)}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filter === f.id ? 'bg-white shadow-sm text-stone-900' : 'text-stone-400 hover:text-stone-600'}`}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${filter === f.id ? 'bg-white shadow-sm text-stone-900' : 'text-stone-400 hover:text-stone-600'}`}
                   >
                     <f.icon size={14} />
                     {f.label}
@@ -140,7 +140,7 @@ export const LeaderboardModal = ({
               {loading ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-stone-400 gap-4">
                   <Loader2 className="animate-spin" size={32} />
-                  <p className="text-[10px] font-black uppercase tracking-widest">Updating Ranks...</p>
+                  <p className="text-[12px] font-black uppercase tracking-widest">Updating Ranks...</p>
                 </div>
               ) : displayUsers.length > 0 ? (
                 displayUsers.map((user, idx) => {
@@ -167,7 +167,7 @@ export const LeaderboardModal = ({
                             <p className="font-black uppercase tracking-widest text-[11px] text-stone-900">
                               {user.displayName}
                             </p>
-                            <p className={`text-[9px] font-bold uppercase tracking-widest ${isCurrentUser ? 'text-stone-700' : 'text-stone-400'}`}>
+                            <p className={`text-[11px] font-bold uppercase tracking-widest ${isCurrentUser ? 'text-stone-700' : 'text-stone-400'}`}>
                               @{user.username}
                             </p>
                           </div>
@@ -190,7 +190,7 @@ export const LeaderboardModal = ({
                   </div>
                   <div>
                     <h4 className="text-sm font-black uppercase tracking-tighter text-stone-400">No rankings found</h4>
-                    <p className="text-[10px] font-bold text-stone-300 uppercase tracking-widest mt-1">
+                    <p className="text-[12px] font-bold text-stone-300 uppercase tracking-widest mt-1">
                       {filter === 'friends' ? "Invite friends to start competing" : filter === 'local' ? "Be the first in your city to top the charts" : "The board is currently clear"}
                     </p>
                   </div>
@@ -200,7 +200,7 @@ export const LeaderboardModal = ({
 
             {/* Footer */}
             <div className="p-8 bg-stone-50 border-t border-stone-100 shrink-0">
-               <button className="w-full py-4 bg-stone-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl group">
+               <button className="w-full py-4 bg-stone-900 text-white rounded-2xl font-black uppercase text-[12px] tracking-widest flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl group">
                  Share Achievement <ArrowUpRight size={16} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                </button>
             </div>

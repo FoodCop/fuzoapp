@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { 
   Camera, ChefHat, PlayCircle, X, 
   Sparkles, Zap, ArrowRight 
@@ -63,7 +63,7 @@ export const UnifiedCreationModal = ({ isOpen, onClose, onSelectOption }: Unifie
               <div className="flex items-center justify-between mb-12">
                 <div>
                   <h2 className="text-4xl font-black uppercase tracking-tighter text-stone-900 italic">Create</h2>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-400 mt-1">Select your creative transmission</p>
+                  <p className="text-[12px] font-bold uppercase tracking-[0.2em] text-stone-400 mt-1">Select your creative transmission</p>
                 </div>
                 <button 
                   onClick={onClose}
@@ -89,7 +89,7 @@ export const UnifiedCreationModal = ({ isOpen, onClose, onSelectOption }: Unifie
 
                     <div className="flex-grow space-y-2">
                       <div className="flex items-center gap-2">
-                        <span className="px-3 py-1 bg-white border border-stone-100 rounded-full text-[8px] font-black uppercase tracking-widest text-stone-400">
+                        <span className="px-3 py-1 bg-white border border-stone-100 rounded-full text-[11px] font-black uppercase tracking-widest text-stone-400">
                           {option.tag}
                         </span>
                         {option.isAi && <Sparkles size={12} className="text-yellow-500" />}
@@ -102,7 +102,7 @@ export const UnifiedCreationModal = ({ isOpen, onClose, onSelectOption }: Unifie
                       </p>
                     </div>
 
-                    <div className="mt-8 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-stone-300 group-hover:text-stone-900 transition-colors">
+                    <div className="mt-8 flex items-center gap-2 text-[12px] font-black uppercase tracking-widest text-stone-500 group-hover:text-stone-900 transition-colors">
                       Begin Flow <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                     </div>
                   </button>
@@ -115,10 +115,10 @@ export const UnifiedCreationModal = ({ isOpen, onClose, onSelectOption }: Unifie
                 <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center text-yellow-500 shadow-sm border border-stone-100">
                   <Zap size={14} />
                 </div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Powered by Gemini Ultra V2</p>
+                <p className="text-[12px] font-black uppercase tracking-widest text-stone-400">Powered by Gemini Ultra V2</p>
               </div>
               <div className="h-4 w-px bg-stone-200" />
-              <button onClick={onClose} className="text-[10px] font-black uppercase tracking-widest text-stone-400 hover:text-stone-900 transition-colors">
+              <button onClick={onClose} className="text-[12px] font-black uppercase tracking-widest text-stone-400 hover:text-stone-900 transition-colors">
                 Cancel
               </button>
             </div>

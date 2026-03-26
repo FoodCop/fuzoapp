@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { 
   MapPin, RefreshCw, LayoutGrid, Sparkles, X, Star, Clock, Info, 
@@ -314,7 +314,7 @@ export const ScoutView = ({
             <button 
               key={tab}
               onClick={() => setScoutTab(tab)}
-              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${scoutTab === tab ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
+              className={`px-6 py-2 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${scoutTab === tab ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
             >
               {tab === 'main' ? 'Main Map' : tab === 'fuzo' ? 'FUZO Locations' : 'My Map'}
             </button>
@@ -328,7 +328,7 @@ export const ScoutView = ({
           <button 
             key={tab}
             onClick={() => setScoutTab(tab)}
-            className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all ${scoutTab === tab ? 'border-yellow-400 text-stone-900' : 'border-transparent text-stone-400'}`}
+            className={`flex-1 py-4 text-[12px] font-black uppercase tracking-widest border-b-2 transition-all ${scoutTab === tab ? 'border-yellow-400 text-stone-900' : 'border-transparent text-stone-400'}`}
           >
             {tab === 'main' ? 'Main' : tab === 'fuzo' ? 'FUZO' : 'My Map'}
           </button>
@@ -342,7 +342,7 @@ export const ScoutView = ({
           
           {/* Map Controls */}
           <div className="absolute top-6 left-6 md:top-8 md:left-8 bg-white/90 backdrop-blur-md rounded-2xl border border-white/50 shadow-lg px-3 py-2.5">
-            <div className="flex items-center gap-4 text-[8px] md:text-[9px] font-black uppercase tracking-widest text-stone-500">
+            <div className="flex items-center gap-4 text-[11px] md:text-[11px] font-black uppercase tracking-widest text-stone-500">
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 border border-white"></span>
                 <span>FUZO Spots</span>
@@ -367,11 +367,11 @@ export const ScoutView = ({
             <div className="flex items-center gap-3 md:gap-4">
               <div className="w-8 h-8 md:w-10 md:h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600"><Sparkles size={20} /></div>
               <div>
-                <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-stone-400 leading-none">Scout Active</p>
+                <p className="text-[11px] md:text-[12px] font-black uppercase tracking-widest text-stone-400 leading-none">Scout Active</p>
                 <h4 className="font-black uppercase text-xs md:text-sm tracking-tighter mt-1 text-stone-900">{scoutHeadline}</h4>
               </div>
             </div>
-            <button className="px-4 py-2 md:px-6 md:py-3 bg-stone-900 text-white rounded-xl md:rounded-2xl font-black uppercase text-[8px] md:text-[10px] tracking-widest">Expand</button>
+            <button className="px-4 py-2 md:px-6 md:py-3 bg-stone-900 text-white rounded-xl md:rounded-2xl font-black uppercase text-[11px] md:text-[12px] tracking-widest">Expand</button>
           </div>
         </div>
 

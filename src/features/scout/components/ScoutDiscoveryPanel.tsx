@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, Clock, Sparkles, ChevronRight, Filter, Info, MapPin } from 'lucide-react';
 import { ScoutPlace, ScoutFilter } from '../types/scoutUi';
@@ -40,7 +40,7 @@ export const ScoutDiscoveryPanel = ({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <Sparkles size={16} className="text-yellow-500" />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-stone-400">Discovery</span>
+            <span className="text-[12px] font-black uppercase tracking-[0.3em] text-stone-400">Discovery</span>
           </div>
           {!isSidebar && (
             <button onClick={onClose} className="p-2 bg-stone-100 rounded-full md:hidden">
@@ -57,7 +57,7 @@ export const ScoutDiscoveryPanel = ({
             <button
               key={f.id}
               onClick={() => onFilterChange({ ...filter, type: f.id })}
-              className={`px-4 py-2 rounded-2xl text-[8px] font-black uppercase tracking-widest transition-all shrink-0 ${filter.type === f.id ? 'bg-stone-900 text-white' : 'bg-white/50 text-stone-400 hover:bg-white border border-stone-100'}`}
+              className={`px-4 py-2 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shrink-0 ${filter.type === f.id ? 'bg-stone-900 text-white' : 'bg-white/50 text-stone-400 hover:bg-white border border-stone-100'}`}
             >
               {f.label}
             </button>
@@ -68,7 +68,7 @@ export const ScoutDiscoveryPanel = ({
       <div className={`flex-grow overflow-y-auto hide-scrollbar ${isSidebar ? 'px-0' : 'bg-white/80 backdrop-blur-3xl p-6 rounded-b-[3rem] md:rounded-[3rem] border border-white/40 shadow-2xl'} space-y-4`}>
         {places.length === 0 ? (
           <div className="text-center py-20 px-4">
-            <p className="text-[10px] font-black uppercase tracking-widest text-stone-300">
+            <p className="text-[12px] font-black uppercase tracking-widest text-stone-500">
               No spots found in this area
             </p>
           </div>
@@ -90,13 +90,13 @@ export const ScoutDiscoveryPanel = ({
                   <h3 className="font-black uppercase text-[11px] tracking-tight text-stone-900 truncate">{place.name}</h3>
                   <div className="flex items-center gap-1 text-yellow-500 shrink-0">
                     <Star size={10} fill="currentColor" />
-                    <span className="text-[10px] font-black">{place.rating}</span>
+                    <span className="text-[12px] font-black">{place.rating}</span>
                   </div>
                 </div>
-                <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest mt-1 truncate">{place.cat}</p>
+                <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest mt-1 truncate">{place.cat}</p>
                 <div className="flex items-center gap-1 mt-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span className="text-[8px] font-black uppercase tracking-widest text-stone-400">Match: {place.matchPercentage || getMatchPercentage(place)}%</span>
+                  <span className="text-[11px] font-black uppercase tracking-widest text-stone-400">Match: {place.matchPercentage || getMatchPercentage(place)}%</span>
                 </div>
               </div>
               <ChevronRight size={14} className="text-stone-300 group-hover:translate-x-1 transition-transform" />
