@@ -18,7 +18,11 @@ interface RenderComponents {
     onConversationOpened: (friendId: string) => void;
     onOpenUserProfile: (userId: string) => void;
   }>;
-  ScoutView: React.ComponentType<{ onSave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void; savedItems: AppItem[] }>;
+  ScoutView: React.ComponentType<{
+    mapsApiKey?: string;
+    savedItems: AppItem[];
+    onAction: (item: AppItem, action: 'save' | 'share') => void;
+  }>;
   ProfileView: React.ComponentType<{ savedItems: AppItem[]; authUser: AuthUser | null; friends: ChatInboxItem[]; onSave: (item: AppItem) => void; onUnsave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void; setTab: (tab: string) => void }>;
   PublicProfileView: React.ComponentType<{ targetUserId: string; authUser: AuthUser | null; currentUserSavedItems: AppItem[]; friends: ChatInboxItem[]; onBackToOwnProfile: () => void; onSave: (item: AppItem) => void; onUnsave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void; setTab: (tab: string) => void }>;
   LeaderboardView: React.ComponentType<{ userPoints: number; userLevel: number; leaderboardUsers: LeaderboardEntry[]; onOpenUserProfile: (userId: string) => void }>;
@@ -43,6 +47,7 @@ export const renderAppView = ({
   handleConversationOpened,
   handleOpenUserProfile,
   handleBackToOwnProfile,
+  mapsApiKey,
   components,
 }: {
   tab: string;
@@ -61,6 +66,7 @@ export const renderAppView = ({
   handleConversationOpened: (friendId: string) => void;
   handleOpenUserProfile: (userId: string) => void;
   handleBackToOwnProfile: () => void;
+  mapsApiKey: string;
   components: RenderComponents;
 }) => {
   const {
@@ -89,7 +95,16 @@ export const renderAppView = ({
     case 'chat':
       return <ChatView friends={friends} authUser={authUser} onSave={handleSave} onShareRequest={setActiveShareItem} setTab={setTab} onConversationOpened={handleConversationOpened} onOpenUserProfile={handleOpenUserProfile} />;
     case 'scout':
-      return <ScoutView onSave={handleSave} onShareRequest={setActiveShareItem} savedItems={savedItems} />;
+      return (
+        <ScoutView
+          mapsApiKey={mapsApiKey}
+          savedItems={savedItems}
+          onAction={(item, action) => {
+            if (action === 'save') handleSave(item);
+            else setActiveShareItem(item);
+          }}
+        />
+      );
     case 'profile':
       return <ProfileView savedItems={savedItems} authUser={authUser} friends={friends} onSave={handleSave} onUnsave={handleUnsave} onShareRequest={setActiveShareItem} setTab={setTab} />;
     case 'user-profile':

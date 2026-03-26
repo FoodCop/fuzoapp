@@ -70,6 +70,60 @@ export const PointsService = {
     };
   },
 
+  async getFilteredLeaderboard(params: {
+    filter: 'global' | 'friends' | 'local';
+    userIds?: string[];
+    city?: string;
+    limit?: number;
+  }): Promise<PointsServiceResult<LeaderboardEntry[]>> {
+    const { filter, userIds, city, limit = 50 } = params;
+    
+    if (!supabase) {
+      return { success: false, error: 'Supabase is not configured' };
+    }
+
+    let query = supabase
+      .from('users')
+      .select('id, display_name, username, points_total, points_level')
+      .order('points_total', { ascending: false })
+      .order('points_level', { ascending: false })
+      .limit(limit);
+
+    if (filter === 'friends' && userIds && userIds.length > 0) {
+      query = query.in('id', userIds);
+    } else if (filter === 'local' && city) {
+      query = query.ilike('location_city', `%${city}%`);
+    } else if (filter === 'friends' && (!userIds || userIds.length === 0)) {
+      // Return empty if no friends passed for friend filter
+      return { success: true, data: [] };
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    const rows = (data || []) as Array<{
+      id: string;
+      display_name: string | null;
+      username: string | null;
+      points_total: number | null;
+      points_level: number | null;
+    }>;
+
+    return {
+      success: true,
+      data: rows.map(row => ({
+        id: row.id,
+        displayName: row.display_name || 'Chef Studio',
+        username: row.username || 'fuzo_user',
+        pointsTotal: row.points_total ?? 0,
+        pointsLevel: row.points_level ?? 1,
+      })),
+    };
+  },
+
   async getCurrentUserPoints(): Promise<PointsServiceResult<PointsSummary>> {
     if (!supabase) {
       return { success: false, error: 'Supabase is not configured' };

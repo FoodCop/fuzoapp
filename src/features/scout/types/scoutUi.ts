@@ -11,6 +11,9 @@ export interface ScoutUserReview {
 
 export type ScoutTimings = Record<string, string>;
 
+export type ScoutMapTab = 'main' | 'fuzo' | 'my';
+export type ScoutFilter = 'all' | 'top' | 'open' | 'distance';
+
 export interface ScoutPlace {
   id: string;
   placeId?: string;
@@ -33,8 +36,11 @@ export interface ScoutPlace {
 }
 
 export type MarkerLike = {
-  setMap: (map: null) => void;
+  setMap: (map: MapLike | null) => void;
   addListener: (eventName: string, handler: () => void) => void;
+  getMap: () => MapLike | null;
+  getPosition: () => { lat: number; lng: number } | null;
+  setZIndex: (index: number) => void;
 };
 
 export type LatLngBoundsLike = {
@@ -45,6 +51,7 @@ export type LatLngBoundsLike = {
 export type MapLike = {
   fitBounds: (bounds: LatLngBoundsLike, padding?: number) => void;
   setCenter: (center: { lat: number; lng: number }) => void;
+  getCenter: () => { lat: () => number; lng: () => number };
 };
 
 export type GoogleMapsLike = {
@@ -58,19 +65,7 @@ export type GoogleMapsLike = {
       fullscreenControl: boolean;
     }
   ) => MapLike;
-  Marker: new (options: {
-    map: MapLike;
-    position: { lat: number; lng: number };
-    title: string;
-    icon?: {
-      path: unknown;
-      scale: number;
-      fillColor: string;
-      fillOpacity: number;
-      strokeColor: string;
-      strokeWeight: number;
-    };
-  }) => MarkerLike;
+  Marker: any;
   LatLngBounds: new () => LatLngBoundsLike;
   SymbolPath: { CIRCLE: unknown };
 };

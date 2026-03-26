@@ -249,14 +249,10 @@ export const ProfileView = ({
         isOpen={showLeaderboard} 
         onClose={() => setShowLeaderboard(false)} 
         currentUserRank={12} 
-        leaderboardUsers={friends.map((f, i) => ({
-          id: String(f.id),
-          displayName: f.name || 'Friend',
-          username: String(f.id),
-          pointsTotal: 5000 - (i * 100),
-          pointsLevel: 5
-        }))}
+        leaderboardUsers={[]} // Modal will fetch fresh data
         currentUserId={authUser?.id}
+        friends={friends}
+        authUser={authUser}
       />
     </div>
   );
