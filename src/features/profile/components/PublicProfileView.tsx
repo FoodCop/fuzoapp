@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   MapPin, ChefHat, PlayCircle, User, LayoutGrid, Music2, Pin, Youtube, ChevronLeft, Loader2 
 } from 'lucide-react';
@@ -95,7 +95,7 @@ export const PublicProfileView = ({
 
     loadProfile().catch((error) => {
       if (!cancelled) {
-        console.warn('Failed to load public profile:', error);
+        console.error('CRITICAL: Massive profile load failure:', error, { targetUserId });
         setProfile(null);
         setSavedItems([]);
         setIsLoading(false);
@@ -406,7 +406,7 @@ export const PublicProfileView = ({
           <div className="px-8 space-y-6">
             <div className="flex justify-between items-center">
               <h4 className="font-black uppercase text-xs tracking-widest text-stone-900">
-                {tabs.find(t => t.id === activeTab)?.label}
+                {tabs.find(t => t.id === activeTab)?.label || 'Items'}
               </h4>
               <Badge color="yellow">{activeCount} Items</Badge>
             </div>

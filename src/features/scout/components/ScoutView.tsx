@@ -26,6 +26,7 @@ import { ScoutDiscoveryPanel } from './ScoutDiscoveryPanel';
 import { ScoutPlaceModal } from './ScoutPlaceModal';
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
 import { supabase, hasSupabaseConfig } from '../../../services/supabaseClient';
+import { PlacesService } from '../../../services/placesService';
 
 type ScoutTab = 'main' | 'fuzo' | 'my';
 
@@ -75,78 +76,44 @@ export const ScoutView = ({
   }, []);
 
   const fetchPlaces = useCallback(async (map: MapLike) => {
-    if (!mapsApiKey) return;
     setIsLoading(true);
     const seq = ++requestSeq.current;
 
     try {
-      const google = getGoogleMaps();
-      if (!google) throw new Error('Google Maps not loaded');
-
       const center = (map as any).getCenter();
       const lat = typeof center.lat === 'function' ? center.lat() : center.lat;
       const lng = typeof center.lng === 'function' ? center.lng() : center.lng;
 
-      try {
-        const { Place } = await (google as any).importLibrary('places');
-        const { places } = await Place.searchNearby({
-          fields: ['displayName', 'location', 'rating', 'userRatingCount', 'vicinity', 'types', 'photos'],
-          locationRestriction: { center: { lat, lng }, radius: 5000 },
-          includedPrimaryTypes: ['restaurant', 'cafe', 'bar'],
-          maxResultCount: 20,
-        });
+      console.log(`🔍 Scout: Searching near ${lat}, ${lng}`);
+      const result = await PlacesService.searchNearby(lat, lng);
+      
+      if (!shouldApplyLatestRequest(mounted, seq, requestSeq)) return;
+      setIsLoading(false);
 
-        if (!shouldApplyLatestRequest(mounted, seq, requestSeq)) return;
-        setIsLoading(false);
-
-        if (places && places.length > 0) {
-          const transformed = places.map((p: any, i: number) => {
-            const loc = p.location;
-            return {
-              id: p.id || `google-${i}`,
-              placeId: p.id,
-              markerSource: 'google',
-              name: p.displayName || 'Unnamed Place',
-              cat: p.types?.[0]?.replace(/_/g, ' ') || 'Restaurant',
-              rating: p.rating || 0,
-              reviews: p.userRatingCount || 0,
-              address: p.vicinity || '',
-              phone: '',
-              website: '',
-              vibe: [],
-              img: p.photos?.[0]?.getURI({ maxWidth: 400 }) || '',
-              lat: loc?.lat?.() || loc?.lat || 0,
-              lng: loc?.lng?.() || loc?.lng || 0,
-              timings: {},
-              menu: [],
-              userReviews: [],
-              photos: []
-            };
-          });
-          setMainMapPlaces(transformed);
-        } else {
-          setMainMapPlaces(SCOUT_FALLBACK_PLACES);
-        }
-      } catch (innerErr) {
-        // Fallback
-        const service = new (google as any).places.PlacesService(map);
-        service.nearbySearch({
-          location: { lat, lng },
-          radius: 5000,
-          type: ['restaurant', 'cafe', 'bar']
-        }, (results: any[], status: any) => {
-          if (!shouldApplyLatestRequest(mounted, seq, requestSeq)) return;
-          setIsLoading(false);
-
-          if (status === (google as any).places.PlacesServiceStatus.OK && results) {
-            const transformed = results.slice(0, 20).map((r, i) => toScoutPlace(r, i, mapsApiKey));
-            setMainMapPlaces(transformed);
-          } else {
-            setMainMapPlaces(SCOUT_FALLBACK_PLACES);
+      if (result.success && result.data?.results && result.data.results.length > 0) {
+        console.log(`✅ Scout: Found ${result.data.results.length} results`);
+        const transformed = result.data.results.map((r, i) => toScoutPlace(r, i, mapsApiKey));
+        setMainMapPlaces(transformed);
+        
+        // Fit bounds to results if we have them
+        if (transformed.length > 0) {
+          const google = getGoogleMaps();
+          if (google && mapInstanceRef.current) {
+            const bounds = new google.LatLngBounds();
+            transformed.forEach(p => bounds.extend({ lat: p.lat, lng: p.lng }));
+            mapInstanceRef.current.fitBounds(bounds);
           }
-        });
+        }
+      } else {
+        console.warn('Scout search returned no results or failed:', result.error || result.data?.status);
+        if (result.data?.status === 'ZERO_RESULTS') {
+            setMainMapPlaces([]); // Don't fallback to NY if we just found nothing here
+        } else {
+            setMainMapPlaces(SCOUT_FALLBACK_PLACES);
+        }
       }
     } catch (err) {
+      console.error('Scout fetch error:', err);
       if (shouldApplyLatestRequest(mounted, seq, requestSeq)) {
         setIsLoading(false);
         setMainMapPlaces(SCOUT_FALLBACK_PLACES);

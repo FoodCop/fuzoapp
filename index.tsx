@@ -4075,6 +4075,48 @@ const App = () => {
   }, []);
 
   useEffect(() => {
+    if (!isAuthenticated || !authUser?.id || !hasSupabaseConfig) {
+      return;
+    }
+
+    const updatePresence = async (isOnline: boolean) => {
+      try {
+        const { error } = await supabase.rpc('update_user_presence', { p_is_online: isOnline });
+        if (error) {
+          console.warn('Presence sync failed:', error.message, { isOnline });
+        }
+      } catch (err) {
+        console.error('Presence exception:', err);
+      }
+    };
+
+    updatePresence(true);
+
+    const heartbeat = setInterval(() => {
+      updatePresence(true);
+    }, 60000); // Heartbeat every 1 minute
+
+    const handleUnload = () => {
+      const data = new Blob([JSON.stringify({ 
+        action: 'presence_offline', 
+        userId: authUser.id 
+      })], { type: 'application/json' });
+      // Use sendBeacon for more reliability on close, 
+      // though RPC needs a standard fetch usually.
+      // For now, standard updatePresence(false) on cleanup 
+      // handles normal React navigation.
+    };
+
+    window.addEventListener('beforeunload', handleUnload);
+
+    return () => {
+      clearInterval(heartbeat);
+      window.removeEventListener('beforeunload', handleUnload);
+      updatePresence(false);
+    };
+  }, [authUser?.id, isAuthenticated]);
+
+  useEffect(() => {
     let cancelled = false;
 
     const loadPoints = async () => {

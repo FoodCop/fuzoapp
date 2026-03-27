@@ -25,8 +25,15 @@ export const SCOUT_FALLBACK_PLACES: ScoutPlace[] = [
 ];
 
 export const toScoutPlace = (result: any, index: number, mapsApiKey: string): ScoutPlace => {
-  const lat = result.geometry?.location?.lat() || 0;
-  const lng = result.geometry?.location?.lng() || 0;
+  // Handle both JS API (functions) and REST API (numbers)
+  const getCoord = (coord: any) => {
+    if (typeof coord === 'function') return coord();
+    if (typeof coord === 'number') return coord;
+    return 0;
+  };
+
+  const lat = getCoord(result.geometry?.location?.lat);
+  const lng = getCoord(result.geometry?.location?.lng);
   const placeId = result.place_id || `google-${index}`;
   
   return {

@@ -90,8 +90,8 @@ async function makeRequest<T>(path: string, payload: unknown): Promise<ServiceRe
 }
 
 export const PlacesService = {
-  async searchNearby(latitude: number, longitude: number, radius = 5000): Promise<ServiceResult<{ results: ScoutPlace[] }>> {
-    return makeRequest<{ results: ScoutPlace[] }>('/places/nearby', {
+  async searchNearby(latitude: number, longitude: number, radius = 5000): Promise<ServiceResult<{ results: ScoutPlace[]; status?: string; error_message?: string }>> {
+    return makeRequest<{ results: ScoutPlace[]; status?: string; error_message?: string }>('/places/nearby', {
       latitude,
       longitude,
       radius,
@@ -99,8 +99,8 @@ export const PlacesService = {
     });
   },
 
-  async searchByText(query: string, latitude: number, longitude: number): Promise<ServiceResult<{ results: ScoutPlace[] }>> {
-    return makeRequest<{ results: ScoutPlace[] }>('/places/textsearch', {
+  async searchByText(query: string, latitude: number, longitude: number): Promise<ServiceResult<{ results: ScoutPlace[]; status?: string; error_message?: string }>> {
+    return makeRequest<{ results: ScoutPlace[]; status?: string; error_message?: string }>('/places/textsearch', {
       query,
       location: { lat: latitude, lng: longitude },
       radius: 50000,
