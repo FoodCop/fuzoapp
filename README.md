@@ -57,6 +57,10 @@ FUZO is a food discovery and social platform built with Vite + React + TypeScrip
 - Gemini production health and generation checks were validated live on `www.fuzo.app`.
 - Canonical app entry is `/app?view=feed`.
 
+## Demo Links
+
+- **Onboarding V2 Flow**: `/?view=onboarding-demo` (Bypasses auth for client review of question flow)
+
 ## Next Session Focus
 
 - Run and document the 48-hour Trims rollout audit (`live/cache/fallback` mix, caps, latency, failover paths).
