@@ -3702,7 +3702,7 @@ const App = () => {
     normalizeSavedItemForUI,
   });
 
-  useTabUrlSync(tab, appRoute && !homeRoute, publicProfileUserId);
+  useTabUrlSync(tab, appRoute && !homeRoute && !isOnboardingDemoView, publicProfileUserId);
 
   const handleOpenUserProfile = useCallback((userId: string) => {
     const trimmedUserId = userId.trim();
