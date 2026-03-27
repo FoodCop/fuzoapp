@@ -102,8 +102,17 @@ const MotionDiv = ({
   ...rest
 }: LightweightMotionProps) => <div {...(rest as React.HTMLAttributes<HTMLDivElement>)}>{children}</div>;
 
-const motion = { div: MotionDiv };
-const AnimatePresence = ({ children, mode: _mode }: { children?: React.ReactNode; mode?: string }) => <>{children}</>;
+const motion = { 
+  div: MotionDiv,
+  img: (props: any) => <img {...props} />,
+  section: (props: any) => <section {...props} />,
+  h1: (props: any) => <h1 {...props} />,
+  h2: (props: any) => <h2 {...props} />,
+  p: (props: any) => <p {...props} />,
+  span: (props: any) => <span {...props} />,
+};
+
+const AnimatePresence = ({ children }: { children?: React.ReactNode; mode?: string }) => <>{children}</>;
 
 const readImageFileAsDataUrl = (file: File): Promise<string> => new Promise((resolve, reject) => {
   const reader = new FileReader();
@@ -2908,7 +2917,6 @@ const ChatView = ({
 };
 // ScoutView moved to src/features/scout/components/ScoutView.tsx
 
-
 const PhoneMockup = ({ image, className = "" }: { image: string, className?: string }) => (
   <div className={`relative w-64 h-[520px] bg-stone-950 rounded-[3rem] p-3 shadow-2xl border-4 border-stone-800/50 overflow-hidden ${className}`}>
     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-stone-950 rounded-b-3xl z-20" />
@@ -2919,244 +2927,161 @@ const PhoneMockup = ({ image, className = "" }: { image: string, className?: str
   </div>
 );
 
-const FeatureFold = ({
-  title,
-  subtitle,
-  description,
-  microline,
-  image,
-  reverse = false,
-  color = "stone",
-  icon: Icon
-}: {
-  title: string,
-  subtitle: string,
-  description: string,
-  microline?: string,
-  image: string,
-  reverse?: boolean,
-  color?: string,
-  icon: IconComponent
-}) => (
-  <section className={`py-32 px-6 ${reverse ? 'bg-white' : 'bg-[#fbd556]'} overflow-hidden`}>
-    <div className={`max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20 items-center ${reverse ? 'lg:flex-row-reverse' : ''}`}>
-      <motion.div
-        initial={{ opacity: 0, x: reverse ? 50 : -50 }}
-        whileInView={{ opacity: 1, x: 0 }}
-        viewport={{ once: true }}
-        className={`space-y-8 ${reverse ? 'lg:order-2' : ''}`}
-      >
-        <div className="space-y-4">
-          <div className={`inline-flex items-center gap-3 px-4 py-2 ${reverse ? 'bg-stone-100 text-stone-900' : 'bg-stone-900 text-yellow-400'} rounded-full`}>
-            <Icon size={18} />
-            <span className="text-[12px] font-black uppercase tracking-widest">{subtitle}</span>
-          </div>
-          <h2 className="text-6xl md:text-7xl font-black uppercase tracking-tighter leading-[0.85] text-stone-900">
-            {(() => {
-              const seenWords: Record<string, number> = {};
-              return title.split(' ').map((word, i) => {
-                seenWords[word] = (seenWords[word] || 0) + 1;
-                return (
-                  <span key={`${title}-${word}-${seenWords[word]}`} className={i === 1 ? 'italic opacity-70' : ''}>
-                    {word}{' '}
-                    {i === 1 && <br />}
-                  </span>
-                );
-              });
-            })()}
-          </h2>
-        </div>
-        <p className={`text-xl font-bold leading-relaxed max-w-xl ${reverse ? 'text-stone-500' : 'text-stone-800'}`}>
-          {description}
-        </p>
-        {microline && (
-          <p className={`text-[11px] font-black uppercase tracking-[0.2em] ${reverse ? 'text-stone-400' : 'text-stone-900/50'}`}>
-            {microline}
-          </p>
-        )}
-        <div className="flex items-center gap-6 pt-4">
-          <div className="flex -space-x-3">
-            {[1, 2, 3].map(i => (
-              <div key={i} className={`w-10 h-10 rounded-full border-2 ${reverse ? 'border-white' : 'border-[#fbd556]'} overflow-hidden`}>
-                <img src={`https://i.pravatar.cc/100?u=${title}${i}`} alt="Community member avatar" className="w-full h-full object-cover" />
-              </div>
-            ))}
-          </div>
-          <p className={`text-[12px] font-black uppercase tracking-widest ${reverse ? 'text-stone-400' : 'text-stone-900/60'}`}>Joined by 12k+ members</p>
-        </div>
-      </motion.div>
+const LANDING_FEATURES = [
+  {
+    subtitle: "FUZO",
+    title: "THE UNDISCOVERED GASTRONOMY",
+    description: "The world's first AI-native discovery engine for fine dining, recipe architecture, and culinary networks.",
+    microline: "Think less. Create more. Access more.",
+    image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80",
+    icon: ChefHat,
+    isHero: true
+  },
+  {
+    subtitle: "Discovery",
+    title: "YOUR PERSONALIZED FOOD GRAPH",
+    description: "Your feed adapts in real time, with recipes, short-form videos, and places curated to your taste, location, and behavior.",
+    microline: "Discover -> Save -> Share -> Refine",
+    image: "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80",
+    icon: Sparkles
+  },
+  {
+    subtitle: "Studio Bites",
+    title: "RECIPES, REWIRED",
+    description: "Break dishes into structured components: ingredients, techniques, and logic, so you don't just follow recipes, you understand them.",
+    microline: "From consumption -> comprehension",
+    image: "https://images.unsplash.com/photo-1550317138-10000687ad32?auto=format&fit=crop&w=800&q=80",
+    icon: ChefHat
+  },
+  {
+    subtitle: "Scout Maps",
+    title: "DISCOVER WHAT'S AROUND YOU, INTELLIGENTLY",
+    description: "Explore nearby restaurants through live data, menus, reviews, and geo-aware recommendations tuned to your taste profile.",
+    microline: "Map + Memory + Taste Graph",
+    image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80",
+    icon: MapPin
+  },
+  {
+    subtitle: "Fuzo Trims",
+    title: "SHORT-FORM FOOD. CONTEXTUALIZED.",
+    description: "A localized video feed that understands where you are and what you like, delivering relevant culinary content instead of random noise.",
+    microline: "Signal > Scroll",
+    image: "https://images.unsplash.com/photo-1577308856961-8e9ec50d0c67?auto=format&fit=crop&w=800&q=80",
+    icon: PlayCircle
+  },
+  {
+    subtitle: "Ecosystem",
+    title: "TURN ACTION INTO PROGRESSION",
+    description: "Build your culinary identity and unlock exclusive access. Earn points, climb the leaderboard, and partner with AI trained for food workflows.",
+    microline: "Think less. Create more. Access more.",
+    image: "https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&w=800&q=80",
+    icon: Trophy
+  }
+];
 
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9, rotate: reverse ? -5 : 5 }}
-        whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
-        viewport={{ once: true }}
-        className={`relative flex justify-center ${reverse ? 'lg:order-1' : ''}`}
-      >
-        <div className={`absolute inset-0 ${reverse ? 'bg-stone-200' : 'bg-stone-900/10'} blur-[120px] rounded-full opacity-30`} />
-        <PhoneMockup image={image} className="relative z-10 border-stone-900/10 shadow-2xl" />
-        <div className="hidden">
-        <div className={`absolute -bottom-10 ${reverse ? '-right-10' : '-left-10'} p-8 bg-stone-900 text-white rounded-[3rem] shadow-2xl hidden md:block max-w-[200px] rotate-6`}>
-          <p className="font-black uppercase text-xs tracking-widest leading-tight">
-            "The most intuitive culinary interface I've ever used."
-          </p>
-          <p className="text-[11px] font-bold text-stone-400 mt-4 uppercase tracking-widest">â€” Chef Marcus</p>
-        </div>
-        </div>
-      </motion.div>
-    </div>
-  </section>
-);
+const HeroCarousel = ({ onStart }: { onStart: () => void }) => {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIndex((prev) => (prev + 1) % LANDING_FEATURES.length);
+    }, 8000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <section className="relative h-screen bg-white overflow-hidden">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={index}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1.2, ease: "easeInOut" }}
+          className="absolute inset-0"
+        >
+          <div className="flex h-full flex-col lg:flex-row">
+            {/* Content Side */}
+            <div className={`w-full lg:w-1/2 flex items-center p-12 lg:p-24 ${index === 0 ? 'bg-[#fbd556]' : index % 2 === 0 ? 'bg-stone-50' : 'bg-white'}`}>
+              <div className="space-y-8 max-w-xl text-stone-900">
+                <div className="space-y-4">
+                  <div className={`inline-flex items-center gap-3 px-4 py-2 ${index === 0 ? 'bg-stone-900 text-yellow-400' : 'bg-stone-100 text-stone-900'} rounded-full shadow-sm`}>
+                    {React.createElement(LANDING_FEATURES[index].icon, { size: 18 })}
+                    <span className="text-[12px] font-black uppercase tracking-widest">{LANDING_FEATURES[index].subtitle}</span>
+                  </div>
+                  <motion.h2 className="text-6xl md:text-8xl font-black uppercase tracking-tighter leading-[0.85] text-stone-900">
+                    {LANDING_FEATURES[index].title.split(' ').map((word, i) => (
+                      <span key={i} className={i === 1 || word === 'UNDISCOVERED' ? 'italic opacity-60' : ''}>
+                        {word}{' '}
+                      </span>
+                    ))}
+                  </motion.h2>
+                </div>
+                <motion.p className="text-xl md:text-2xl font-bold leading-tight text-stone-800">
+                  {LANDING_FEATURES[index].description}
+                </motion.p>
+                
+                <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
+                  <button
+                    onClick={onStart}
+                    className="w-full sm:w-auto px-12 py-6 bg-stone-900 text-white rounded-[2.5rem] font-black uppercase tracking-widest text-sm hover:scale-105 active:scale-95 transition-all shadow-xl flex items-center justify-center gap-2 group"
+                  >
+                    Enter FUZO
+                    <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                  </button>
+                  <button
+                    className="w-full sm:w-auto px-12 py-6 bg-white text-stone-900 border-2 border-stone-900/10 rounded-[2.5rem] font-black uppercase tracking-widest text-sm hover:bg-stone-50 hover:border-stone-900 transition-all flex items-center justify-center gap-2"
+                  >
+                    <PlayCircle size={18} />
+                    Watch Reel
+                  </button>
+                </div>
+
+                <motion.p className="text-[11px] font-black uppercase tracking-[0.4em] text-stone-900/30 pt-4">
+                  {LANDING_FEATURES[index].microline}
+                </motion.p>
+              </div>
+            </div>
+
+            {/* Image Side */}
+            <div className="w-full lg:w-1/2 relative bg-stone-950 overflow-hidden">
+               <motion.img 
+                 key={`img-${index}`}
+                 initial={{ scale: 1.2, opacity: 0 }}
+                 animate={{ scale: 1, opacity: 1 }}
+                 transition={{ duration: 2, ease: "easeOut" }}
+                 src={LANDING_FEATURES[index].image} 
+                 className="w-full h-full object-cover opacity-70" 
+                 alt=""
+               />
+               <div className="absolute inset-0 bg-gradient-to-r from-stone-950/40 to-transparent" />
+               {index === 0 && (
+                 <div className="absolute inset-0 border-[20px] border-white/5 pointer-events-none" />
+               )}
+            </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Navigation Controls */}
+      <div className="absolute bottom-12 left-12 lg:left-24 z-30 flex gap-4 items-center">
+        {LANDING_FEATURES.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setIndex(i)}
+            className={`transition-all duration-700 ${index === i ? 'w-16 h-2 bg-stone-900' : 'w-4 h-1.5 bg-stone-200 hover:bg-stone-300'} rounded-full`}
+            aria-label={`Go to slide ${i + 1}`}
+          />
+        ))}
+      </div>
+    </section>
+  );
+};
 
 const LandingPage = ({ onStart }: { onStart: () => void }) => {
   return (
-    <div className="min-h-screen bg-[#fbd556] text-stone-900 overflow-x-hidden selection:bg-stone-900 selection:text-white">
-      {/* Hero Section */}
-      <section className="relative h-screen flex flex-col items-center justify-center p-6 text-center overflow-hidden">
-        <div className="absolute inset-0 opacity-10 pointer-events-none">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,#fff_0%,transparent_70%)]" />
-          <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(rgba(0,0,0,0.1) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="relative z-10 space-y-12 max-w-6xl w-full mx-auto"
-        >
-          <div className="flex items-center justify-center gap-4 mb-8">
-            <div className="w-20 h-20 bg-stone-900 rounded-[2.5rem] flex items-center justify-center text-yellow-400 shadow-2xl rotate-6">
-              <ChefHat size={44} strokeWidth={2.5} />
-            </div>
-          </div>
-
-          <h1 className="landing-hero-title text-[14vw] md:text-[10vw] font-black uppercase tracking-tighter leading-[0.8] italic text-stone-900 text-center mx-auto w-full">
-            THE <br /> <span className="not-italic">UNDISCOVERED</span> <br /> GASTRONOMY
-          </h1>
-
-          <p className="text-xl md:text-3xl font-bold text-stone-800 max-w-3xl mx-auto leading-tight">
-            The world's first AI-native discovery engine for fine dining, recipe architecture, and culinary networks.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-12">
-            <button
-              onClick={onStart}
-              className="group relative px-16 py-8 bg-stone-900 text-white rounded-[3rem] font-black uppercase tracking-widest overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-2xl"
-            >
-              <span className="relative z-10 flex items-center gap-3 text-lg">Enter FUZO <ChevronRight size={24} /></span>
-              <div className="absolute inset-0 bg-stone-800 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-            </button>
-          </div>
-        </motion.div>
-
-        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 animate-bounce opacity-20">
-          <ChevronRight size={32} className="rotate-90" />
-        </div>
-      </section>
-
-      {/* Feature Folds */}
-      <FeatureFold
-        subtitle="Discovery"
-        title="YOUR PERSONALIZED FOOD GRAPH"
-        description="Your feed adapts in real time, with recipes, short-form videos, and places curated to your taste, location, and behavior."
-        microline="Discover â†’ Save â†’ Share â†’ Refine"
-        image="https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80"
-        icon={Sparkles}
-        color="stone"
-      />
-
-      <FeatureFold
-        subtitle="Studio Bites"
-        title="RECIPES, REWIRED"
-        description="Break dishes into structured components: ingredients, techniques, and logic, so you don't just follow recipes, you understand them."
-        microline="From consumption â†’ comprehension"
-        image="https://images.unsplash.com/photo-1550317138-10000687ad32?auto=format&fit=crop&w=800&q=80"
-        icon={ChefHat}
-        color="stone"
-        reverse
-      />
-
-      <FeatureFold
-        subtitle="Scout Maps"
-        title="DISCOVER WHAT'S AROUND YOU, INTELLIGENTLY"
-        description="Explore nearby restaurants through live data, menus, reviews, and geo-aware recommendations tuned to your taste profile."
-        microline="Map + Memory + Taste Graph"
-        image="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80"
-        icon={MapPin}
-        color="stone"
-      />
-
-      <FeatureFold
-        subtitle="Fuzo Trims"
-        title="SHORT-FORM FOOD. CONTEXTUALIZED."
-        description="A localized video feed that understands where you are and what you like, delivering relevant culinary content instead of random noise."
-        microline="Signal > Scroll"
-        image="https://images.unsplash.com/photo-1577308856961-8e9ec50d0c67?auto=format&fit=crop&w=800&q=80"
-        icon={PlayCircle}
-        color="stone"
-        reverse
-      />
-
-      <FeatureFold
-        subtitle="Fuzo Elite"
-        title="TURN ACTION INTO PROGRESSION"
-        description="Every save, share, and post earns points. Climb the leaderboard, unlock rewards, and build your culinary identity."
-        microline="Engagement â†’ Status â†’ Access"
-        image="https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&w=800&q=80"
-        icon={Trophy}
-        color="stone"
-      />
-
-      <FeatureFold
-        subtitle="Studio Rewards"
-        title="REWARDS THAT ACTUALLY MATTER"
-        description="Redeem points for curated experiences, from chef access to premium content and insider opportunities."
-        microline="Not discounts. Access."
-        image="https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=800&q=80"
-        icon={Gift}
-        color="stone"
-        reverse
-      />
-
-      <FeatureFold
-        subtitle="Chef AI"
-        title="YOUR AI CULINARY PARTNER"
-        description="Generate recipes, analyze dishes, and create content ideas, powered by AI trained for food workflows."
-        microline="Think less. Create more."
-        image="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80"
-        icon={Bot}
-        color="stone"
-      />
-
-      {/* Final CTA */}
-      <section className="py-40 bg-stone-900 text-white text-center">
-        <div className="max-w-4xl mx-auto px-6 space-y-12">
-          <h2 className="text-7xl md:text-9xl font-black uppercase tracking-tighter leading-[0.8] italic">READY TO BUILD YOUR <br /> <span className="not-italic text-yellow-400">TASTE PROFILE?</span></h2>
-          <p className="text-2xl font-bold text-stone-400 max-w-2xl mx-auto">
-            Join a system designed to evolve how you discover, cook, and experience food.
-          </p>
-          <button
-            onClick={onStart}
-            className="px-16 py-8 bg-yellow-400 text-stone-900 rounded-[3rem] font-black uppercase tracking-widest text-xl hover:scale-105 active:scale-95 transition-all shadow-2xl"
-          >
-            Start Exploring â†’
-          </button>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="py-20 px-6 border-t border-stone-900/10 text-center space-y-8 bg-[#fbd556]">
-        <div className="flex items-center justify-center gap-4">
-          <div className="w-10 h-10 bg-stone-900 rounded-2xl flex items-center justify-center text-yellow-400"><ChefHat size={20} /></div>
-          <h1 className="text-xl font-black uppercase tracking-[0.4em]">FUZO</h1>
-        </div>
-        <div className="flex justify-center gap-8 text-[12px] font-black uppercase tracking-widest text-stone-500">
-          <a href="#" className="hover:text-stone-900 transition-colors">Privacy</a>
-          <a href="#" className="hover:text-stone-900 transition-colors">Terms</a>
-          <a href="#" className="hover:text-stone-900 transition-colors">Contact</a>
-        </div>
-        <p className="text-stone-400 font-bold uppercase tracking-widest text-[12px]">Â© 2026 FUZO. All rights reserved.</p>
-      </footer>
- 
+    <div className="h-screen bg-[#fbd556] text-stone-900 overflow-hidden selection:bg-stone-900 selection:text-white">
+      <HeroCarousel onStart={onStart} />
     </div>
   );
 };
