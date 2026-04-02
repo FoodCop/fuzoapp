@@ -1,17 +1,20 @@
-﻿import React from 'react';
 import { Trophy } from 'lucide-react';
 import type { LeaderboardEntry } from '../services/pointsService';
+import { Avatar } from '../../../shared/ui/Avatar';
+import type { AuthUser } from '../../auth/types/auth';
 
 export const LeaderboardView = ({ 
   userPoints, 
   userLevel, 
   leaderboardUsers, 
-  onOpenUserProfile 
+  onOpenUserProfile,
+  authUser
 }: { 
   userPoints: number; 
   userLevel: number; 
   leaderboardUsers: LeaderboardEntry[]; 
-  onOpenUserProfile: (userId: string) => void 
+  onOpenUserProfile: (userId: string) => void;
+  authUser: AuthUser | null;
 }) => {
   const medalClassByRank = (rank: number) => {
     if (rank === 1) return 'text-yellow-500';
@@ -31,7 +34,7 @@ export const LeaderboardView = ({
     username: leader.username,
     points: leader.pointsTotal,
     level: leader.pointsLevel,
-    avatar: `https://i.pravatar.cc/150?u=${leader.id}`,
+    avatar: leader.avatarUrl,
     rank: index + 1,
   }));
 
@@ -58,9 +61,12 @@ export const LeaderboardView = ({
                   <span className="text-lg font-black text-stone-200">#{leader.rank}</span>
                 )}
               </div>
-              <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-stone-100">
-                <img src={leader.avatar} alt={`${leader.name} avatar`} className="w-full h-full object-cover" />
-              </div>
+              <Avatar 
+                src={leader.avatar} 
+                name={leader.name} 
+                size="md" 
+                className="w-16 h-16 rounded-2xl border-2 border-stone-100 shadow-sm"
+              />
               <div>
                 <p className="font-black uppercase text-sm tracking-tighter text-stone-900">{leader.name}</p>
                 <p className="text-[12px] font-bold text-stone-400 uppercase tracking-widest">@{leader.username} â€¢ Level {leader.level}</p>
@@ -76,9 +82,12 @@ export const LeaderboardView = ({
 
       <div className="bg-stone-900 rounded-[3rem] p-10 text-white flex items-center justify-between shadow-2xl">
         <div className="flex items-center gap-6">
-          <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-white/20">
-            <img src="https://i.pravatar.cc/150?u=me" alt="Your avatar" className="w-full h-full object-cover" />
-          </div>
+          <Avatar 
+            src={(authUser?.user_metadata?.avatar_url as string) || null} 
+            name={(authUser?.user_metadata?.full_name as string) || (authUser?.user_metadata?.name as string) || 'Me'} 
+            size="md" 
+            className="w-16 h-16 rounded-2xl border-2 border-white/20 shadow-sm"
+          />
           <div>
             <p className="font-black uppercase text-sm tracking-tighter">Your Rank</p>
             <p className="text-stone-400 text-[12px] font-bold uppercase tracking-widest">Studio Apprentice</p>

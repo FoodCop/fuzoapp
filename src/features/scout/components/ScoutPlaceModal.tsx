@@ -131,27 +131,36 @@ export const ScoutPlaceModal = ({
                     <MapPin size={20} className="shrink-0 mt-0.5 text-stone-400" />
                     <p className="text-sm font-bold leading-relaxed">{place.address || 'Address not listed'}</p>
                   </div>
-                  <div className="flex items-center gap-4 text-stone-600">
-                    <Clock size={20} className="shrink-0 text-stone-400" />
-                    <p className="text-sm font-bold">
-                      {(place.timings && Object.keys(place.timings).length > 0) 
-                        ? `Open now: ${place.timings[new Date().toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase()] || 'Hours not listed'}`
-                        : 'Hours not available'}
-                    </p>
+                  <div className="flex items-start gap-4 text-stone-600">
+                    <Clock size={20} className="shrink-0 text-stone-400 mt-0.5" />
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-stone-300 mb-1">Opening Hours</p>
+                      <p className="text-sm font-bold text-stone-900">
+                        {(place.timings && Object.keys(place.timings).length > 0) 
+                          ? `Today: ${place.timings[new Date().toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase()] || 'Hours not listed'}`
+                          : 'Hours not available'}
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-4 text-stone-600">
-                    <Zap size={20} className="shrink-0 text-stone-400" />
-                    <p className="text-sm font-bold">{place.phone || 'Phone not available'}</p>
+                  <div className="flex items-start gap-4 text-stone-600">
+                    <Zap size={20} className="shrink-0 text-stone-400 mt-0.5" />
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-stone-300 mb-1">Contact</p>
+                      <p className="text-sm font-bold text-stone-900">{place.phone || 'Phone not available'}</p>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-4 text-stone-600">
-                    <PlayCircle size={20} className="shrink-0 text-stone-400" />
-                    {place.website ? (
-                      <a href={place.website.startsWith('http') ? place.website : `https://${place.website}`} target="_blank" rel="noreferrer" className="text-sm font-bold text-blue-500 hover:underline truncate max-w-[200px]">{place.website}</a>
-                    ) : (
-                      <span className="text-sm font-bold text-stone-400 italic">Website not available</span>
-                    )}
+                  <div className="flex items-start gap-4 text-stone-600">
+                    <PlayCircle size={20} className="shrink-0 text-stone-400 mt-0.5" />
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-stone-300 mb-1">Website</p>
+                      {place.website ? (
+                        <a href={place.website.startsWith('http') ? place.website : `https://${place.website}`} target="_blank" rel="noreferrer" className="text-sm font-bold text-blue-500 hover:underline truncate max-w-[200px] block">{place.website}</a>
+                      ) : (
+                        <span className="text-sm font-bold text-stone-400 italic">Website not available</span>
+                      )}
+                    </div>
                   </div>
 
                 </div>
@@ -235,20 +244,18 @@ export const ScoutPlaceModal = ({
                   <button className="text-[12px] font-black uppercase tracking-widest text-blue-500">Write Review</button>
                 </div>
                 {(place.userReviews || []).map((review) => (
-                  <div key={`${review.user}-${review.text}`} className="bg-stone-50 p-8 rounded-[3rem] border border-stone-100">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-stone-200 rounded-2xl flex items-center justify-center font-black text-[10px] uppercase text-stone-400">
-                          {review.user.substring(0, 2)}
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-xs font-black uppercase tracking-widest">{review.user}</span>
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-stone-300">{review.time}</span>
-                        </div>
+                  <div key={`${review.user}-${review.time}`} className="bg-stone-50 p-6 rounded-[2.5rem] border border-stone-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-stone-900 rounded-2xl flex items-center justify-center font-black text-[10px] uppercase text-yellow-400">
+                        {review.user.substring(0, 2)}
                       </div>
-                      <div className="flex text-yellow-400 gap-0.5">
-                        {[1,2,3,4,5].map(star => <Star key={star} size={12} fill={star <= review.rating ? "currentColor" : "none"} />)}
+                      <div className="flex flex-col">
+                        <span className="text-xs font-black uppercase tracking-widest">{review.user}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-stone-300">{review.time}</span>
                       </div>
+                    </div>
+                    <div className="flex text-yellow-500 gap-0.5">
+                      {[1,2,3,4,5].map(star => <Star key={star} size={12} fill={star <= review.rating ? "currentColor" : "none"} />)}
                     </div>
                   </div>
                 ))}

@@ -4136,46 +4136,63 @@ const App = () => {
     sourceEntityId: string,
     metadata?: Record<string, unknown>,
   ) => {
+    console.log(`[Points] Awarding for ${actionType}: ${sourceEntityType}/${sourceEntityId}`);
+    
     if (!isAuthenticated || !hasSupabaseConfig) {
+      console.log('[Points] Not authenticated, awarding local-only simulation points');
       setPoints(prev => prev + 50);
       return;
     }
 
-    const result = await PointsService.awardActionPoints({
-      actionType,
-      sourceEntityType,
-      sourceEntityId,
-      metadata,
-    });
+    try {
+      const result = await PointsService.awardActionPoints({
+        actionType,
+        sourceEntityType,
+        sourceEntityId,
+        metadata,
+      });
 
-    if (!result.success || !result.data) {
-      console.warn('Points award failed:', result.error);
-      return;
+      if (!result.success || !result.data) {
+        console.warn('[Points] Award failed:', result.error);
+        return;
+      }
+
+      const awardedPoints = result.data;
+      console.log(`[Points] Successfully awarded. New total: ${awardedPoints.total}`);
+
+      // Update local state immediately
+      setPoints(awardedPoints.total);
+      if (awardedPoints.level !== level) {
+        setLevel(awardedPoints.level);
+      }
+
+      // Refresh leaderboard if we're in the top 50 or just to keep it fresh
+      setLeaderboardUsers(prev => {
+        const currentUserId = authUser?.id;
+        if (!currentUserId) return prev;
+        
+        const rest = prev.filter(entry => entry.id !== currentUserId);
+        const metadata = authUser?.user_metadata;
+        const displayName = getMetadataString(metadata, 'full_name', 'name') || 'Chef Studio';
+        const username = getMetadataString(metadata, 'username', 'user_name') || (authUser?.email?.split('@')[0] ?? 'fuzo_user');
+        const avatarUrl = (metadata?.avatar_url as string) || null;
+        
+        const updated: LeaderboardEntry = {
+          id: currentUserId,
+          displayName,
+          username,
+          pointsTotal: awardedPoints.total,
+          pointsLevel: awardedPoints.level,
+          avatarUrl
+        };
+
+        return [updated, ...rest]
+          .sort((a, b) => (b.pointsTotal - a.pointsTotal) || (b.pointsLevel - a.pointsLevel));
+      });
+    } catch (err) {
+      console.error('[Points] Critical error in awarding points:', err);
     }
-
-    const awardedPoints = result.data;
-
-    setPoints(awardedPoints.total);
-    setLevel(awardedPoints.level);
-    setLeaderboardUsers(prev => {
-      const currentUserId = authUser?.id;
-      if (!currentUserId) return prev;
-      const rest = prev.filter(entry => entry.id !== currentUserId);
-      const metadata = authUser?.user_metadata;
-      const displayName = getMetadataString(metadata, 'full_name', 'name') || 'Chef Studio';
-      const username = getMetadataString(metadata, 'username', 'user_name') || (authUser?.email?.split('@')[0] ?? 'fuzo_user');
-      const updated: LeaderboardEntry = {
-        id: currentUserId,
-        displayName,
-        username,
-        pointsTotal: awardedPoints.total,
-        pointsLevel: awardedPoints.level,
-      };
-
-      return [updated, ...rest]
-        .sort((a, b) => (b.pointsTotal - a.pointsTotal) || (b.pointsLevel - a.pointsLevel));
-    });
-  }, [isAuthenticated]);
+  }, [isAuthenticated, authUser, level]);
 
   const handleSave = async (item: AppItem) => {
     const normalized = normalizeItemForPlateSave(item);
@@ -4188,8 +4205,12 @@ const App = () => {
     });
 
     if (isNewSave) {
-      await awardPointsForAction('save_item', normalized.itemType, normalized.itemId, {
+      // Ensure we have a valid entity ID (restaurant placeId or recipe id)
+      const entityId = normalized.itemId || normalized.placeId || String(normalized.id);
+      
+      await awardPointsForAction('save_item', normalized.itemType, entityId, {
         source: 'handleSave',
+        itemName: normalized.name
       });
     }
 
