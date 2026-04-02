@@ -11,6 +11,8 @@ import { getOAuthRedirectUrl } from '../../auth/lib/oauthRedirect';
 import { SettingsItem, SettingsSection } from '../../../shared/ui/settingsPrimitives';
 import { InstagramMark, FacebookMark } from '../../../shared/ui/SocialIcons';
 import { PrimaryProfileType, ChefSubtype, IndividualSubtype } from '../../profile/types/profile';
+import { ProfileTypeModal } from './ProfileTypeModal';
+
 
 
 export const SettingsView = ({ 
@@ -55,6 +57,18 @@ export const SettingsView = ({
   const [settingsError, setSettingsError] = useState('');
   const [settingsMessage, setSettingsMessage] = useState('');
   const [isDirty, setIsDirty] = useState(false);
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean;
+    field: 'profileType' | 'profileSubtype';
+    title: string;
+    options: string[];
+  }>({
+    isOpen: false,
+    field: 'profileType',
+    title: '',
+    options: []
+  });
+
 
   useEffect(() => {
     setProfile(defaults);
@@ -123,28 +137,19 @@ export const SettingsView = ({
     updateProfileField(field, nextValue.trim());
   };
 
-  const selectField = (field: 'profileType' | 'profileSubtype', label: string, options: string[]) => {
-    const currentValue = profile[field] || '';
-    const optionsText = options.map((opt, i) => `${i + 1}. ${opt}`).join('\n');
-    const input = globalThis.prompt(`Update ${label}\n\nExisting: ${currentValue}\n\nAvailable options:\n${optionsText}\n\n(Enter the number or the value)`);
-    
-    if (input === null) return;
-    
-    const trimmed = input.trim();
-    const index = parseInt(trimmed) - 1;
-    
-    if (!isNaN(index) && options[index]) {
-      updateProfileField(field, options[index]);
-    } else if (options.includes(trimmed)) {
-      updateProfileField(field, trimmed);
-    } else if (trimmed !== '') {
-      setSettingsError(`Invalid ${label} selected.`);
-    }
+  const openSelectionModal = (field: 'profileType' | 'profileSubtype', label: string, options: string[]) => {
+    setModalState({
+      isOpen: true,
+      field,
+      title: label,
+      options
+    });
   };
 
   const primaryTypes: PrimaryProfileType[] = ['Individual', 'Chef', 'Restaurant', 'Culinary Team', 'Private Chef'];
   const chefSubtypes: ChefSubtype[] = ['Executive Chef', 'Sous Chef', 'Pastry Chef', 'Private Chef', 'Chef de Cuisine', 'Consultant Chef'];
   const individualSubtypes: IndividualSubtype[] = ['Food Explorer', 'Culinary Enthusiast', 'Taste Maker', 'Home Cook', 'Dine-Out Pro'];
+
 
 
   const handleSaveSettings = async () => {
@@ -272,7 +277,7 @@ export const SettingsView = ({
           icon={ChefHat} 
           label="Profile Type" 
           value={profile.profileType} 
-          onClick={() => selectField('profileType', 'Profile Type', primaryTypes)} 
+          onClick={() => openSelectionModal('profileType', 'Account Type', primaryTypes)} 
           color="indigo"
         />
         {(profile.profileType === 'Chef' || profile.profileType === 'Private Chef') && (
@@ -280,19 +285,20 @@ export const SettingsView = ({
             icon={Flame} 
             label="Chef Specialization" 
             value={profile.profileSubtype} 
-            onClick={() => selectField('profileSubtype', 'Chef Specialization', chefSubtypes)} 
+            onClick={() => openSelectionModal('profileSubtype', 'Specialization', chefSubtypes)} 
             color="orange"
           />
         )}
         {profile.profileType === 'Individual' && (
           <SettingsItem
             icon={Bot} 
-            label="Category" 
+            label="Explorer Category" 
             value={profile.profileSubtype} 
-            onClick={() => selectField('profileSubtype', 'Category', individualSubtypes)} 
+            onClick={() => openSelectionModal('profileSubtype', 'Category', individualSubtypes)} 
             color="blue"
           />
         )}
+
       </SettingsSection>
 
 
@@ -451,6 +457,17 @@ export const SettingsView = ({
           <button className="hover:text-stone-500">Privacy</button>
         </div>
       </div>
+
+      <ProfileTypeModal
+        isOpen={modalState.isOpen}
+        onClose={() => setModalState(prev => ({ ...prev, isOpen: false }))}
+        onSelect={(val) => updateProfileField(modalState.field, val)}
+        type={modalState.field === 'profileType' ? 'primary' : 'subtype'}
+        options={modalState.options}
+        currentValue={profile[modalState.field] || ''}
+        title={modalState.title}
+      />
     </div>
+
   );
 };
