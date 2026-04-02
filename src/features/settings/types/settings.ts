@@ -12,7 +12,10 @@ export interface SettingsProfile {
   tiktok: string;
   pinterest: string;
   youtube: string;
+  profileType: string;
+  profileSubtype: string;
 }
+
 
 export interface UserSettingsRow {
   id: string;
@@ -28,7 +31,10 @@ export interface UserSettingsRow {
   tiktok_url: string | null;
   pinterest_url: string | null;
   youtube_url: string | null;
+  profile_type: string | null;
+  profile_subtype: string | null;
 }
+
 
 export interface PublicUserProfile {
   id: string;

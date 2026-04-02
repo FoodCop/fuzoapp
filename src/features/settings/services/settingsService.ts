@@ -22,7 +22,8 @@ export const SettingsService = {
 
     const { data, error } = await client
       .from('users')
-      .select('id, display_name, username, bio, phone, location, dietary_preferences, cuisine_preferences, instagram_url, facebook_url, tiktok_url, pinterest_url, youtube_url')
+      .select('id, display_name, username, bio, phone, location, dietary_preferences, cuisine_preferences, instagram_url, facebook_url, tiktok_url, pinterest_url, youtube_url, profile_type, profile_subtype')
+
       .eq('id', authUser.id)
       .maybeSingle<UserSettingsRow>();
 
@@ -94,11 +95,22 @@ export const SettingsService = {
 
     const updatePayload = mapProfileToSettingsUpdate(profile);
 
+    // Sync to Auth Metadata so UI reflects changes immediately
+    await client.auth.updateUser({
+      data: {
+        profile_type: profile.profileType,
+        profile_subtype: profile.profileSubtype,
+        chef_subtype: profile.profileType === 'Chef' ? profile.profileSubtype : undefined,
+      }
+    });
+
     const { data, error } = await client
       .from('users')
       .update(updatePayload)
       .eq('id', authUser.id)
-      .select('id, display_name, username, bio, phone, location, dietary_preferences, cuisine_preferences, instagram_url, facebook_url, tiktok_url, pinterest_url, youtube_url')
+
+      .select('id, display_name, username, bio, phone, location, dietary_preferences, cuisine_preferences, instagram_url, facebook_url, tiktok_url, pinterest_url, youtube_url, profile_type, profile_subtype')
+
       .maybeSingle<UserSettingsRow>();
 
     if (error) {
@@ -113,7 +125,8 @@ export const SettingsService = {
           email: authUser.email || null,
           ...updatePayload,
         })
-        .select('id, display_name, username, bio, phone, location, dietary_preferences, cuisine_preferences, instagram_url, facebook_url, tiktok_url, pinterest_url, youtube_url')
+        .select('id, display_name, username, bio, phone, location, dietary_preferences, cuisine_preferences, instagram_url, facebook_url, tiktok_url, pinterest_url, youtube_url, profile_type, profile_subtype')
+
         .maybeSingle<UserSettingsRow>();
 
       if (upsertError) {

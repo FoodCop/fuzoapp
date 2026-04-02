@@ -12,6 +12,7 @@ export interface ScoutUserReview {
 export type ScoutTimings = Record<string, string>;
 
 export type ScoutMapTab = 'main' | 'fuzo' | 'my';
+export type PrimaryProfileType = 'chef' | 'individual' | 'restaurant' | 'culinary_team' | 'private_chef';
 export interface ScoutFilter {
   type: 'all' | 'top' | 'open' | 'distance';
   rating: number;
@@ -40,7 +41,11 @@ export interface ScoutPlace {
   userReviews: ScoutUserReview[];
   photos: string[];
   matchPercentage?: number;
+  isNewFind?: boolean;
+  notes?: string;
 }
+
+
 
 export type MarkerLike = {
   setMap: (map: MapLike | null) => void;
@@ -49,6 +54,8 @@ export type MarkerLike = {
   getPosition: () => { lat: number; lng: number } | null;
   setZIndex: (index: number) => void;
 };
+
+
 
 export type LatLngBoundsLike = {
   extend: (location: { lat: number; lng: number }) => void;
@@ -61,7 +68,11 @@ export type MapLike = {
   getCenter: () => { lat: () => number; lng: () => number };
   panTo: (center: { lat: number; lng: number }) => void;
   setZoom: (zoom: number) => void;
+  addListener: (eventName: string, handler: (event?: any) => void) => void;
+  getBounds: () => LatLngBoundsLike | null;
 };
+
+
 
 export type GoogleMapsLike = {
   Map: new (
@@ -76,9 +87,24 @@ export type GoogleMapsLike = {
     }
   ) => MapLike;
   Marker: any;
+  Geocoder: any;
+  Animation: { DROP: unknown; BOUNCE: unknown };
   LatLngBounds: new () => LatLngBoundsLike;
-  SymbolPath: { CIRCLE: unknown };
+  SymbolPath: { CIRCLE: unknown; BACKWARD_CLOSED_ARROW: unknown };
+  DirectionsService: new () => any;
+  DirectionsRenderer: new (options?: any) => any;
+  Polyline: new (options?: any) => any;
+  geometry: {
+    poly: {
+      isLocationOnEdge: (point: { lat: number; lng: number }, polyline: any, tolerance?: number) => boolean;
+    };
+    spherical: {
+      computeDistanceBetween: (p1: { lat: number; lng: number }, p2: { lat: number; lng: number }) => number;
+    };
+  };
 };
+
+
 
 export type GooglePlacePhoto = { photo_reference?: string };
 

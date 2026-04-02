@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Trophy, Users, Globe, MapPin, ArrowUpRight, Loader2 } from 'lucide-react';
 import { Badge } from '../../../shared/ui/Badge';
@@ -178,7 +178,7 @@ export const LeaderboardModal = ({
                         <p className="text-sm font-black italic tracking-tighter text-stone-900">
                           {user.pointsTotal.toLocaleString()} PTS
                         </p>
-                        <Badge color={isCurrentUser ? 'white' : 'yellow'}>LVL {user.pointsLevel}</Badge>
+                        <Badge color={isCurrentUser ? 'stone' : 'yellow'}>LVL {user.pointsLevel}</Badge>
                       </div>
                     </motion.div>
                   );

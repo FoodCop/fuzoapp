@@ -34,8 +34,11 @@ export const buildDefaultSettingsProfile = (authUser: AuthContextUser | null | u
     tiktok: getMetadataString(metadata, 'tiktok_url', 'tiktok'),
     pinterest: getMetadataString(metadata, 'pinterest_url', 'pinterest'),
     youtube: getMetadataString(metadata, 'youtube_url', 'youtube'),
+    profileType: getMetadataString(metadata, 'profile_type', 'type') || 'Individual',
+    profileSubtype: getMetadataString(metadata, 'profile_subtype', 'chef_subtype', 'subtype') || 'Food Explorer',
   };
 };
+
 
 export const mergeSettingsFromRow = (base: SettingsProfile, row: UserSettingsRow | null | undefined): SettingsProfile => {
   if (!row) {
@@ -59,8 +62,11 @@ export const mergeSettingsFromRow = (base: SettingsProfile, row: UserSettingsRow
     tiktok: row.tiktok_url || base.tiktok,
     pinterest: row.pinterest_url || base.pinterest,
     youtube: row.youtube_url || base.youtube,
+    profileType: row.profile_type || base.profileType,
+    profileSubtype: row.profile_subtype || base.profileSubtype,
   };
 };
+
 
 export const mapProfileToSettingsUpdate = (profile: SettingsProfile) => {
   const cuisinePreferences = profile.cuisine
@@ -85,5 +91,8 @@ export const mapProfileToSettingsUpdate = (profile: SettingsProfile) => {
     tiktok_url: profile.tiktok.trim() || null,
     pinterest_url: profile.pinterest.trim() || null,
     youtube_url: profile.youtube.trim() || null,
+    profile_type: profile.profileType || 'Individual',
+    profile_subtype: profile.profileSubtype || null,
   };
 };
+

@@ -2,8 +2,10 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { 
   MapPin, RefreshCw, LayoutGrid, Sparkles, X, Star, Clock, Info, 
-  List, Bookmark, Share2, Plus, ArrowRight, Zap, PlayCircle, Search
+  List, Bookmark, Share2, Plus, ArrowRight, Zap, PlayCircle, Search, Navigation
 } from 'lucide-react';
+
+
 import { Badge } from '../../../shared/ui/Badge';
 import { API_KEYS } from '../../../shared/constants/apiKeys';
 import { 
@@ -13,7 +15,8 @@ import type {
   ScoutPlace, 
   MapLike, 
   MarkerLike,
-  ScoutFilter
+  ScoutFilter,
+  PrimaryProfileType
 } from '../types/scoutUi';
 import { 
   SCOUT_FALLBACK_PLACES, 
@@ -24,9 +27,13 @@ import {
 } from '../lib/scoutLogic';
 import { ScoutDiscoveryPanel } from './ScoutDiscoveryPanel';
 import { ScoutPlaceModal } from './ScoutPlaceModal';
+import { ScoutRoutePlanner } from './ScoutRoutePlanner';
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
+
 import { supabase, hasSupabaseConfig } from '../../../services/supabaseClient';
 import { PlacesService } from '../../../services/placesService';
+import { ScoutPersistence } from '../services/scoutPersistence';
+import type { AuthUser } from '../../auth/types/auth';
 
 type ScoutTab = 'main' | 'fuzo' | 'my';
 
@@ -36,17 +43,21 @@ const shouldApplyLatestRequest = (
   ref: { current: number }
 ) => mounted.current && seq === ref.current;
 
-export const ScoutView = ({ 
-  mapsApiKey = API_KEYS.MAPS,
-  savedItems = [],
-  googleMapsReady,
-  onAction 
-}: { 
+interface ScoutViewProps {
   mapsApiKey?: string;
   savedItems?: any[];
   googleMapsReady?: boolean;
   onAction: (item: any, action: 'save' | 'share') => void;
-}) => {
+  authUser: AuthUser | null;
+}
+
+export const ScoutView = ({ 
+  mapsApiKey = API_KEYS.MAPS,
+  savedItems = [],
+  googleMapsReady,
+  onAction,
+  authUser
+}: ScoutViewProps) => {
   const [scoutTab, setScoutTab] = useState<ScoutTab>('main');
   const [mainMapPlaces, setMainMapPlaces] = useState<ScoutPlace[]>([]);
   const [communitySnapPlaces, setCommunitySnapPlaces] = useState<ScoutPlace[]>([]);
@@ -56,6 +67,10 @@ export const ScoutView = ({
   const [modalTab, setModalTab] = useState('overview');
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
+  const [isRoutePlannerOpen, setIsRoutePlannerOpen] = useState(false);
+  const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
+  const [currentRoute, setCurrentRoute] = useState<any | null>(null);
+
   const [filter, setFilter] = useState<ScoutFilter>({
     type: 'all',
     rating: 0,
@@ -63,10 +78,14 @@ export const ScoutView = ({
     maxDistance: 5000,
     sortBy: 'match'
   });
+  const [pinnedPlace, setPinnedPlace] = useState<ScoutPlace | null>(null);
+  const [isPinning, setIsPinning] = useState(false);
 
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<MapLike | null>(null);
+  const directionsRendererRef = useRef<any>(null);
   const clustererRef = useRef<MarkerClusterer | null>(null);
+
   const requestSeq = useRef(0);
   const mounted = useRef(true);
 
@@ -120,6 +139,136 @@ export const ScoutView = ({
       }
     }
   }, [mapsApiKey]);
+
+  const reverseGeocode = useCallback(async (lat: number, lng: number) => {
+    const google = getGoogleMaps();
+    if (!google) return;
+
+    const geocoder = new google.Geocoder();
+    setIsPinning(true);
+
+    try {
+      const response = await geocoder.geocode({ location: { lat, lng } });
+      if (response.results && response.results.length > 0) {
+        const res = response.results[0];
+        const newFind: ScoutPlace = {
+          id: `new-pin-${Date.now()}`,
+          name: res.formatted_address || 'New Spot',
+          cat: 'User Discovery',
+          address: res.formatted_address,
+          phone: '',
+          website: '',
+          img: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80', // Default discovery food image
+          lat,
+          lng,
+          markerSource: 'saved',
+          rating: 5,
+          reviews: 0,
+          vibe: [],
+          timings: {},
+          menu: [],
+          userReviews: [],
+          photos: [],
+          isNewFind: true // Custom flag for modal
+        };
+        setPinnedPlace(newFind);
+        setSelectedPlace(newFind);
+      }
+    } catch (err) {
+      console.error('Reverse Geocode failed:', err);
+    } finally {
+      setIsPinning(false);
+    }
+  }, []);
+
+  const handleContribute = useCallback(async (place: ScoutPlace) => {
+    if (!authUser?.id) return;
+    
+    const findData = {
+      name: place.name,
+      category: place.cat,
+      lat: place.lat,
+      lng: place.lng,
+      address: place.address || '',
+      notes: place.notes,
+    };
+
+    const result = await ScoutPersistence.saveScoutFind(authUser.id, findData);
+    if (result.success) {
+      setPinnedPlace(null);
+      fetchPlaces(mapInstanceRef.current!);
+    } else {
+      alert(`Failed to save: ${result.error}`);
+    }
+  }, [authUser, fetchPlaces]);
+
+  const handleCalculateRoute = async (origin: string, destination: string) => {
+    setIsCalculatingRoute(true);
+    try {
+      const result = await PlacesService.getDirections(origin, destination);
+      if (result.success && result.data?.routes?.[0]) {
+        const route = result.data.routes[0];
+        setCurrentRoute(route);
+        
+        const google = getGoogleMaps();
+        if (google && mapInstanceRef.current && directionsRendererRef.current) {
+          // Set direction result to renderer
+          directionsRendererRef.current.setDirections(result.data);
+          
+          const polyline = (google as any).geometry.encoding.decodePath(route.polyline.encodedPolyline);
+          const path = new (google as any).Polyline({ path: polyline });
+          
+          // 1. Fetch External Results Along Route
+          const searchResult = await PlacesService.searchAlongRoute(route.polyline.encodedPolyline, 'restaurants');
+          let combinedResults: ScoutPlace[] = [];
+          
+          if (searchResult.success && searchResult.data?.results) {
+            combinedResults = searchResult.data.results.map((r, i) => toScoutPlace(r, i, mapsApiKey));
+          }
+
+          // 2. Filter existing results and saved items along the route corridor
+          const corridorTolerance = 0.005; // ~500m
+          
+          const localAlongRoute = [...mainMapPlaces, ...savedItems].filter(p => {
+             if (!p.lat || !p.lng) return false;
+             const point = new (google as any).LatLng(p.lat, p.lng);
+             return (google as any).geometry.poly.isLocationOnEdge(point, path, corridorTolerance);
+          });
+
+          // Combine and deduplicate by place_id / id
+          const seen = new Set();
+          const finalPlaces = [...combinedResults, ...localAlongRoute].filter(p => {
+            const id = p.placeId || p.id || p.name;
+            if (seen.has(id)) return false;
+            seen.add(id);
+            return true;
+          });
+
+          setMainMapPlaces(finalPlaces);
+          setIsRoutePlannerOpen(false);
+        }
+      } else {
+        alert("Could not find route. Try being more specific.");
+      }
+    } catch (err) {
+      console.error('Route error:', err);
+    } finally {
+      setIsCalculatingRoute(false);
+    }
+  };
+
+  const handleClearRoute = () => {
+    setCurrentRoute(null);
+    if (mapInstanceRef.current) fetchPlaces(mapInstanceRef.current);
+  };
+
+  const handleMapClick = useCallback((e: any) => {
+
+    if (!e.latLng) return;
+    const lat = e.latLng.lat();
+    const lng = e.latLng.lng();
+    reverseGeocode(lat, lng);
+  }, [reverseGeocode]);
 
   useEffect(() => {
     if (!hasSupabaseConfig || !supabase) return;
@@ -203,7 +352,23 @@ export const ScoutView = ({
 
       mapInstanceRef.current = map;
       setIsMapReady(true);
+      
+      // Init Directions Renderer
+      directionsRendererRef.current = new google.DirectionsRenderer({
+        map: map,
+        suppressMarkers: false,
+        polylineOptions: {
+          strokeColor: '#3b82f6',
+          strokeWeight: 6,
+          strokeOpacity: 0.8
+        }
+      });
+
       fetchPlaces(map);
+
+
+      // Add Click Listener for Pinning
+      map.addListener('click', handleMapClick);
 
       // Attempt geolocation
       navigator.geolocation.getCurrentPosition((p) => {
@@ -214,7 +379,7 @@ export const ScoutView = ({
     };
 
     initMap();
-  }, [mapsApiKey, fetchPlaces, googleMapsReady]);
+  }, [mapsApiKey, fetchPlaces, googleMapsReady, handleMapClick]);
 
   useEffect(() => {
     if (!isMapReady || !mapInstanceRef.current) return;
@@ -254,7 +419,26 @@ export const ScoutView = ({
       markers
     });
 
-  }, [isMapReady, activePlaces]);
+    // Add pinned marker if exists
+    if (pinnedPlace) {
+      const pinnedMarker = new google.Marker({
+        position: { lat: pinnedPlace.lat, lng: pinnedPlace.lng },
+        animation: google.Animation.DROP,
+        icon: {
+          path: google.SymbolPath.BACKWARD_CLOSED_ARROW,
+          scale: 8,
+          fillColor: '#a855f7', // Purple/Discovery color
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 2,
+        },
+        map: mapInstanceRef.current,
+        zIndex: 999
+      });
+      pinnedMarker.addListener('click', () => setSelectedPlace(pinnedPlace));
+    }
+
+  }, [isMapReady, activePlaces, pinnedPlace]);
 
   const handlePlaceSelect = (place: ScoutPlace) => {
     setSelectedPlace(place);
@@ -332,9 +516,24 @@ export const ScoutView = ({
             >
               <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
             </button>
+            <button 
+              onClick={() => setIsRoutePlannerOpen(true)} 
+              className={`p-3 md:p-4 rounded-2xl shadow-xl transition-all ${currentRoute ? 'bg-blue-500 text-white' : 'bg-white text-stone-900'}`}
+            >
+              <Navigation size={20} />
+            </button>
           </div>
           
+          <ScoutRoutePlanner 
+            isVisible={isRoutePlannerOpen}
+            onClose={() => setIsRoutePlannerOpen(false)}
+            onCalculateRoute={handleCalculateRoute}
+            onClear={handleClearRoute}
+            isCalculating={isCalculatingRoute}
+          />
+
           <div className="absolute bottom-6 left-6 right-6 md:bottom-8 md:left-8 md:right-8 bg-white/90 backdrop-blur-md p-4 md:p-6 rounded-[2rem] md:rounded-[2.5rem] border border-white/50 shadow-xl flex items-center justify-between">
+
             <div className="flex items-center gap-3 md:gap-4">
               <div className="w-8 h-8 md:w-10 md:h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600"><Sparkles size={20} /></div>
               <div>
@@ -369,6 +568,7 @@ export const ScoutView = ({
           isLoadingDetails={isLoadingDetails}
           onClose={() => setSelectedPlace(null)}
           onAction={onAction}
+          onContribute={handleContribute}
         />
       )}
     </div>

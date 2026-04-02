@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   MapPin, ChefHat, PlayCircle, User, LayoutGrid, Music2, Pin, Youtube 
 } from 'lucide-react';
@@ -15,6 +15,10 @@ import { MiniMapWidget } from './MiniMapWidget';
 import { LeaderboardModal } from './LeaderboardModal';
 import { PROFILE_TYPE_BADGES } from '../types/profile';
 import type { PrimaryProfileType, ChefSubtype } from '../types/profile';
+import { PointsService } from '../../points/services/pointsService';
+
+
+
 
 export const ProfileView = ({ 
   savedItems, 
@@ -37,6 +41,8 @@ export const ProfileView = ({
   const [persistedProfile, setPersistedProfile] = useState<SettingsProfile | null>(null);
   const [selectedSavedItem, setSelectedSavedItem] = useState<AppItem | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [userRank, setUserRank] = useState<number | null>(null);
+
 
   const hasIdPrefix = useCallback((item: AppItem, prefix: string) => {
     return typeof item.id === 'string' && item.id.startsWith(prefix);
@@ -62,16 +68,26 @@ export const ProfileView = ({
     const loadPersistedProfile = async () => {
       if (!authUser?.id) {
         setPersistedProfile(null);
+        setUserRank(null);
         return;
       }
 
-      const result = await SettingsService.getUserSettings(authUser);
+      const [settingsResult, rankResult] = await Promise.all([
+        SettingsService.getUserSettings(authUser),
+        PointsService.getUserRank(authUser.id)
+      ]);
+
       if (cancelled) return;
 
-      if (result.success && result.data) {
-        setPersistedProfile(result.data);
+      if (settingsResult.success && settingsResult.data) {
+        setPersistedProfile(settingsResult.data);
+      }
+      
+      if (rankResult.success && rankResult.data !== undefined) {
+        setUserRank(rankResult.data);
       }
     };
+
 
     loadPersistedProfile();
 
@@ -125,21 +141,26 @@ export const ProfileView = ({
             <h2 className="text-5xl font-black uppercase tracking-tighter">{profileDisplay.name}</h2>
             <div className="flex items-center gap-3">
               <p className="text-stone-400 font-bold text-xs uppercase tracking-widest">@{profileDisplay.username}</p>
-              <Badge color={PROFILE_TYPE_BADGES[(authUser?.user_metadata?.profile_type as PrimaryProfileType) || 'Individual'].color}>
+              <Badge color={PROFILE_TYPE_BADGES[(authUser?.user_metadata?.profile_type as PrimaryProfileType) || 'Individual']?.color || 'blue'}>
+
                 {((authUser?.user_metadata?.profile_type as string) || 'Individual').toUpperCase()}
               </Badge>
-              {authUser?.user_metadata?.chef_subtype && (
-                <Badge color="yellow">{(authUser.user_metadata.chef_subtype as string).toUpperCase()}</Badge>
+              {(authUser?.user_metadata?.profile_subtype || authUser?.user_metadata?.chef_subtype) && (
+                <Badge color="yellow">{(authUser.user_metadata.profile_subtype as string || authUser.user_metadata.chef_subtype as string).toUpperCase()}</Badge>
               )}
             </div>
+
           </div>
         </div>
         <p className="text-stone-500 font-bold max-w-md">{profileDisplay.bio}</p>
         <div className="flex items-center gap-4 pt-4">
           <div className="text-center group cursor-pointer" onClick={() => setShowLeaderboard(true)}>
-            <p className="text-2xl font-black group-hover:text-yellow-500 transition-colors">#12</p>
+            <p className="text-2xl font-black group-hover:text-yellow-500 transition-colors">
+              #{userRank ?? '—'}
+            </p>
             <p className="text-[12px] font-black uppercase tracking-widest text-stone-400 group-hover:text-stone-900">Rank</p>
           </div>
+
           <div className="w-px h-10 bg-stone-100" />
           <div className="text-center"><p className="text-2xl font-black">{savedItems.length}</p><p className="text-[12px] font-black uppercase tracking-widest text-stone-400">Saves</p></div>
           <div className="w-px h-10 bg-stone-100" />
@@ -248,7 +269,7 @@ export const ProfileView = ({
       <LeaderboardModal 
         isOpen={showLeaderboard} 
         onClose={() => setShowLeaderboard(false)} 
-        currentUserRank={12} 
+        currentUserRank={userRank || 0} 
         leaderboardUsers={[]} // Modal will fetch fresh data
         currentUserId={authUser?.id}
         friends={friends}

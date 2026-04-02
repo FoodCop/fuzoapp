@@ -194,4 +194,39 @@ export const PointsService = {
       },
     };
   },
+
+  async getUserRank(userId: string): Promise<PointsServiceResult<number>> {
+    if (!supabase) {
+      return { success: false, error: 'Supabase is not configured' };
+    }
+
+    // 1. Get user's current points
+    const { data: userStats, error: statsError } = await supabase
+      .from('users')
+      .select('points_total')
+      .eq('id', userId)
+      .maybeSingle<{ points_total: number | null }>();
+
+    if (statsError) {
+      return { success: false, error: statsError.message };
+    }
+
+    const currentPoints = userStats?.points_total ?? 0;
+
+    // 2. Count users with more points
+    const { count, error: countError } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .gt('points_total', currentPoints);
+
+    if (countError) {
+      return { success: false, error: countError.message };
+    }
+
+    return { 
+      success: true, 
+      data: (count ?? 0) + 1 
+    };
+  },
 };
+

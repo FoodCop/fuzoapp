@@ -108,6 +108,67 @@ serve(async (req: Request) => {
       )
     }
 
+    // Google Places Search Along Route (New Places API)
+    if (path === '/places/search-along-route') {
+      const requestBody = await req.json()
+      const { query, polyline, origin, destination } = requestBody
+      
+      const GOOGLE_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY')
+      if (!GOOGLE_API_KEY) {
+        throw new Error('GOOGLE_MAPS_API_KEY not configured')
+      }
+
+      console.log('🛣️ Searching along route:', query)
+      
+      const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': GOOGLE_API_KEY,
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.photos'
+        },
+        body: JSON.stringify({
+          textQuery: query,
+          searchAlongRouteParameters: {
+            polyline: {
+              encodedPolyline: polyline
+            }
+          },
+          ...(origin && destination ? {
+            routingParameters: {
+              origin: { location: { latitude: origin.lat, longitude: origin.lng } },
+              destination: { location: { latitude: destination.lat, longitude: destination.lng } }
+            }
+          } : {})
+        })
+      })
+
+      const data = await response.json()
+      
+      // Transform V2 response to match our ScoutPlace format
+      const places = (data.places || []).map((p: any) => ({
+        place_id: p.id,
+        name: p.displayName?.text,
+        formatted_address: p.formattedAddress,
+        rating: p.rating,
+        user_ratings_total: p.userRatingCount,
+        types: p.types,
+        photos: p.photos,
+        geometry: {
+          location: {
+            lat: p.location?.latitude,
+            lng: p.location?.longitude
+          }
+        }
+      }))
+
+      return new Response(
+        JSON.stringify({ results: places, status: 'OK' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+
     // Google Places Nearby Search
     if (path === '/places/nearby') {
       const requestBody = await req.json()

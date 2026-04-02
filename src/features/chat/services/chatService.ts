@@ -520,4 +520,36 @@ export const ChatService = {
       client.removeChannel(channel).catch(e => console.error('Unsubscribe error:', e));
     };
   },
+
+  async sendTypingStatus(conversationId: string, userId: string, isTyping: boolean, isGroup = false) {
+    const client = supabase;
+    if (!client) return;
+
+    const channelName = isGroup ? `group_messages:${conversationId}` : `dm_messages:${conversationId}`;
+    const channel = client.channel(channelName);
+    
+    await channel.send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: { userId, isTyping },
+    });
+  },
+
+  subscribeToTypingStatus(conversationId: string, onTyping: (userId: string, isTyping: boolean) => void, isGroup = false) {
+    const client = supabase;
+    if (!client) return () => undefined;
+
+    const channelName = isGroup ? `group_messages:${conversationId}` : `dm_messages:${conversationId}`;
+    const channel = client.channel(channelName)
+      .on('broadcast', { event: 'typing' }, (payload) => {
+        const data = asRecord(payload.payload);
+        onTyping(String(data.userId), Boolean(data.isTyping));
+      })
+      .subscribe();
+
+    return () => {
+      client.removeChannel(channel).catch(e => console.error('Unsubscribe error:', e));
+    };
+  },
 };
+

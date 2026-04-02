@@ -1,0 +1,108 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { MapPin, Navigation, X, Search, ArrowRight, Loader2 } from 'lucide-react';
+import { getGoogleMaps } from '../types/scoutUi';
+
+interface ScoutRoutePlannerProps {
+  onCalculateRoute: (origin: string, destination: string) => Promise<void>;
+  onClear: () => void;
+  isCalculating: boolean;
+  isVisible: boolean;
+  onClose: () => void;
+}
+
+export const ScoutRoutePlanner = ({
+  onCalculateRoute,
+  onClear,
+  isCalculating,
+  isVisible,
+  onClose
+}: ScoutRoutePlannerProps) => {
+  const [origin, setOrigin] = useState('');
+  const [destination, setDestination] = useState('');
+  const originRef = useRef<HTMLInputElement>(null);
+  const destRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const google = getGoogleMaps();
+    if (!google || !isVisible) return;
+
+    const originAutocomplete = new (google as any).places.Autocomplete(originRef.current, {
+      types: ['geocode', 'establishment']
+    });
+    const destAutocomplete = new (google as any).places.Autocomplete(destRef.current, {
+      types: ['geocode', 'establishment']
+    });
+
+    originAutocomplete.addListener('place_changed', () => {
+      const place = originAutocomplete.getPlace();
+      if (place.formatted_address) setOrigin(place.formatted_address);
+    });
+
+    destAutocomplete.addListener('place_changed', () => {
+      const place = destAutocomplete.getPlace();
+      if (place.formatted_address) setDestination(place.formatted_address);
+    });
+  }, [isVisible]);
+
+  if (!isVisible) return null;
+
+  return (
+    <div className="absolute top-24 left-6 right-6 md:left-8 md:w-96 z-[60] bg-white/90 backdrop-blur-2xl rounded-[3rem] p-8 shadow-2xl border border-white/50 animate-in slide-in-from-top duration-500">
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center gap-3">
+          <Navigation size={18} className="text-blue-500" />
+          <span className="text-[12px] font-black uppercase tracking-[0.2em] text-stone-400">Route Planner</span>
+        </div>
+        <button onClick={onClose} className="p-2 bg-stone-100 rounded-full hover:bg-stone-200 transition-colors">
+          <X size={16} />
+        </button>
+      </div>
+
+      <div className="space-y-4 relative">
+        {/* Connecting Line */}
+        <div className="absolute left-[23px] top-10 bottom-10 w-0.5 bg-stone-100 dashed-border" />
+
+        <div className="relative">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-stone-200 bg-white z-10" />
+          <input
+            ref={originRef}
+            type="text"
+            placeholder="Starting Point"
+            value={origin}
+            onChange={(e) => setOrigin(e.target.value)}
+            className="w-full bg-stone-50 pl-12 pr-6 py-5 rounded-[2rem] text-sm font-bold outline-none border-2 border-transparent focus:border-stone-900 transition-all"
+          />
+        </div>
+
+        <div className="relative">
+          <MapPin size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 z-10" />
+          <input
+            ref={destRef}
+            type="text"
+            placeholder="Destination"
+            value={destination}
+            onChange={(e) => setDestination(e.target.value)}
+            className="w-full bg-stone-50 pl-12 pr-6 py-5 rounded-[2rem] text-sm font-bold outline-none border-2 border-transparent focus:border-stone-900 transition-all"
+          />
+        </div>
+      </div>
+
+      <div className="mt-8 flex gap-3">
+        <button
+          onClick={onClear}
+          className="px-6 py-4 bg-stone-100 text-stone-400 rounded-2xl font-black uppercase text-[12px] tracking-widest hover:text-stone-600 transition-all"
+        >
+          Clear
+        </button>
+        <button
+          onClick={() => onCalculateRoute(origin, destination)}
+          disabled={!origin || !destination || isCalculating}
+          className="flex-grow bg-stone-900 text-white rounded-2xl font-black uppercase text-[12px] tracking-widest py-4 flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50"
+        >
+          {isCalculating ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
+          <span>Find Eats Along Route</span>
+        </button>
+      </div>
+    </div>
+  );
+};

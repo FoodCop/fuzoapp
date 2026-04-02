@@ -107,7 +107,35 @@ export const PlacesService = {
     });
   },
 
+  async searchAlongRoute(polyline: string, query: string, origin?: {lat: number, lng: number}, destination?: {lat: number, lng: number}): Promise<ServiceResult<{ results: ScoutPlace[]; status?: string }>> {
+    return makeRequest<{ results: ScoutPlace[]; status?: string }>('/places/search-along-route', {
+      polyline,
+      query,
+      origin,
+      destination
+    });
+  },
+
+  async getDirections(origin: string, destination: string): Promise<ServiceResult<{ routes: any[]; status: string }>> {
+    // Note: origin/destination can be place_id:ID or address string
+    const payload = {
+      origin: origin.startsWith('place_id:') ? { placeId: origin.replace('place_id:', '') } : { address: origin },
+      destination: destination.startsWith('place_id:') ? { placeId: destination.replace('place_id:', '') } : { address: destination },
+      travelMode: 'DRIVE',
+      routingPreference: 'TRAFFIC_AWARE',
+      computeAlternativeRoutes: false,
+      routeModifiers: {
+        avoidTolls: false,
+        avoidHighways: false,
+        avoidFerries: false
+      }
+    };
+
+    return makeRequest<{ routes: any[]; status: string }>('/directions', payload);
+  },
+
   async getPlaceDetails(placeId: string): Promise<ServiceResult<{ result?: ScoutPlace; status?: string }>> {
+
     return makeRequest<{ result?: ScoutPlace; status?: string }>('/places/details', {
       place_id: placeId,
     });

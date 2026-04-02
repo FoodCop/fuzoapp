@@ -23,6 +23,7 @@ interface RenderComponents {
     savedItems: AppItem[];
     onAction: (item: AppItem, action: 'save' | 'share') => void;
     googleMapsReady?: boolean;
+    authUser: AuthUser | null;
   }>;
   ProfileView: React.ComponentType<{ savedItems: AppItem[]; authUser: AuthUser | null; friends: ChatInboxItem[]; onSave: (item: AppItem) => void; onUnsave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void; setTab: (tab: string) => void }>;
   PublicProfileView: React.ComponentType<{ targetUserId: string; authUser: AuthUser | null; currentUserSavedItems: AppItem[]; friends: ChatInboxItem[]; onBackToOwnProfile: () => void; onSave: (item: AppItem) => void; onUnsave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void; setTab: (tab: string) => void }>;
@@ -107,6 +108,7 @@ export const renderAppView = ({
             if (action === 'save') handleSave(item);
             else setActiveShareItem(item);
           }}
+          authUser={authUser}
         />
       );
     case 'profile':

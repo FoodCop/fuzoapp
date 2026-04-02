@@ -1,7 +1,7 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   User, Bot, MapPin, Mail, Shield, AlertCircle, Phone, 
-  Music2, Pin, ChefHat, Flame, Bell, LogOut, Camera 
+  Music2, Pin, Youtube, ChefHat, Flame, Bell, LogOut, Camera 
 } from 'lucide-react';
 import type { AuthUser } from '../../auth/types/auth';
 import type { SettingsProfile } from '../types/settings';
@@ -10,6 +10,8 @@ import { supabase } from '../../../services/supabaseClient';
 import { getOAuthRedirectUrl } from '../../auth/lib/oauthRedirect';
 import { SettingsItem, SettingsSection } from '../../../shared/ui/settingsPrimitives';
 import { InstagramMark, FacebookMark } from '../../../shared/ui/SocialIcons';
+import { PrimaryProfileType, ChefSubtype, IndividualSubtype } from '../../profile/types/profile';
+
 
 export const SettingsView = ({ 
   onSignOut, 
@@ -37,8 +39,11 @@ export const SettingsView = ({
       tiktok: metadata.tiktok_url || metadata.tiktok || '',
       pinterest: metadata.pinterest_url || metadata.pinterest || '',
       youtube: metadata.youtube_url || metadata.youtube || '',
+      profileType: (metadata.profile_type as string) || 'Individual',
+      profileSubtype: (metadata.profile_subtype as string) || (metadata.chef_subtype as string) || 'Food Explorer',
     };
   }, [authUser]);
+
 
   const [profile, setProfile] = useState<SettingsProfile>(defaults);
   const [notifications, setNotifications] = useState(true);
@@ -117,6 +122,30 @@ export const SettingsView = ({
     if (nextValue === null) return;
     updateProfileField(field, nextValue.trim());
   };
+
+  const selectField = (field: 'profileType' | 'profileSubtype', label: string, options: string[]) => {
+    const currentValue = profile[field] || '';
+    const optionsText = options.map((opt, i) => `${i + 1}. ${opt}`).join('\n');
+    const input = globalThis.prompt(`Update ${label}\n\nExisting: ${currentValue}\n\nAvailable options:\n${optionsText}\n\n(Enter the number or the value)`);
+    
+    if (input === null) return;
+    
+    const trimmed = input.trim();
+    const index = parseInt(trimmed) - 1;
+    
+    if (!isNaN(index) && options[index]) {
+      updateProfileField(field, options[index]);
+    } else if (options.includes(trimmed)) {
+      updateProfileField(field, trimmed);
+    } else if (trimmed !== '') {
+      setSettingsError(`Invalid ${label} selected.`);
+    }
+  };
+
+  const primaryTypes: PrimaryProfileType[] = ['Individual', 'Chef', 'Restaurant', 'Culinary Team', 'Private Chef'];
+  const chefSubtypes: ChefSubtype[] = ['Executive Chef', 'Sous Chef', 'Pastry Chef', 'Private Chef', 'Chef de Cuisine', 'Consultant Chef'];
+  const individualSubtypes: IndividualSubtype[] = ['Food Explorer', 'Culinary Enthusiast', 'Taste Maker', 'Home Cook', 'Dine-Out Pro'];
+
 
   const handleSaveSettings = async () => {
     if (!authUser?.id || !isDirty || savingSettings) return;
@@ -238,6 +267,35 @@ export const SettingsView = ({
         </div>
       </header>
 
+      <SettingsSection title="Profile Identity">
+        <SettingsItem
+          icon={ChefHat} 
+          label="Profile Type" 
+          value={profile.profileType} 
+          onClick={() => selectField('profileType', 'Profile Type', primaryTypes)} 
+          color="indigo"
+        />
+        {(profile.profileType === 'Chef' || profile.profileType === 'Private Chef') && (
+          <SettingsItem
+            icon={Flame} 
+            label="Chef Specialization" 
+            value={profile.profileSubtype} 
+            onClick={() => selectField('profileSubtype', 'Chef Specialization', chefSubtypes)} 
+            color="orange"
+          />
+        )}
+        {profile.profileType === 'Individual' && (
+          <SettingsItem
+            icon={Bot} 
+            label="Category" 
+            value={profile.profileSubtype} 
+            onClick={() => selectField('profileSubtype', 'Category', individualSubtypes)} 
+            color="blue"
+          />
+        )}
+      </SettingsSection>
+
+
       <SettingsSection title="Personal Profile">
         <SettingsItem
           icon={User} 
@@ -322,6 +380,12 @@ export const SettingsView = ({
           label="Pinterest"
           value={profile.pinterest || 'Not set'}
           onClick={() => editField('pinterest', 'Pinterest')}
+        />
+        <SettingsItem
+          icon={Youtube}
+          label="YouTube"
+          value={profile.youtube || 'Not set'}
+          onClick={() => editField('youtube', 'YouTube')}
         />
       </SettingsSection>
 

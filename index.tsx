@@ -2426,6 +2426,18 @@ const ChatView = ({
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  useEffect(() => {
+    if (activeId) {
+      scrollToBottom();
+    }
+  }, [messages.length, isTyping, activeId, scrollToBottom]);
+
 
   const active = friends.find(f => String(f.id) === activeId);
   const filteredFriends = useMemo(() => filterFriendsByQuery(friends, friendSearch), [friends, friendSearch]);
@@ -2437,6 +2449,37 @@ const ChatView = ({
     text: message.content,
     item: message.sharedItem,
   }), [authUser?.id]);
+
+  useEffect(() => {
+    if (!draft.trim() || !activeId || !authUser?.id || !conversationId) return;
+
+    const targetId = activeType === 'group' ? activeId : conversationId;
+    const isGroup = activeType === 'group';
+
+    ChatService.sendTypingStatus(targetId, authUser.id, true, isGroup);
+
+    const timeout = setTimeout(() => {
+      ChatService.sendTypingStatus(targetId, authUser.id, false, isGroup);
+    }, 2000);
+
+    return () => clearTimeout(timeout);
+  }, [draft, activeId, authUser?.id, conversationId, activeType]);
+
+  useEffect(() => {
+    if (!activeId || (!conversationId && activeType === 'dm')) return;
+
+    const targetId = activeType === 'group' ? activeId : (conversationId as string);
+    const isGroup = activeType === 'group';
+
+    const unsubscribe = ChatService.subscribeToTypingStatus(targetId, (typingUserId, typingStatus) => {
+      if (typingUserId !== authUser?.id) {
+        setIsTyping(typingStatus);
+      }
+    }, isGroup);
+
+    return () => unsubscribe();
+  }, [activeId, activeType, conversationId, authUser?.id]);
+
 
   const appendIncomingMessage = useCallback((message: ChatMessage) => {
     setMessages(prev => {
@@ -2470,15 +2513,7 @@ const ChatView = ({
     }
   }, [activeId, activeType, conversationId, appendIncomingMessage]);
 
-  useEffect(() => {
-    if (!activeId) return;
-    const typingStartTimer = setTimeout(() => setIsTyping(true), 1200);
-    const typingStopTimer = setTimeout(() => setIsTyping(false), 3200);
-    return () => {
-      clearTimeout(typingStartTimer);
-      clearTimeout(typingStopTimer);
-    };
-  }, [activeId, messages.length]);
+
 
   const formatFriendTime = (item: ChatInboxItem) => {
     if ('time' in item && item.time) return item.time;
@@ -2743,6 +2778,7 @@ const ChatView = ({
             <span className="text-[12px] font-black uppercase tracking-widest text-stone-400">Typing...</span>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
       <footer className="p-6 border-t flex gap-3 bg-white">
         <input
@@ -4208,18 +4244,31 @@ const App = () => {
   const handleShare = async (friendId: string | number, item: AppItem) => {
     const targetFriendId = String(friendId);
     const itemId = String(item.id || '');
+    const friend = friends.find(f => String(f.id) === targetFriendId);
+    const isGroup = friend?.type === 'group';
 
     if (authUser?.id && hasSupabaseConfig) {
-      const conversation = await ChatService.getOrCreateConversation(authUser.id, targetFriendId);
-      if (conversation.success && conversation.data) {
-        const sent = await ChatService.sendSharedItemMessage({
-          conversationId: conversation.data.id,
+      if (isGroup) {
+        const sent = await ChatService.sendGroupSharedItemMessage({
+          groupId: targetFriendId,
           senderId: authUser.id,
           item,
         });
-
         if (!sent.success) {
-          console.warn('Share message send failed:', sent.error);
+          console.warn('Group share message send failed:', sent.error);
+        }
+      } else {
+        const conversation = await ChatService.getOrCreateConversation(authUser.id, targetFriendId);
+        if (conversation.success && conversation.data) {
+          const sent = await ChatService.sendSharedItemMessage({
+            conversationId: conversation.data.id,
+            senderId: authUser.id,
+            item,
+          });
+
+          if (!sent.success) {
+            console.warn('Share message send failed:', sent.error);
+          }
         }
       }
     }
@@ -4231,6 +4280,7 @@ const App = () => {
       console.warn('Share points award failed:', error);
     });
   };
+
 
   const handleSignOut = async () => {
     try {
@@ -4294,7 +4344,8 @@ const App = () => {
         const loader = new Loader({
           apiKey: API_KEYS.MAPS,
           version: 'weekly',
-          libraries: ['places', 'visualization']
+          libraries: ['places', 'visualization', 'geometry']
+
         });
         await loader.load();
         setGoogleMapsReady(true);

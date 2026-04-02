@@ -12,6 +12,7 @@ interface ScoutPlaceModalProps {
   isLoadingDetails: boolean;
   onClose: () => void;
   onAction: (place: ScoutPlace, action: 'save' | 'share') => void;
+  onContribute?: (place: ScoutPlace) => Promise<void>;
 }
 
 export const ScoutPlaceModal = ({
@@ -21,8 +22,15 @@ export const ScoutPlaceModal = ({
   isLoadingDetails,
   onClose,
   onAction,
+  onContribute,
 }: ScoutPlaceModalProps) => {
+
   const containerRef = useFocusTrap(true);
+  const [editedName, setEditedName] = React.useState(place.name);
+  const [editedCat, setEditedCat] = React.useState(place.cat);
+  const [editedNotes, setEditedNotes] = React.useState('');
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
 
   return (
     <div 
@@ -53,9 +61,37 @@ export const ScoutPlaceModal = ({
         <div className="w-full md:w-1/2 p-8 md:p-14 overflow-y-auto hide-scrollbar flex flex-col gap-6">
           <header className="space-y-4">
             <div className="hidden md:block">
-              <Badge color="yellow">{place.cat}</Badge>
-              <h2 className="text-4xl font-black uppercase tracking-tighter mt-2 leading-none">{place.name}</h2>
+              {place.isNewFind ? (
+                <div className="space-y-4">
+                  <Badge color="indigo">New Discovery</Badge>
+                  <input 
+                    value={editedName}
+                    onChange={(e) => setEditedName(e.target.value)}
+                    placeholder="Name this spot..."
+                    className="text-4xl font-black uppercase tracking-tighter w-full bg-stone-50 p-4 rounded-3xl border-4 border-dashed border-stone-200 focus:border-stone-900 outline-none transition-all mt-2"
+                  />
+                  <select 
+                    value={editedCat}
+                    onChange={(e) => setEditedCat(e.target.value)}
+                    className="text-[12px] font-black uppercase tracking-widest bg-stone-100 px-6 py-3 rounded-full border-none outline-none mt-2"
+                  >
+                    <option value="Casual Eatery">Casual Eatery</option>
+                    <option value="Fine Dining">Fine Dining</option>
+                    <option value="Coffee & Cafe">Coffee & Cafe</option>
+                    <option value="Bar & Lounge">Bar & Lounge</option>
+                    <option value="Street Food">Street Food</option>
+                    <option value="Bakery">Bakery</option>
+                    <option value="Hidden Gem">Hidden Gem</option>
+                  </select>
+                </div>
+              ) : (
+                <>
+                  <Badge color="yellow">{place.cat}</Badge>
+                  <h2 className="text-4xl font-black uppercase tracking-tighter mt-2 leading-none">{place.name}</h2>
+                </>
+              )}
             </div>
+
             {isLoadingDetails && <p className="text-[12px] font-black uppercase tracking-widest text-stone-400">Loading live details...</p>}
             
             <div className="flex items-center gap-6">
@@ -110,15 +146,27 @@ export const ScoutPlaceModal = ({
                 </div>
 
                 <section className="space-y-4">
-                  <h4 className="font-black uppercase text-[12px] tracking-[0.2em] text-stone-300 px-2">The Vibe</h4>
-                  <div className="flex flex-wrap gap-3">
-                    {(place.vibe || []).map((v) => (
-                      <div key={v} className="px-6 py-3 bg-stone-50 rounded-full text-[12px] font-black uppercase tracking-widest text-stone-900 border border-stone-100">
-                        {v}
-                      </div>
-                    ))}
-                  </div>
+                  <h4 className="font-black uppercase text-[12px] tracking-[0.2em] text-stone-300 px-2">
+                    {place.isNewFind ? 'Add Notes' : 'The Vibe'}
+                  </h4>
+                  {place.isNewFind ? (
+                    <textarea 
+                      value={editedNotes}
+                      onChange={(e) => setEditedNotes(e.target.value)}
+                      placeholder="Tell the community what makes this spot special..."
+                      className="w-full bg-stone-50 p-6 rounded-[2.5rem] border-2 border-stone-100 focus:bg-white focus:border-stone-900 outline-none transition-all h-32 text-sm font-bold resize-none"
+                    />
+                  ) : (
+                    <div className="flex flex-wrap gap-3">
+                      {(place.vibe || []).map((v) => (
+                        <div key={v} className="px-6 py-3 bg-stone-50 rounded-full text-[12px] font-black uppercase tracking-widest text-stone-900 border border-stone-100">
+                          {v}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </section>
+
               </div>
             )}
 
@@ -190,22 +238,50 @@ export const ScoutPlaceModal = ({
           </div>
 
           <footer className="pt-4 flex gap-4 sticky bottom-0 bg-white/90 backdrop-blur-md pb-4">
-            <button 
-              onClick={() => onAction(place, 'save')}
-              aria-label="Save this place"
-              className="flex-grow min-h-[56px] bg-stone-900 text-white rounded-[2rem] flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl"
-            >
-              <Bookmark size={22} />
-              <span className="text-[12px] font-black uppercase tracking-widest">Save</span>
-            </button>
-            <button 
-              onClick={() => onAction(place, 'share')}
-              aria-label="Share this place"
-              className="min-h-[56px] px-10 bg-yellow-400 text-stone-900 rounded-[2rem] flex items-center justify-center active:scale-95 transition-all shadow-xl"
-            >
-              <Share2 size={22} />
-            </button>
+            {place.isNewFind ? (
+              <button 
+                onClick={async () => {
+                  if (onContribute) {
+                    setIsSubmitting(true);
+                    await onContribute({
+                      ...place,
+                      name: editedName,
+                      cat: editedCat,
+                      notes: editedNotes
+                    });
+                    setIsSubmitting(false);
+                    onClose();
+                  }
+                }}
+                disabled={isSubmitting || !editedName.trim()}
+                className="flex-grow min-h-[56px] bg-indigo-600 text-white rounded-[2rem] flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl disabled:opacity-50"
+              >
+                <Zap size={22} className={isSubmitting ? 'animate-pulse' : ''} />
+                <span className="text-[12px] font-black uppercase tracking-widest">
+                  {isSubmitting ? 'Contributing...' : 'Add to FUZO Dataset'}
+                </span>
+              </button>
+            ) : (
+              <>
+                <button 
+                  onClick={() => onAction(place, 'save')}
+                  aria-label="Save this place"
+                  className="flex-grow min-h-[56px] bg-stone-900 text-white rounded-[2rem] flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl"
+                >
+                  <Bookmark size={22} />
+                  <span className="text-[12px] font-black uppercase tracking-widest">Save</span>
+                </button>
+                <button 
+                  onClick={() => onAction(place, 'share')}
+                  aria-label="Share this place"
+                  className="min-h-[56px] px-10 bg-yellow-400 text-stone-900 rounded-[2rem] flex items-center justify-center active:scale-95 transition-all shadow-xl"
+                >
+                  <Share2 size={22} />
+                </button>
+              </>
+            )}
           </footer>
+
         </div>
       </div>
     </div>
