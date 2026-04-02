@@ -23,9 +23,9 @@ export const LeaderboardView = ({
   };
 
   const medalLabelByRank = (rank: number) => {
-    if (rank === 1) return 'ðŸ¥‡';
-    if (rank === 2) return 'ðŸ¥ˆ';
-    return 'ðŸ¥‰';
+    if (rank === 1) return '🥇';
+    if (rank === 2) return '🥈';
+    return '🥉';
   };
 
   const leaders = leaderboardUsers.slice(0, 25).map((leader, index) => ({
@@ -69,7 +69,7 @@ export const LeaderboardView = ({
               />
               <div>
                 <p className="font-black uppercase text-sm tracking-tighter text-stone-900">{leader.name}</p>
-                <p className="text-[12px] font-bold text-stone-400 uppercase tracking-widest">@{leader.username} â€¢ Level {leader.level}</p>
+                <p className="text-[12px] font-bold text-stone-400 uppercase tracking-widest">@{leader.username} • Level {leader.level}</p>
               </div>
             </div>
             <div className="text-right">
