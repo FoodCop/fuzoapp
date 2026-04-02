@@ -1,5 +1,6 @@
-﻿import React, { useEffect, useMemo } from 'react';
-import { X, MapPin, Bookmark, Share2, PlayCircle } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { X, MapPin, Bookmark, Share2, PlayCircle, Play } from 'lucide-react';
+
 import type { AppItem } from '../../../shared/types/appItem';
 import { Badge } from '../../../shared/ui/Badge';
 import { useModalSwipeToClose } from '../hooks/useModalSwipeToClose';
@@ -14,6 +15,8 @@ import {
   inferItemTypeFromId, 
   areSavedItemsEquivalent 
 } from '../../plate/lib/savedItems';
+import { extractYouTubeId } from '../../../shared/lib/videoHelpers';
+
 
 const SavedActionFooter = ({
   canSave,
@@ -249,7 +252,9 @@ const SavedContentSections = ({
 };
 
 export const SavedItemDetailModal = ({ item, onClose, onSave, onUnsave, onShareRequest, savedItems = [] }: { item: AppItem; onClose: () => void; onSave?: (item: AppItem) => void; onUnsave?: (item: AppItem) => void; onShareRequest?: (item: AppItem) => void; savedItems?: AppItem[] }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
   const metadata = getMetadataRecord(item.metadata);
+
   const generatedRecipe = getMetadataRecord(metadata?.generatedRecipe);
   const generatedTrim = getMetadataRecord(metadata?.generatedTrim);
   const nutrition = getNutritionRecord(
@@ -274,6 +279,8 @@ export const SavedItemDetailModal = ({ item, onClose, onSave, onUnsave, onShareR
   if (sourceUrlRaw && !sourceUrlRaw.startsWith('http')) {
     sourceUrl = `https://${sourceUrlRaw}`;
   }
+  const youtubeId = useMemo(() => extractYouTubeId(sourceUrl), [sourceUrl]);
+
   const recipeIngredients = Array.isArray(generatedRecipe?.ingredients)
     ? generatedRecipe.ingredients.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
     : getMetadataStringArray(metadata, 'ingredients');
@@ -359,9 +366,38 @@ export const SavedItemDetailModal = ({ item, onClose, onSave, onUnsave, onShareR
         >
           <div className="w-14 h-1.5 rounded-full bg-stone-200" />
         </button>
-        <div className="relative h-64 md:h-80 bg-stone-900 shrink-0">
-          <img src={imageSrc} alt={title} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+        <div className="relative h-64 md:h-96 bg-stone-900 shrink-0 overflow-hidden">
+          {isPlaying && youtubeId ? (
+            <iframe
+              src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1`}
+              title={title}
+              className="w-full h-full border-none"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          ) : (
+            <>
+              <img src={imageSrc} alt={title} className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+              
+              {youtubeId && (
+                <div 
+                  className="absolute inset-0 flex items-center justify-center group cursor-pointer"
+                  onClick={() => setIsPlaying(true)}
+                >
+                  <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 shadow-2xl group-hover:scale-110 transition-transform duration-300">
+                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-stone-900 shadow-xl ml-1">
+                      <Play size={32} fill="currentColor" />
+                    </div>
+                  </div>
+                  <div className="absolute bottom-24 bg-stone-900/60 backdrop-blur-md px-4 py-2 rounded-full text-white text-[10px] font-black uppercase tracking-[0.2em] border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
+                    Watch directly in FUZO
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
           <button
             type="button"
             onClick={onClose}
@@ -370,16 +406,20 @@ export const SavedItemDetailModal = ({ item, onClose, onSave, onUnsave, onShareR
           >
             <X size={24} />
           </button>
-          <div className="absolute bottom-0 inset-x-0 p-6 md:p-8 text-white space-y-3">
-            <Badge color="yellow">{category}</Badge>
-            <div className="space-y-1">
-              <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tighter leading-none">{title}</h3>
-              {summary && (
-                <p className="text-sm md:text-base font-bold text-white/85 max-w-2xl">{summary}</p>
-              )}
+          
+          {!isPlaying && (
+            <div className="absolute bottom-0 inset-x-0 p-6 md:p-8 text-white space-y-3">
+              <Badge color="yellow">{category}</Badge>
+              <div className="space-y-1">
+                <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tighter leading-none">{title}</h3>
+                {summary && (
+                  <p className="text-sm md:text-base font-bold text-white/85 max-w-2xl">{summary}</p>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
+
 
         <div className="p-6 md:p-8 overflow-y-auto space-y-8">
           <div className="flex flex-wrap gap-3">
