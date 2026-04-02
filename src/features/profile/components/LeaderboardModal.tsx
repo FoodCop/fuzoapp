@@ -16,7 +16,9 @@ interface LeaderboardModalProps {
   currentUserId?: string;
   friends?: ChatInboxItem[];
   authUser?: AuthUser | null;
+  onOpenUserProfile?: (userId: string) => void;
 }
+
 
 export const LeaderboardModal = ({ 
   isOpen, 
@@ -25,8 +27,10 @@ export const LeaderboardModal = ({
   leaderboardUsers: initialUsers,
   currentUserId,
   friends = [],
-  authUser
+  authUser,
+  onOpenUserProfile
 }: LeaderboardModalProps) => {
+
   const [filter, setFilter] = useState<'global' | 'friends' | 'local'>('global');
   const [displayUsers, setDisplayUsers] = useState<LeaderboardEntry[]>(initialUsers);
   const [loading, setLoading] = useState(false);
@@ -153,7 +157,8 @@ export const LeaderboardModal = ({
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       key={user.id}
-                      className={`flex items-center justify-between p-5 rounded-[2rem] transition-all ${isCurrentUser ? 'bg-yellow-400 shadow-xl scale-[1.02] border-none' : 'bg-stone-50 border border-stone-100 hover:bg-white hover:shadow-md'}`}
+                      onClick={() => onOpenUserProfile?.(user.id)}
+                      className={`flex items-center justify-between p-5 rounded-[2rem] transition-all cursor-pointer ${isCurrentUser ? 'bg-yellow-400 shadow-xl scale-[1.02] border-none' : 'bg-stone-50 border border-stone-100 hover:bg-white hover:shadow-md'}`}
                     >
                       <div className="flex items-center gap-4">
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs ${isCurrentUser ? 'bg-stone-900 text-white' : 'bg-white text-stone-400 border border-stone-100'}`}>
@@ -164,9 +169,12 @@ export const LeaderboardModal = ({
                             <img src={`https://i.pravatar.cc/100?u=${user.id}`} alt={user.displayName} className="w-full h-full object-cover" />
                           </div>
                           <div>
-                            <p className="font-black uppercase tracking-widest text-[11px] text-stone-900">
-                              {user.displayName}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-black uppercase tracking-widest text-[11px] text-stone-900">
+                                {user.displayName}
+                              </p>
+                              <ArrowUpRight size={10} className="text-stone-400" />
+                            </div>
                             <p className={`text-[11px] font-bold uppercase tracking-widest ${isCurrentUser ? 'text-stone-700' : 'text-stone-400'}`}>
                               @{user.username}
                             </p>
@@ -181,6 +189,7 @@ export const LeaderboardModal = ({
                         <Badge color={isCurrentUser ? 'stone' : 'yellow'}>LVL {user.pointsLevel}</Badge>
                       </div>
                     </motion.div>
+
                   );
                 })
               ) : (

@@ -27,7 +27,8 @@ export const ProfileView = ({
   onSave, 
   onUnsave, 
   onShareRequest, 
-  setTab 
+  setTab,
+  onOpenUserProfile
 }: { 
   savedItems: AppItem[]; 
   authUser: AuthUser | null; 
@@ -35,7 +36,8 @@ export const ProfileView = ({
   onSave: (item: AppItem) => void; 
   onUnsave: (item: AppItem) => void; 
   onShareRequest: (item: AppItem) => void; 
-  setTab?: (tab: string) => void 
+  setTab?: (tab: string) => void;
+  onOpenUserProfile?: (userId: string) => void;
 }) => {
   const [activeTab, setActiveTab] = useState('places');
   const [persistedProfile, setPersistedProfile] = useState<SettingsProfile | null>(null);
@@ -231,7 +233,13 @@ export const ProfileView = ({
                       </p>
                     </div>
                   </div>
-                  <button className="px-4 py-2 rounded-xl bg-stone-900 text-white text-[12px] font-black uppercase tracking-widest">View</button>
+                    <button 
+                      onClick={() => onOpenUserProfile?.(String(friend.id))}
+                      className="px-4 py-2 rounded-xl bg-stone-900 text-white text-[12px] font-black uppercase tracking-widest active:scale-95 transition-transform"
+                    >
+                      View
+                    </button>
+
                 </div>
               ))
             )}
@@ -274,7 +282,9 @@ export const ProfileView = ({
         currentUserId={authUser?.id}
         friends={friends}
         authUser={authUser}
+        onOpenUserProfile={onOpenUserProfile}
       />
+
     </div>
   );
 };
