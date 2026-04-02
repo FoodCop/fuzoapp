@@ -23,8 +23,10 @@ import {
   calculateNeuralMatch, 
   filterPlaces, 
   sortPlaces,
-  toScoutPlace
+  toScoutPlace,
+  mergePlaceDetails
 } from '../lib/scoutLogic';
+
 import { ScoutDiscoveryPanel } from './ScoutDiscoveryPanel';
 import { ScoutPlaceModal } from './ScoutPlaceModal';
 import { ScoutRoutePlanner } from './ScoutRoutePlanner';
@@ -447,6 +449,42 @@ export const ScoutView = ({
       mapInstanceRef.current.setZoom(16);
     }
   };
+
+  // Auto-fetch details when a place is selected
+  useEffect(() => {
+    if (!selectedPlace || selectedPlace.isNewFind) return;
+    
+    // If we've already fetched details (using phone or userReviews length as heuristic)
+    if (selectedPlace.phone || (selectedPlace.userReviews && selectedPlace.userReviews.length > 0)) return;
+
+    // Only fetch for Google places that have a placeId
+    if (selectedPlace.markerSource === 'google' && selectedPlace.placeId) {
+      const fetchDetails = async () => {
+        setIsLoadingDetails(true);
+        try {
+          const result = await PlacesService.getPlaceDetails(selectedPlace.placeId as string);
+          if (result.success && result.data?.result) {
+            const detailedPlace = mergePlaceDetails(selectedPlace, result.data.result, mapsApiKey);
+            
+            // Update the selected place to trigger UI update
+            setSelectedPlace(detailedPlace);
+            
+            // Optionally update the place in the main list so it's cached
+            setMainMapPlaces(prev => 
+              prev.map(p => p.id === selectedPlace.id ? detailedPlace : p)
+            );
+          }
+        } catch (err) {
+          console.error('Failed to fetch place details:', err);
+        } finally {
+          setIsLoadingDetails(false);
+        }
+      };
+      
+      fetchDetails();
+    }
+  }, [selectedPlace?.id, mapsApiKey]);
+
 
   const scoutHeadline = useMemo(() => {
     if (isLoading) return 'Scouting your area...';

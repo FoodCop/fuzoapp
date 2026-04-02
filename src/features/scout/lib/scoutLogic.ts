@@ -1,6 +1,58 @@
 import React from 'react';
 import { AppItem } from '../../../shared/types/appItem';
 import { ScoutPlace, ScoutMapTab, ScoutFilter } from '../types/scoutUi';
+import { API_KEYS } from '../../../shared/constants/apiKeys';
+
+/**
+ * Transforms Google's weekday_text array into our timings object
+ * e.g. ["Monday: 9:00 AM – 5:00 PM"] -> { mon: "9:00 AM – 5:00 PM" }
+ */
+const parseOpeningHours = (weekdayText?: string[]): Record<string, string> => {
+  if (!weekdayText || weekdayText.length === 0) return {};
+  
+  const daysMap: Record<string, string> = {
+    'monday': 'mon', 'tuesday': 'tue', 'wednesday': 'wed', 
+    'thursday': 'thu', 'friday': 'fri', 'saturday': 'sat', 'sunday': 'sun'
+  };
+
+  const results: Record<string, string> = {};
+  weekdayText.forEach(line => {
+    const [dayPart, ...hourParts] = line.split(': ');
+    const dayKey = dayPart.trim().toLowerCase();
+    const hours = hourParts.join(': ').trim();
+    if (daysMap[dayKey]) {
+      results[daysMap[dayKey]] = hours;
+    }
+  });
+
+  return results;
+};
+
+/**
+ * Merges raw Google Place Details into an existing ScoutPlace
+ */
+export const mergePlaceDetails = (original: ScoutPlace, details: any, mapsApiKey: string = API_KEYS.MAPS): ScoutPlace => {
+  if (!details) return original;
+
+  return {
+    ...original,
+    phone: details.formatted_phone_number || details.international_phone_number || original.phone,
+    website: details.website || original.website,
+    rating: details.rating || original.rating,
+    reviews: details.user_ratings_total || original.reviews,
+    address: details.formatted_address || original.address,
+    timings: parseOpeningHours(details.opening_hours?.weekday_text) || original.timings,
+    userReviews: (details.reviews || []).map((r: any) => ({
+      user: r.author_name || 'FUZO Scout',
+      rating: r.rating || 5,
+      text: r.text || '',
+      time: r.relative_time_description || 'Recently'
+    })),
+    photos: (details.photos || []).map((p: any) => 
+      `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${p.photo_reference}&key=${mapsApiKey}`
+    )
+  };
+};
 
 export const SCOUT_FALLBACK_PLACES: ScoutPlace[] = [
   {

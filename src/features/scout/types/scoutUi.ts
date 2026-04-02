@@ -7,7 +7,9 @@ export interface ScoutUserReview {
   user: string;
   rating: number;
   text: string;
+  time?: string;
 }
+
 
 export type ScoutTimings = Record<string, string>;
 
@@ -43,6 +45,7 @@ export interface ScoutPlace {
   matchPercentage?: number;
   isNewFind?: boolean;
   notes?: string;
+  time?: string;
 }
 
 
