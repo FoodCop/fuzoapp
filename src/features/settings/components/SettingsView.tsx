@@ -12,6 +12,8 @@ import { SettingsItem, SettingsSection } from '../../../shared/ui/settingsPrimit
 import { InstagramMark, FacebookMark } from '../../../shared/ui/SocialIcons';
 import { PrimaryProfileType, ChefSubtype, IndividualSubtype } from '../../profile/types/profile';
 import { ProfileTypeModal } from './ProfileTypeModal';
+import { Avatar } from '../../../shared/ui/Avatar';
+
 
 
 
@@ -43,8 +45,11 @@ export const SettingsView = ({
       youtube: metadata.youtube_url || metadata.youtube || '',
       profileType: (metadata.profile_type as string) || 'Individual',
       profileSubtype: (metadata.profile_subtype as string) || (metadata.chef_subtype as string) || 'Food Explorer',
+      avatarUrl: metadata.avatar_url || '',
+      coverUrl: metadata.cover_photo_url || '',
     };
   }, [authUser]);
+
 
 
   const [profile, setProfile] = useState<SettingsProfile>(defaults);
@@ -243,17 +248,61 @@ export const SettingsView = ({
     setSendingResetEmail(false);
   };
 
+  const avatarInputRef = React.useRef<HTMLInputElement>(null);
+  const coverInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'cover') => {
+    const file = e.target.files?.[0];
+    if (!file || !authUser) return;
+
+    setSavingSettings(true);
+    setSettingsMessage(`Uploading ${type}...`);
+
+    const result = await SettingsService.uploadUserMedia(file, type);
+    if (result.success && result.data) {
+      const field = type === 'avatar' ? 'avatarUrl' : 'coverUrl';
+      updateProfileField(field, result.data);
+      setSettingsMessage(`${type === 'avatar' ? 'Avatar' : 'Cover image'} uploaded. Save settings to persist.`);
+    } else {
+      setSettingsError(result.error || `Failed to upload ${type}.`);
+    }
+    setSavingSettings(false);
+  };
+
+
   return (
     <div className="max-w-2xl mx-auto space-y-10 animate-in fade-in pb-32 px-4">
       <header className="flex flex-col items-center text-center space-y-6 py-8">
+        <input 
+          type="file" 
+          ref={avatarInputRef} 
+          className="hidden" 
+          accept="image/*" 
+          onChange={(e) => handleMediaUpload(e, 'avatar')} 
+        />
+        <input 
+          type="file" 
+          ref={coverInputRef} 
+          className="hidden" 
+          accept="image/*" 
+          onChange={(e) => handleMediaUpload(e, 'cover')} 
+        />
+        
         <div className="relative group">
-          <div className="w-32 h-32 rounded-[3rem] border-8 border-white bg-white shadow-2xl overflow-hidden">
-            <img src="https://i.pravatar.cc/150?u=me" alt="Settings avatar" className="w-full h-full object-cover" />
-          </div>
-          <button className="absolute bottom-0 right-0 p-3 bg-stone-900 text-white rounded-2xl shadow-xl hover:scale-110 transition-transform">
+          <Avatar 
+            src={profile.avatarUrl} 
+            name={profile.name} 
+            size="xl" 
+            className="border-8 border-white bg-white shadow-2xl"
+          />
+          <button 
+            onClick={() => avatarInputRef.current?.click()}
+            className="absolute bottom-0 right-0 p-3 bg-stone-900 text-white rounded-2xl shadow-xl hover:scale-110 transition-transform"
+          >
             <Camera size={16} />
           </button>
         </div>
+
         <div>
           <h2 className="text-4xl font-black uppercase tracking-tighter leading-none">{profile.name}</h2>
           <p className="text-stone-400 font-bold mt-2">@{profile.username}</p>
@@ -321,7 +370,15 @@ export const SettingsView = ({
           value={profile.location} 
           onClick={() => editField('location', 'Location')} 
         />
+        <SettingsItem
+          icon={Camera} 
+          label="Cover Photo" 
+          value={profile.coverUrl ? 'Change Image' : 'Add Cover Image'} 
+          onClick={() => coverInputRef.current?.click()} 
+          color="indigo"
+        />
       </SettingsSection>
+
 
       <SettingsSection title="Account Settings">
         <SettingsItem

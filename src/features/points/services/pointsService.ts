@@ -8,7 +8,9 @@ export interface LeaderboardEntry {
   username: string;
   pointsTotal: number;
   pointsLevel: number;
+  avatarUrl: string | null;
 }
+
 
 interface PointsSummary {
   total: number;
@@ -41,7 +43,8 @@ export const PointsService = {
 
     const { data, error } = await supabase
       .from('users')
-      .select('id, display_name, username, points_total, points_level')
+      .select('id, display_name, username, points_total, points_level, avatar_url')
+
       .order('points_total', { ascending: false })
       .order('points_level', { ascending: false })
       .limit(limit);
@@ -56,6 +59,7 @@ export const PointsService = {
       username: string | null;
       points_total: number | null;
       points_level: number | null;
+      avatar_url: string | null;
     }>;
 
     return {
@@ -66,8 +70,10 @@ export const PointsService = {
         username: row.username || 'fuzo_user',
         pointsTotal: row.points_total ?? 0,
         pointsLevel: row.points_level ?? 1,
+        avatarUrl: row.avatar_url,
       })),
     };
+
   },
 
   async getFilteredLeaderboard(params: {
@@ -84,7 +90,8 @@ export const PointsService = {
 
     let query = supabase
       .from('users')
-      .select('id, display_name, username, points_total, points_level')
+      .select('id, display_name, username, points_total, points_level, avatar_url')
+
       .order('points_total', { ascending: false })
       .order('points_level', { ascending: false })
       .limit(limit);
@@ -110,6 +117,7 @@ export const PointsService = {
       username: string | null;
       points_total: number | null;
       points_level: number | null;
+      avatar_url: string | null;
     }>;
 
     return {
@@ -120,8 +128,10 @@ export const PointsService = {
         username: row.username || 'fuzo_user',
         pointsTotal: row.points_total ?? 0,
         pointsLevel: row.points_level ?? 1,
+        avatarUrl: row.avatar_url,
       })),
     };
+
   },
 
   async getCurrentUserPoints(): Promise<PointsServiceResult<PointsSummary>> {

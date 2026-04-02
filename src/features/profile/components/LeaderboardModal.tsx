@@ -7,6 +7,8 @@ import type { LeaderboardEntry } from '../../points/services/pointsService';
 import type { ChatInboxItem } from '../../chat/types/chatUi';
 import type { AuthUser } from '../../auth/types/auth';
 import { getMetadataString } from '../../../shared/lib/metadata';
+import { Avatar } from '../../../shared/ui/Avatar';
+
 
 interface LeaderboardModalProps {
   isOpen: boolean;
@@ -165,9 +167,13 @@ export const LeaderboardModal = ({
                           {rank}
                         </div>
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-2xl bg-white border-2 border-stone-100 overflow-hidden shadow-sm">
-                            <img src={`https://i.pravatar.cc/100?u=${user.id}`} alt={user.displayName} className="w-full h-full object-cover" />
-                          </div>
+                          <Avatar 
+                            src={user.avatarUrl} 
+                            name={user.displayName} 
+                            size="md" 
+                            className="w-12 h-12 rounded-2xl border-2 border-stone-100 shadow-sm"
+                          />
+
                           <div>
                             <div className="flex items-center gap-2">
                               <p className="font-black uppercase tracking-widest text-[11px] text-stone-900">

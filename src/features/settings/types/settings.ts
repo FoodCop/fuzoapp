@@ -14,7 +14,10 @@ export interface SettingsProfile {
   youtube: string;
   profileType: string;
   profileSubtype: string;
+  avatarUrl: string;
+  coverUrl: string;
 }
+
 
 
 export interface UserSettingsRow {
@@ -33,7 +36,10 @@ export interface UserSettingsRow {
   youtube_url: string | null;
   profile_type: string | null;
   profile_subtype: string | null;
+  avatar_url: string | null;
+  cover_photo_url: string | null;
 }
+
 
 
 export interface PublicUserProfile {

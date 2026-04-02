@@ -22,7 +22,8 @@ export const SettingsService = {
 
     const { data, error } = await client
       .from('users')
-      .select('id, display_name, username, bio, phone, location, dietary_preferences, cuisine_preferences, instagram_url, facebook_url, tiktok_url, pinterest_url, youtube_url, profile_type, profile_subtype')
+      .select('id, display_name, username, bio, phone, location, dietary_preferences, cuisine_preferences, instagram_url, facebook_url, tiktok_url, pinterest_url, youtube_url, profile_type, profile_subtype, avatar_url, cover_photo_url')
+
 
       .eq('id', authUser.id)
       .maybeSingle<UserSettingsRow>();
@@ -50,7 +51,8 @@ export const SettingsService = {
 
     const { data, error } = await client
       .from('users')
-      .select('id, display_name, username, bio, location, avatar_url, points_total, points_level, instagram_url, facebook_url, tiktok_url, pinterest_url, youtube_url, profile_type')
+      .select('id, display_name, username, bio, location, avatar_url, cover_photo_url, points_total, points_level, instagram_url, facebook_url, tiktok_url, pinterest_url, youtube_url, profile_type')
+
       .eq('id', trimmedUserId)
       .maybeSingle<PublicUserRow>();
 
@@ -109,7 +111,8 @@ export const SettingsService = {
       .update(updatePayload)
       .eq('id', authUser.id)
 
-      .select('id, display_name, username, bio, phone, location, dietary_preferences, cuisine_preferences, instagram_url, facebook_url, tiktok_url, pinterest_url, youtube_url, profile_type, profile_subtype')
+        .select('id, display_name, username, bio, phone, location, dietary_preferences, cuisine_preferences, instagram_url, facebook_url, tiktok_url, pinterest_url, youtube_url, profile_type, profile_subtype, avatar_url, cover_photo_url')
+
 
       .maybeSingle<UserSettingsRow>();
 
@@ -125,7 +128,8 @@ export const SettingsService = {
           email: authUser.email || null,
           ...updatePayload,
         })
-        .select('id, display_name, username, bio, phone, location, dietary_preferences, cuisine_preferences, instagram_url, facebook_url, tiktok_url, pinterest_url, youtube_url, profile_type, profile_subtype')
+        .select('id, display_name, username, bio, phone, location, dietary_preferences, cuisine_preferences, instagram_url, facebook_url, tiktok_url, pinterest_url, youtube_url, profile_type, profile_subtype, avatar_url, cover_photo_url')
+
 
         .maybeSingle<UserSettingsRow>();
 
@@ -144,4 +148,29 @@ export const SettingsService = {
       data: mergeSettingsFromRow(profile, data),
     };
   },
+
+  async uploadUserMedia(file: File, type: 'avatar' | 'cover'): Promise<SettingsServiceResult<string>> {
+    const client = supabase;
+    if (!client) return { success: false, error: 'Supabase is not configured' };
+
+    const { data: userData } = await client.auth.getUser();
+    if (!userData.user) return { success: false, error: 'Not authenticated' };
+
+    const userId = userData.user.id;
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${userId}-${type}-${Math.random()}.${fileExt}`;
+
+    const { error: uploadError } = await client.storage
+      .from('avatars')
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) return { success: false, error: uploadError.message };
+
+    const { data: publicUrlData } = client.storage
+      .from('avatars')
+      .getPublicUrl(filePath);
+
+    return { success: true, data: publicUrlData.publicUrl };
+  },
 };
+

@@ -16,6 +16,8 @@ import { LeaderboardModal } from './LeaderboardModal';
 import { PROFILE_TYPE_BADGES } from '../types/profile';
 import type { PrimaryProfileType, ChefSubtype } from '../types/profile';
 import { PointsService } from '../../points/services/pointsService';
+import { Avatar } from '../../../shared/ui/Avatar';
+
 
 
 
@@ -60,9 +62,11 @@ export const ProfileView = ({
       name: persisted?.name || metadata.full_name || metadata.name || 'Chef Studio',
       username: persisted?.username || metadata.username || metadata.user_name || emailName,
       bio: persisted?.bio || metadata.bio || 'Discovery engine architect. Exploring the world of fine dining and culinary hacks.',
-      avatar: metadata.avatar_url || `https://i.pravatar.cc/150?u=${email || 'me'}`,
+      avatar: persisted?.avatarUrl || metadata.avatar_url || null,
+      cover: persisted?.coverUrl || metadata.cover_photo_url || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80',
     };
   }, [authUser, persistedProfile]);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -133,10 +137,18 @@ export const ProfileView = ({
   return (
     <div className="max-w-2xl mx-auto space-y-10 animate-in fade-in pb-20">
       <div className="relative h-64 bg-stone-900 rounded-[4rem] overflow-hidden shadow-2xl">
-        <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80" alt="Profile cover" className="w-full h-full object-cover opacity-60" />
+        <img src={profileDisplay.cover} alt="Profile cover" className="w-full h-full object-cover opacity-60" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent" />
-        <div className="absolute -bottom-2 right-12"><div className="w-28 h-28 rounded-[2.5rem] border-8 border-white bg-white shadow-2xl overflow-hidden"><img src={profileDisplay.avatar} alt={`${profileDisplay.name} avatar`} /></div></div>
+        <div className="absolute -bottom-2 right-12">
+          <Avatar 
+            src={profileDisplay.avatar} 
+            name={profileDisplay.name} 
+            size="lg" 
+            className="w-28 h-28 border-8 border-white bg-white shadow-2xl rounded-[2.5rem]"
+          />
+        </div>
       </div>
+
       <div className="px-8 space-y-4">
         <div className="flex items-center justify-between">
           <div className="space-y-4">

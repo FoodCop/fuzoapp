@@ -36,8 +36,11 @@ export const buildDefaultSettingsProfile = (authUser: AuthContextUser | null | u
     youtube: getMetadataString(metadata, 'youtube_url', 'youtube'),
     profileType: getMetadataString(metadata, 'profile_type', 'type') || 'Individual',
     profileSubtype: getMetadataString(metadata, 'profile_subtype', 'chef_subtype', 'subtype') || 'Food Explorer',
+    avatarUrl: getMetadataString(metadata, 'avatar_url', 'avatar'),
+    coverUrl: getMetadataString(metadata, 'cover_photo_url', 'cover_url'),
   };
-};
+}
+;
 
 
 export const mergeSettingsFromRow = (base: SettingsProfile, row: UserSettingsRow | null | undefined): SettingsProfile => {
@@ -64,8 +67,11 @@ export const mergeSettingsFromRow = (base: SettingsProfile, row: UserSettingsRow
     youtube: row.youtube_url || base.youtube,
     profileType: row.profile_type || base.profileType,
     profileSubtype: row.profile_subtype || base.profileSubtype,
+    avatarUrl: row.avatar_url || base.avatarUrl,
+    coverUrl: row.cover_photo_url || base.coverUrl,
   };
-};
+}
+;
 
 
 export const mapProfileToSettingsUpdate = (profile: SettingsProfile) => {
@@ -93,6 +99,9 @@ export const mapProfileToSettingsUpdate = (profile: SettingsProfile) => {
     youtube_url: profile.youtube.trim() || null,
     profile_type: profile.profileType || 'Individual',
     profile_subtype: profile.profileSubtype || null,
+    avatar_url: profile.avatarUrl || null,
+    cover_photo_url: profile.coverUrl || null,
   };
-};
+}
+;
 
