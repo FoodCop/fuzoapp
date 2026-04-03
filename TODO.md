@@ -7,6 +7,11 @@ This document tracks pending features, technical debt, and client-requested inte
 ### 1. General Cleanup
 *   [ ] Audit unnecessary files (referenced in `AUDIT_UNNECESSARY_FILES.md`).
 
+### 2. AI Studio Phase 2: Feed Integration
+*   [ ] Implement `publishToFeed` logic in `FeedService.ts`.
+*   [ ] Connect "Share to Feed" buttons in SNAP, BITES, and TRIMS studios.
+*   [ ] Update `FeedView` to fetch real data from Supabase instead of empty array.
+
 ---
 
 ## 🟡 In Progress

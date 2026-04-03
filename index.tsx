@@ -1262,8 +1262,7 @@ User description: ${description}`;
     if (action === 'save') onSave(item);
     else if (action === 'share') onShareRequest(item);
     else if (action === 'feed') {
-      // Phase 2: Implement feed sharing
-      onSave(item); // Temporary fallback
+      FeedService.publishToFeed(item);
     }
     
     setCurrentStep(3); // Show success step
@@ -1997,8 +1996,7 @@ const AITrimStudio = ({
     if (action === 'save') onSave(item);
     else if (action === 'share') onShareRequest(item);
     else if (action === 'feed') {
-      // Phase 2: Feed sharing
-      onSave(item);
+      FeedService.publishToFeed(item);
     }
 
     setCurrentStep(3); // Success step
@@ -3640,8 +3638,7 @@ const SnapStudio = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onCl
       onPost(snapItem);
       
       if (publishToFeed) {
-        // Phase 2: Feed sharing
-        console.log('Publishing to feed...', snapItem);
+        FeedService.publishToFeed(snapItem);
       }
       
       setCurrentStep(3); // Success step
@@ -3809,23 +3806,6 @@ const SnapStudio = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onCl
 
 const SnapView = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onClose: () => void }) => {
   return <SnapStudio onPost={onPost} onClose={onClose} />;
-};
-
-const SnapMobile = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onClose: () => void }) => {
-  return <SnapStudio onPost={onPost} onClose={onClose} />;
-};
-
-const SnapDesktop = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onClose: () => void }) => {
-  return <SnapStudio onPost={onPost} onClose={onClose} />;
-};
-
-const SnapView = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onClose: () => void }) => {
-  const isDesktop = useIsDesktop();
-
-  if (isDesktop) {
-    return <SnapDesktop onPost={onPost} onClose={onClose} />;
-  }
-  return <SnapMobile onPost={onPost} onClose={onClose} />;
 };
 
 // --- MAIN APP ---

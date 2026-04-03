@@ -3,7 +3,7 @@ import { resolvePublicAssetPath } from '../../../shared/lib/resolvePublicAssetPa
 import type { DealerContent, FeedCard } from '../../../shared/types/feed';
 import type { FeedUiItem, FeedUiItemType } from '../types/feedUi';
 
-const TARGET_FEED_TYPES = new Set<FeedUiItemType>(['ad', 'trivia', 'recipe', 'video']);
+const TARGET_FEED_TYPES = new Set<FeedUiItemType>(['ad', 'trivia', 'recipe', 'video', 'photo', 'snap', 'trim']);
 
 type FeedParityItem = Pick<FeedUiItem, 'id' | 'itemType' | 'itemId' | 'name' | 'cat' | 'img'>;
 
@@ -27,23 +27,28 @@ const normalizeFeedImagePathForType = (itemType: FeedUiItemType, imagePath: stri
 
 const getNormalizedName = (itemType: FeedUiItemType, record: Record<string, unknown>) => {
   if (itemType === 'recipe') return String(record.title || 'Recipe');
-  if (itemType === 'video') return String(record.title || 'Video');
+  if (itemType === 'video' || itemType === 'trim') return String(record.title || 'Video');
+  if (itemType === 'photo' || itemType === 'snap') return String(record.name || record.title || 'Culinary Snap');
   if (itemType === 'ad') return String(record.brandName || record.headline || 'Sponsored');
   return String(record.title || record.question || 'Food Trivia');
 };
 
 const getNormalizedCategory = (itemType: FeedUiItemType) => {
   if (itemType === 'recipe') return 'Recipe';
-  if (itemType === 'video') return 'Studio Trim';
+  if (itemType === 'video' || itemType === 'trim') return 'Studio Trim';
+  if (itemType === 'photo' || itemType === 'snap') return 'Studio Snap';
   if (itemType === 'ad') return 'Ad';
   return 'Trivia';
 };
 
 const getRawImage = (itemType: FeedUiItemType, record: Record<string, unknown>) => {
-  if (itemType === 'video') {
-    return String(record.thumbnailUrl || '');
+  if (itemType === 'video' || itemType === 'trim') {
+    return String(record.thumbnailUrl || record.img || '');
   }
-  return String(record.imageUrl || '');
+  if (itemType === 'photo' || itemType === 'snap') {
+    return String(record.imageUrl || record.photos?.[0] || record.img || '');
+  }
+  return String(record.imageUrl || record.img || '');
 };
 
 const getOptionalString = (record: Record<string, unknown>, keys: string[]) => {

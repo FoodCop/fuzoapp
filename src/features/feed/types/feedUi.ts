@@ -1,4 +1,4 @@
-export type FeedUiItemType = 'recipe' | 'video' | 'ad' | 'trivia';
+export type FeedUiItemType = 'recipe' | 'video' | 'ad' | 'trivia' | 'photo' | 'snap' | 'trim';
 
 export type FeedUiItem = {
   id: string;
