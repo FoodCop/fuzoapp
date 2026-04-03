@@ -68,6 +68,7 @@ import { getGoogleMaps } from './src/features/scout/types/scoutUi';
 import type { GooglePlacePhoto, GooglePlaceResult, GooglePlaceReview, MapLike, MarkerLike, ScoutMenuSection, ScoutPlace, ScoutTimings, ScoutUserReview } from './src/features/scout/types/scoutUi';
 import { ScoutView } from './src/features/scout/components/ScoutView';
 import { Badge } from './src/shared/ui/Badge';
+import { StudioStepper } from './src/shared/ui/StudioStepper';
 
 import { persistSnapData } from './src/features/snap/services/snapPersistence';
 import { SettingsService } from './src/features/settings/services/settingsService';
@@ -1128,6 +1129,8 @@ const AIRecipeStudio = ({
     aiTag?: BitesAiTag;
   };
 
+  const STUDIO_STEPS = ['Visuals', 'Context', 'Assembly', 'Success'];
+  const [currentStep, setCurrentStep] = useState(0);
   const [image, setImage] = useState<string | null>(null);
   const [imageMimeType, setImageMimeType] = useState('image/jpeg');
   const [description, setDescription] = useState('');
@@ -1145,6 +1148,8 @@ const AIRecipeStudio = ({
       setImage(imageData);
       setImageMimeType(file.type || 'image/jpeg');
       setError(null);
+      // Auto-advance to context after successful upload
+      setCurrentStep(1);
     } catch {
       setError('Failed to read image. Please try another file.');
     }
@@ -1153,6 +1158,7 @@ const AIRecipeStudio = ({
   const handleGenerate = async () => {
     if (!description.trim()) return;
 
+    setCurrentStep(2); // Move to Assembly step
     setIsGenerating(true);
     setError(null);
 
@@ -1224,6 +1230,7 @@ User description: ${description}`;
       setGeneratedRecipe(parsed);
     } catch {
       setError('Failed to generate recipe card. Please try again.');
+      setCurrentStep(1); // Go back to context on error
     } finally {
       setIsGenerating(false);
     }
@@ -1248,141 +1255,265 @@ User description: ${description}`;
     };
   };
 
-  const handleSave = () => {
+  const handleFinish = (action: 'save' | 'share' | 'feed') => {
     const item = buildActionItem();
     if (!item) return;
-    onSave(item);
-    onClose();
-  };
-
-  const handleShare = () => {
-    const item = buildActionItem();
-    if (!item) return;
-    onShareRequest(item);
-    onClose();
+    
+    if (action === 'save') onSave(item);
+    else if (action === 'share') onShareRequest(item);
+    else if (action === 'feed') {
+      // Phase 2: Implement feed sharing
+      onSave(item); // Temporary fallback
+    }
+    
+    setCurrentStep(3); // Show success step
   };
 
   return (
     <div role="dialog" aria-modal="true" aria-label="Create recipe with AI" className="fixed inset-0 z-[200] bg-stone-950 text-white flex flex-col overflow-hidden">
-      <button
-        onClick={onClose}
-        className="absolute top-8 right-8 z-30 w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-xl rounded-2xl flex items-center justify-center transition-colors shadow-2xl"
-      >
-        <X size={24} />
-      </button>
+      {/* Header with Stepper */}
+      <header className="p-8 md:p-12 border-b border-stone-900 bg-stone-950/50 backdrop-blur-xl shrink-0 flex items-center justify-between">
+        <div className="hidden md:block w-32" /> {/* Spacer */}
+        <StudioStepper steps={STUDIO_STEPS} currentStep={currentStep} className="flex-grow" />
+        <button
+          onClick={onClose}
+          className="w-12 h-12 bg-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center transition-colors shadow-2xl"
+        >
+          <X size={24} />
+        </button>
+      </header>
 
-      <div className="flex-grow overflow-y-auto p-8 md:p-24 pt-24 md:pt-32">
-        <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <div className="space-y-8">
-            <div className="space-y-4">
-              <label htmlFor="ai-recipe-image" className="text-[12px] font-black uppercase tracking-widest text-stone-500">Upload Image (Optional)</label>
-              <div className="relative aspect-video bg-stone-900 rounded-[2.5rem] border-4 border-dashed border-stone-800 overflow-hidden group hover:border-yellow-400/50 transition-all">
+      <div className="flex-grow overflow-y-auto p-8 md:p-24">
+        <div className="max-w-4xl mx-auto">
+          {/* STEP 1: VISUALS */}
+          {currentStep === 0 && (
+            <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 space-y-12 text-center">
+              <div className="space-y-4">
+                <Badge color="yellow">Step 1</Badge>
+                <h2 className="text-5xl font-black uppercase tracking-tighter italic">Neural Vision</h2>
+                <p className="text-stone-400 font-bold uppercase tracking-widest text-xs">Upload a dish image to seed the AI</p>
+              </div>
+
+              <div className="max-w-xl mx-auto aspect-video bg-stone-900 rounded-[3rem] border-4 border-dashed border-stone-800 overflow-hidden group hover:border-yellow-400/50 transition-all relative">
                 {image ? (
                   <>
-                    <img src={image} alt="Uploaded recipe context image" className="w-full h-full object-cover" />
-                    <button onClick={() => setImage(null)} className="absolute top-4 right-4 p-2 bg-black/60 rounded-full hover:bg-red-500 transition-colors"><X size={16} /></button>
+                    <img src={image} alt="Recipe context" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => setImage(null)} className="p-6 bg-red-500 rounded-full text-white shadow-2xl scale-0 group-hover:scale-100 transition-transform duration-300">
+                        <X size={32} strokeWidth={3} />
+                      </button>
+                    </div>
                   </>
                 ) : (
                   <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer">
-                    <ImageIcon size={48} className="text-stone-700 group-hover:text-yellow-400 transition-colors mb-4" />
-                    <span className="text-[12px] font-black uppercase tracking-widest text-stone-600">Upload Dish Image</span>
-                    <input id="ai-recipe-image" type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                    <div className="w-24 h-24 bg-stone-800 rounded-3xl flex items-center justify-center text-stone-700 group-hover:text-yellow-400 transition-colors mb-6">
+                      <ImageIcon size={48} />
+                    </div>
+                    <span className="text-[12px] font-black uppercase tracking-widest text-stone-600">Choose Culinary Image</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                   </label>
                 )}
               </div>
-            </div>
 
-            <div className="space-y-4">
-              <label htmlFor="ai-recipe-description" className="text-[12px] font-black uppercase tracking-widest text-stone-500">Recipe Description</label>
-              <textarea
-                id="ai-recipe-description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe your recipe in a few lines..."
-                className="w-full h-64 bg-stone-900 border-4 border-stone-800 rounded-[2.5rem] p-8 font-bold text-sm outline-none focus:border-yellow-400 transition-all resize-none"
-              />
-            </div>
-
-            <div className="space-y-3">
-              <p className="text-[12px] font-black uppercase tracking-widest text-stone-500">Card Tag</p>
-              <div className="flex flex-wrap gap-2">
-                {BITES_AI_TAG_OPTIONS.map((tag) => (
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={() => setCurrentStep(1)}
+                  className="px-12 py-6 bg-white/5 hover:bg-white/10 rounded-[2rem] font-black uppercase tracking-widest text-xs transition-all"
+                >
+                  Skip for now
+                </button>
+                {image && (
                   <button
-                    type="button"
-                    key={tag}
-                    onClick={() => setSelectedTag(tag)}
-                    className={`px-4 py-2 rounded-full text-[12px] font-black uppercase tracking-widest transition-colors ${selectedTag === tag ? 'bg-yellow-400 text-stone-900' : 'bg-stone-900 text-stone-300 border border-stone-700 hover:text-white'}`}
+                    onClick={() => setCurrentStep(1)}
+                    className="px-12 py-6 bg-white text-stone-900 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all"
                   >
-                    {tag}
+                    Next Step
                   </button>
-                ))}
+                )}
               </div>
             </div>
+          )}
 
-            <button
-              onClick={handleGenerate}
-              disabled={isGenerating || !description.trim()}
-              className="w-full py-6 bg-white text-stone-950 rounded-[2rem] font-black uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-4"
-            >
-              {isGenerating ? <Loader2 className="animate-spin" /> : <Sparkles size={24} />}
-              {isGenerating ? 'Generating...' : 'Generate Card'}
-            </button>
-            {error && <p className="text-red-500 text-center text-xs font-bold uppercase tracking-widest">{error}</p>}
-          </div>
+          {/* STEP 2: CONTEXT */}
+          {currentStep === 1 && (
+            <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 space-y-12">
+              <div className="space-y-4 text-center">
+                <Badge color="yellow">Step 2</Badge>
+                <h2 className="text-5xl font-black uppercase tracking-tighter italic">Chef's Context</h2>
+                <p className="text-stone-400 font-bold uppercase tracking-widest text-xs">Describe the dish and select its neural tag</p>
+              </div>
 
-          <div className="relative">
-            {generatedRecipe ? (
-              <div className="bg-white text-stone-950 rounded-[3.5rem] p-10 shadow-2xl space-y-8 h-fit sticky top-0">
-                <header className="space-y-2">
-                  <Badge color="yellow">AI Generated</Badge>
-                  <Badge color="stone">{selectedTag}</Badge>
-                  <h3 className="text-4xl font-black uppercase tracking-tighter leading-none">{generatedRecipe.title}</h3>
-                  <div className="flex gap-4 text-[12px] font-black uppercase tracking-widest text-stone-400">
-                    <span>{generatedRecipe.readyInMinutes || 20} Mins</span>
-                    <span>â€¢</span>
-                    <span>{generatedRecipe.servings || 2} Servings</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <div className="space-y-8">
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-stone-500 ml-6">Neural Impressions</label>
+                    <textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="e.g. A spicy avocado toast with poached eggs and sriracha honey drizzle..."
+                      className="w-full h-64 bg-stone-900 border-4 border-stone-800 rounded-[3rem] p-8 font-bold text-sm outline-none focus:border-yellow-400 transition-all resize-none shadow-inner"
+                    />
                   </div>
-                </header>
-
-                <div className="space-y-4">
-                  <h4 className="text-[12px] font-black uppercase tracking-widest text-stone-400">Ingredients</h4>
-                  <ul className="space-y-2">
-                    {(generatedRecipe.ingredients || []).slice(0, 6).map((ing: string) => (
-                      <li key={ing} className="text-xs font-bold text-stone-600 flex gap-2">
-                        <div className="w-1 h-1 bg-yellow-400 rounded-full mt-1.5 shrink-0" />
-                        {ing}
-                      </li>
-                    ))}
-                  </ul>
                 </div>
 
-                <div className="flex gap-4 pt-4">
-                  <button
-                    onClick={handleSave}
-                    className="flex-grow py-5 bg-stone-900 text-white rounded-2xl font-black uppercase text-[12px] tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-transform"
-                  >
-                    <Bookmark size={16} /> Save to Plate
-                  </button>
-                  <button
-                    onClick={handleShare}
-                    className="p-5 bg-stone-100 text-stone-900 rounded-2xl hover:bg-yellow-400 transition-colors"
-                  >
-                    <Share2 size={20} />
-                  </button>
+                <div className="space-y-8">
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-stone-500 ml-6">Neural Tag</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {BITES_AI_TAG_OPTIONS.map((tag) => (
+                        <button
+                          type="button"
+                          key={tag}
+                          onClick={() => setSelectedTag(tag)}
+                          className={`p-6 rounded-3xl text-[12px] font-black uppercase tracking-widest transition-all border-4 ${
+                            selectedTag === tag 
+                              ? 'bg-yellow-400 text-stone-900 border-white shadow-xl scale-105' 
+                              : 'bg-stone-900 text-stone-400 border-stone-800 hover:border-stone-700'
+                          }`}
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
-            ) : (
-              <div className="h-full min-h-[400px] bg-stone-900/50 rounded-[3.5rem] border-4 border-dashed border-stone-800 flex flex-col items-center justify-center text-center p-12 space-y-6">
-                <div className="w-20 h-20 bg-stone-800 rounded-3xl flex items-center justify-center text-stone-700">
-                  <ChefHat size={40} />
-                </div>
-                <div>
-                  <h4 className="text-xl font-black uppercase tracking-tighter text-stone-600">AI Recipe Studio</h4>
-                  <p className="text-[12px] font-bold text-stone-700 uppercase tracking-widest mt-2">Generated recipe card appears here</p>
-                </div>
+
+              <div className="flex justify-center gap-4 pt-8">
+                <button
+                  onClick={() => setCurrentStep(0)}
+                  className="px-12 py-6 bg-white/5 rounded-[2rem] font-black uppercase tracking-widest text-xs"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={handleGenerate}
+                  disabled={!description.trim()}
+                  className="px-12 py-6 bg-white text-stone-900 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 flex items-center gap-4"
+                >
+                  <Sparkles size={20} />
+                  Assemble Recipe
+                </button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* STEP 3: ASSEMBLY */}
+          {currentStep === 2 && (
+            <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 space-y-12">
+              <div className="space-y-4 text-center">
+                <Badge color="yellow">Step 3</Badge>
+                <h2 className="text-5xl font-black uppercase tracking-tighter italic">Neural Assembly</h2>
+                <p className="text-stone-400 font-bold uppercase tracking-widest text-xs">Review your generated Bite Card</p>
+              </div>
+
+              <div className="max-w-2xl mx-auto">
+                {isGenerating ? (
+                  <div className="py-24 flex flex-col items-center justify-center space-y-8">
+                    <div className="relative">
+                      <div className="w-32 h-32 border-8 border-yellow-400/20 border-t-yellow-400 rounded-full animate-spin shadow-[0_0_40px_rgba(250,204,21,0.2)]" />
+                      <ChefHat size={48} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-yellow-400" />
+                    </div>
+                    <div className="text-center space-y-2">
+                      <p className="font-black uppercase tracking-[0.3em] text-yellow-400 animate-pulse">Deep Neural Synthesis</p>
+                      <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Mapping Nutrients & Flavors...</p>
+                    </div>
+                  </div>
+                ) : generatedRecipe ? (
+                  <div className="bg-white text-stone-950 rounded-[4rem] overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] animate-in zoom-in-95 duration-500 border-[12px] border-white">
+                    <div className="aspect-video relative">
+                      <img src={image || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?auto=format&fit=crop&w=800'} alt="Recipe preview" className="w-full h-full object-cover" />
+                      <div className="absolute top-6 left-6 flex gap-2">
+                        <Badge color="yellow">AI Verified</Badge>
+                        <Badge color="stone">{selectedTag}</Badge>
+                      </div>
+                    </div>
+                    <div className="p-12 space-y-8">
+                      <div className="space-y-2">
+                        <h3 className="text-4xl font-black uppercase tracking-tighter leading-none">{generatedRecipe.title}</h3>
+                        <div className="flex gap-6 text-[10px] font-black uppercase tracking-[0.2em] text-stone-400">
+                          <span>{generatedRecipe.readyInMinutes} Mins</span>
+                          <span className="text-yellow-400">â€¢</span>
+                          <span>{generatedRecipe.servings} Servings</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-12">
+                        <div className="space-y-4">
+                          <h4 className="text-[10px] font-black uppercase tracking-widest text-stone-300">Key Ingredients</h4>
+                          <ul className="space-y-3">
+                            {generatedRecipe.ingredients?.slice(0, 5).map((ing, i) => (
+                              <li key={i} className="text-xs font-bold text-stone-600 flex gap-3">
+                                <span className="text-yellow-400">â€¢</span> {ing}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="space-y-4">
+                          <h4 className="text-[10px] font-black uppercase tracking-widest text-stone-300">Neural Nutrition</h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="p-4 bg-stone-50 rounded-2xl">
+                              <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Cals</p>
+                              <p className="text-lg font-black">{generatedRecipe.nutrition?.calories}</p>
+                            </div>
+                            <div className="p-4 bg-stone-50 rounded-2xl">
+                              <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Prot</p>
+                              <p className="text-lg font-black">{generatedRecipe.nutrition?.protein}g</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-4 pt-4 border-t border-stone-100">
+                        <button
+                          onClick={() => handleFinish('save')}
+                          className="flex-grow py-6 bg-stone-900 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3 hover:scale-105 transition-all shadow-xl"
+                        >
+                          <Bookmark size={20} /> Save to Plate
+                        </button>
+                        <button
+                          onClick={() => handleFinish('share')}
+                          className="p-6 bg-stone-100 text-stone-900 rounded-[2rem] hover:bg-yellow-400 transition-all"
+                        >
+                          <Share2 size={24} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          )}
+
+          {/* STEP 4: SUCCESS */}
+          {currentStep === 3 && (
+            <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 space-y-12 text-center py-12">
+              <div className="w-40 h-40 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-[0_0_60px_rgba(16,185,129,0.3)] mx-auto mb-12">
+                <Check size={80} strokeWidth={4} />
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="text-6xl font-black uppercase tracking-tighter italic">Bite Synced</h2>
+                <p className="text-stone-400 font-bold uppercase tracking-widest text-xs">Recipe card has been successfully generated</p>
+              </div>
+
+              <div className="max-w-md mx-auto space-y-4">
+                <button
+                  onClick={() => handleFinish('feed')}
+                  className="w-full py-6 bg-stone-900 text-white rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-2xl flex items-center justify-center gap-4 border-4 border-emerald-500/20"
+                >
+                  <Send size={20} />
+                  Post to Fuzo Feed
+                </button>
+                <button
+                  onClick={onClose}
+                  className="w-full py-6 bg-white text-stone-900 rounded-[2rem] font-black uppercase tracking-widest text-xs"
+                >
+                  Back to Studio
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1765,6 +1896,8 @@ const AITrimStudio = ({
   onShareRequest: (item: AppItem) => void;
   onClose: () => void;
 }) => {
+  const STUDIO_STEPS = ['Media', 'Context', 'Assembly', 'Success'];
+  const [currentStep, setCurrentStep] = useState(0);
   const [video, setVideo] = useState<string | null>(null);
   const [videoMimeType, setVideoMimeType] = useState('video/mp4');
   const [linkURL, setLinkURL] = useState('');
@@ -1788,6 +1921,7 @@ const AITrimStudio = ({
       setVideo(videoData);
       setVideoMimeType(file.type || 'video/mp4');
       setError(null);
+      setCurrentStep(1); // Auto-advance to context
     } catch {
       setError('Failed to read video file.');
     }
@@ -1798,6 +1932,7 @@ const AITrimStudio = ({
     const hasYoutubeUrl = isYouTubeUrl(effectiveUrl);
     if (!description.trim() && !hasYoutubeUrl) return;
 
+    setCurrentStep(2); // Move to Assembly step
     setIsGenerating(true);
     setError(null);
 
@@ -1816,25 +1951,11 @@ const AITrimStudio = ({
       }
     } catch {
       setError('Failed to generate trim card. Please try again.');
+      setCurrentStep(1); // Go back on error
     } finally {
       setIsGenerating(false);
     }
   };
-
-  useEffect(() => {
-    const trimmed = linkURL.trim();
-    if (!isYouTubeUrl(trimmed)) return;
-    if (autoGeneratedLinkRef.current === trimmed) return;
-    if (isGenerating) return;
-
-    const timer = globalThis.setTimeout(() => {
-      handleGenerate(trimmed).catch(() => {
-        setError('Failed to analyze YouTube URL. You can still tap Generate Trim Card.');
-      });
-    }, 350);
-
-    return () => globalThis.clearTimeout(timer);
-  }, [linkURL, isGenerating]);
 
   const buildTrimItem = () => {
     if (!generatedTrim) return null;
@@ -1869,152 +1990,239 @@ const AITrimStudio = ({
     };
   };
 
-  const handleSave = () => {
+  const handleFinish = (action: 'save' | 'share' | 'feed') => {
     const item = buildTrimItem();
     if (!item) return;
-    onSave(item);
-    onClose();
-  };
 
-  const handleShare = () => {
-    const item = buildTrimItem();
-    if (!item) return;
-    onShareRequest(item);
-    onClose();
+    if (action === 'save') onSave(item);
+    else if (action === 'share') onShareRequest(item);
+    else if (action === 'feed') {
+      // Phase 2: Feed sharing
+      onSave(item);
+    }
+
+    setCurrentStep(3); // Success step
   };
 
   return (
     <div role="dialog" aria-modal="true" aria-label="Create trim with AI" className="fixed inset-0 z-[200] bg-stone-950 text-white flex flex-col overflow-hidden">
-      <button
-        onClick={onClose}
-        className="absolute top-8 right-8 z-30 w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-xl rounded-2xl flex items-center justify-center transition-colors shadow-2xl"
-      >
-        <X size={24} />
-      </button>
+      {/* Header with Stepper */}
+      <header className="p-8 md:p-12 border-b border-stone-900 bg-stone-950/50 backdrop-blur-xl shrink-0 flex items-center justify-between">
+        <div className="hidden md:block w-32" />
+        <StudioStepper steps={STUDIO_STEPS} currentStep={currentStep} className="flex-grow" />
+        <button
+          onClick={onClose}
+          className="w-12 h-12 bg-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center transition-colors shadow-2xl"
+        >
+          <X size={24} />
+        </button>
+      </header>
 
-      <div className="flex-grow overflow-y-auto p-8 md:p-24 pt-24 md:pt-32">
-        <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <div className="space-y-8">
-            <div className="space-y-4">
-              <label htmlFor="ai-trim-video" className="text-[12px] font-black uppercase tracking-widest text-stone-500">Upload Video (Optional)</label>
-              <div className="relative aspect-[9/16] bg-stone-900 rounded-[2.5rem] border-4 border-dashed border-stone-800 overflow-hidden group hover:border-emerald-400/50 transition-all">
-                {video ? (
-                  <>
-                    <video src={video} className="w-full h-full object-cover" autoPlay loop muted />
-                    <button onClick={() => setVideo(null)} className="absolute top-4 right-4 p-2 bg-black/60 rounded-full hover:bg-red-500 transition-colors"><X size={16} /></button>
-                  </>
-                ) : (
-                  <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer">
-                    <PlayCircle size={48} className="text-stone-700 group-hover:text-emerald-400 transition-colors mb-4" />
-                    <span className="text-[12px] font-black uppercase tracking-widest text-stone-600 px-8 text-center">Upload Vertical Trim</span>
-                    <input id="ai-trim-video" type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} />
-                  </label>
-                )}
+      <div className="flex-grow overflow-y-auto p-8 md:p-24">
+        <div className="max-w-4xl mx-auto">
+          {/* STEP 1: MEDIA SOURCE */}
+          {currentStep === 0 && (
+            <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 space-y-12 text-center">
+              <div className="space-y-4">
+                <Badge color="yellow">Step 1</Badge>
+                <h2 className="text-5xl font-black uppercase tracking-tighter italic">Neural Feed</h2>
+                <p className="text-stone-400 font-bold uppercase tracking-widest text-xs">Upload vertical video or paste YouTube URL</p>
               </div>
-            </div>
 
-            <div className="space-y-4">
-              <label htmlFor="ai-trim-link-url" className="text-[12px] font-black uppercase tracking-widest text-stone-500">YouTube URL (Optional)</label>
-              <input
-                id="ai-trim-link-url"
-                value={linkURL}
-                onChange={(e) => {
-                  setLinkURL(e.target.value);
-                  setError(null);
-                }}
-                placeholder="Paste YouTube link to auto-generate card"
-                className="w-full bg-stone-900 border-4 border-stone-800 rounded-[2rem] px-6 py-4 font-bold text-xs outline-none focus:border-emerald-400 transition-all"
-              />
-              {!!linkURL.trim() && !isYouTubeUrl(linkURL) && (
-                <p className="text-[12px] font-bold uppercase tracking-widest text-amber-500">Enter a valid YouTube URL.</p>
-              )}
-            </div>
-
-            <div className="space-y-4">
-              <label htmlFor="ai-trim-description" className="text-[12px] font-black uppercase tracking-widest text-stone-500">Trim Description</label>
-              <textarea
-                id="ai-trim-description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe the video and recipe context... Add #mock for local smoke test."
-                className="w-full h-64 bg-stone-900 border-4 border-stone-800 rounded-[2.5rem] p-8 font-bold text-sm outline-none focus:border-emerald-400 transition-all resize-none"
-              />
-            </div>
-
-            <button
-              onClick={() => {
-                handleGenerate().catch(() => {
-                  setError('Failed to generate trim card. Please try again.');
-                });
-              }}
-              disabled={isGenerating || (!description.trim() && !isYouTubeUrl(linkURL))}
-              className="w-full py-6 bg-white text-stone-950 rounded-[2rem] font-black uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-4"
-            >
-              {isGenerating ? <Loader2 className="animate-spin" /> : <Sparkles size={24} />}
-              {isGenerating ? 'Generating...' : 'Generate Trim Card'}
-            </button>
-            {error && <p className="text-red-500 text-center text-xs font-bold uppercase tracking-widest">{error}</p>}
-          </div>
-
-          <div className="relative">
-            {generatedTrim ? (
-              <div className="h-fit sticky top-0 space-y-4">
-                <div className="relative aspect-[9/16] rounded-[3.5rem] overflow-hidden bg-stone-900 shadow-2xl border-4 border-white">
-                  {video ? (
-                    <video src={video} className="w-full h-full object-cover" autoPlay loop muted />
-                  ) : (
-                    <img src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=800" alt="AI trim preview" className="w-full h-full object-cover" />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-
-                  <div className="absolute top-6 left-6 z-20">
-                    <Badge color="yellow">AI Trim Ready</Badge>
-                  </div>
-
-                  <div className="absolute bottom-12 left-8 right-24 text-white space-y-3 z-20">
-                    <h3 className="text-2xl font-black uppercase tracking-tighter leading-tight">{generatedTrim.title}</h3>
-                    <p className="text-[12px] font-black uppercase tracking-widest text-white/80">@{generatedTrim.author || 'FUZO AI Studio'}</p>
-                    <p className="text-xs font-bold text-white/90 line-clamp-3">{generatedTrim.caption || 'AI generated Studio trim card ready to post.'}</p>
-                  </div>
-
-                  <div className="absolute right-6 bottom-28 flex flex-col gap-7 text-white items-center z-20">
-                    <button onClick={handleSave} className="flex flex-col items-center gap-1 hover:scale-110 transition-transform">
-                      <Heart size={28} className="fill-white" />
-                      <span className="text-[12px] font-black">{generatedTrim.likes || '1k'}</span>
-                    </button>
-                    <button onClick={handleShare} className="flex flex-col items-center gap-1">
-                      <Share2 size={28} />
-                    </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                {/* Video Upload */}
+                <div className="space-y-4">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-stone-500">Vertical Trim</label>
+                  <div className="relative aspect-[9/16] bg-stone-900 rounded-[3rem] border-4 border-dashed border-stone-800 overflow-hidden group hover:border-emerald-400/50 transition-all">
+                    {video ? (
+                      <>
+                        <video src={video} className="w-full h-full object-cover" autoPlay loop muted />
+                        <button onClick={() => setVideo(null)} className="absolute top-4 right-4 p-2 bg-black/60 rounded-full hover:bg-red-500 transition-colors"><X size={16} /></button>
+                      </>
+                    ) : (
+                      <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer">
+                        <PlayCircle size={48} className="text-stone-700 group-hover:text-emerald-400 transition-colors mb-4" />
+                        <span className="text-[12px] font-black uppercase tracking-widest text-stone-600 px-8">Upload Trim</span>
+                        <input type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} />
+                      </label>
+                    )}
                   </div>
                 </div>
 
-                <div className="flex gap-4">
-                  <button
-                    onClick={handleSave}
-                    className="flex-grow py-5 bg-stone-900 text-white rounded-2xl font-black uppercase text-[12px] tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-transform"
-                  >
-                    <Bookmark size={16} /> Save to Plate
-                  </button>
-                  <button
-                    onClick={handleShare}
-                    className="p-5 bg-stone-100 text-stone-900 rounded-2xl hover:bg-yellow-400 transition-colors"
-                  >
-                    <Share2 size={20} />
-                  </button>
+                {/* YouTube Link */}
+                <div className="space-y-8 flex flex-col justify-center">
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-stone-500">YouTube Intelligence</label>
+                    <input
+                      value={linkURL}
+                      onChange={(e) => {
+                        setLinkURL(e.target.value);
+                        setError(null);
+                      }}
+                      placeholder="Paste YouTube link..."
+                      className="w-full bg-stone-900 border-4 border-stone-800 rounded-[2rem] px-8 py-6 font-bold text-sm outline-none focus:border-emerald-400 transition-all shadow-inner"
+                    />
+                    {!!linkURL.trim() && !isYouTubeUrl(linkURL) && (
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-amber-500">Invalid YouTube URL</p>
+                    )}
+                  </div>
+
+                  <div className="p-8 bg-stone-900/50 rounded-[2.5rem] border-2 border-stone-800 text-left space-y-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Neural Capability</p>
+                    <p className="text-xs font-bold text-stone-400 leading-relaxed">
+                      AI can analyze YouTube videos to extract culinary data, nutrition info, and key ingredients automatically.
+                    </p>
+                  </div>
                 </div>
               </div>
-            ) : (
-              <div className="h-full min-h-[400px] bg-stone-900/50 rounded-[3.5rem] border-4 border-dashed border-stone-800 flex flex-col items-center justify-center text-center p-12 space-y-6">
-                <div className="w-20 h-20 bg-stone-800 rounded-3xl flex items-center justify-center text-stone-700">
-                  <PlayCircle size={40} />
-                </div>
-                <div>
-                  <h4 className="text-xl font-black uppercase tracking-tighter text-stone-600">AI Trim Studio</h4>
-                  <p className="text-[12px] font-bold text-stone-700 uppercase tracking-widest mt-2">Generated trim card appears here</p>
+
+              <div className="flex justify-center gap-4 pt-8">
+                <button
+                  disabled={!video && !isYouTubeUrl(linkURL)}
+                  onClick={() => setCurrentStep(1)}
+                  className="px-12 py-6 bg-white text-stone-900 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                >
+                  Configure Context
+                </button>
+              </div>
+              {error && <p className="text-red-500 text-xs font-bold uppercase tracking-widest">{error}</p>}
+            </div>
+          )}
+
+          {/* STEP 2: CONTEXT */}
+          {currentStep === 1 && (
+            <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 space-y-12">
+              <div className="space-y-4 text-center">
+                <Badge color="yellow">Step 2</Badge>
+                <h2 className="text-5xl font-black uppercase tracking-tighter italic">Trim Context</h2>
+                <p className="text-stone-400 font-bold uppercase tracking-widest text-xs">Describe the video and culinary context</p>
+              </div>
+
+              <div className="max-w-2xl mx-auto space-y-8">
+                <div className="space-y-4">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-stone-500 ml-6">Neural Description</label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Describe what's happening in this trim..."
+                    className="w-full h-64 bg-stone-900 border-4 border-stone-800 rounded-[3rem] p-8 font-bold text-sm outline-none focus:border-emerald-400 transition-all resize-none shadow-inner"
+                  />
                 </div>
               </div>
-            )}
-          </div>
+
+              <div className="flex justify-center gap-4">
+                <button onClick={() => setCurrentStep(0)} className="px-12 py-6 bg-white/5 rounded-[2rem] font-black uppercase tracking-widest text-xs">Back</button>
+                <button
+                  onClick={() => handleGenerate()}
+                  disabled={!description.trim() && !isYouTubeUrl(linkURL)}
+                  className="px-12 py-6 bg-white text-stone-900 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-2xl hover:scale-105 transition-all flex items-center gap-4"
+                >
+                  <Sparkles size={20} />
+                  Assemble Trim
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: ASSEMBLY */}
+          {currentStep === 2 && (
+            <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 space-y-12">
+              <div className="space-y-4 text-center">
+                <Badge color="yellow">Step 3</Badge>
+                <h2 className="text-5xl font-black uppercase tracking-tighter italic">Neural Assembly</h2>
+                <p className="text-stone-400 font-bold uppercase tracking-widest text-xs">Review your generated Trim Card</p>
+              </div>
+
+              <div className="max-w-xl mx-auto">
+                {isGenerating ? (
+                  <div className="py-24 flex flex-col items-center justify-center space-y-8 text-center">
+                    <div className="relative">
+                      <div className="w-32 h-32 border-8 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+                      <PlayCircle size={48} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-emerald-400" />
+                    </div>
+                    <div className="space-y-2">
+                       <p className="font-black uppercase tracking-[0.3em] text-emerald-400 animate-pulse">Analyzing Frames</p>
+                       <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Generating Metadata & Thumbnails...</p>
+                    </div>
+                  </div>
+                ) : generatedTrim ? (
+                  <div className="space-y-8">
+                    <div className="relative aspect-[9/16] rounded-[4rem] overflow-hidden bg-stone-900 shadow-2xl border-[12px] border-white group">
+                      {video ? (
+                        <video src={video} className="w-full h-full object-cover" autoPlay loop muted />
+                      ) : (
+                        <img src={generatedTrim.thumbnailUrl || 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=800'} alt="Trim preview" className="w-full h-full object-cover" />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+
+                      <div className="absolute top-8 left-8">
+                        <Badge color="yellow">AI Trim Ready</Badge>
+                      </div>
+
+                      <div className="absolute bottom-12 left-10 right-24 text-white space-y-4">
+                        <h3 className="text-3xl font-black uppercase tracking-tighter leading-tight">{generatedTrim.title}</h3>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/70">@{generatedTrim.author || 'FUZO AI Studio'}</p>
+                        <p className="text-xs font-bold text-white/80 line-clamp-2">{generatedTrim.caption}</p>
+                      </div>
+
+                      <div className="absolute right-8 bottom-32 flex flex-col gap-8 text-white items-center">
+                        <div className="flex flex-col items-center gap-1">
+                          <Heart size={32} className="fill-white" />
+                          <span className="text-[10px] font-black">{generatedTrim.likes || '1.2k'}</span>
+                        </div>
+                        <Share2 size={32} />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => handleFinish('save')}
+                        className="flex-grow py-6 bg-stone-900 text-white rounded-[2.5rem] font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3 hover:scale-105 transition-all shadow-xl"
+                      >
+                        <Bookmark size={20} /> Save to Plate
+                      </button>
+                      <button
+                        onClick={() => handleFinish('share')}
+                        className="p-6 bg-stone-100 text-stone-900 rounded-[2.5rem] hover:bg-emerald-400 transition-all"
+                      >
+                        <Share2 size={24} />
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          )}
+
+          {/* STEP 4: SUCCESS */}
+          {currentStep === 3 && (
+            <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 space-y-12 text-center py-12">
+              <div className="w-40 h-40 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-[0_0_60px_rgba(16,185,129,0.3)] mx-auto mb-12">
+                <Check size={80} strokeWidth={4} />
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="text-6xl font-black uppercase tracking-tighter italic">Trim Sync Complete</h2>
+                <p className="text-stone-400 font-bold uppercase tracking-widest text-xs">Your AI Trim Card has been locked in</p>
+              </div>
+
+              <div className="max-w-md mx-auto space-y-4">
+                <button
+                  onClick={() => handleFinish('feed')}
+                  className="w-full py-6 bg-stone-900 text-white rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-2xl flex items-center justify-center gap-4 border-4 border-emerald-500/20"
+                >
+                  <Send size={20} />
+                  Post to Fuzo Feed
+                </button>
+                <button
+                  onClick={onClose}
+                  className="w-full py-6 bg-white text-stone-900 rounded-[2rem] font-black uppercase tracking-widest text-xs"
+                >
+                  Back to Studio
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -3351,11 +3559,13 @@ const TaggingForm = ({
   );
 };
 
-const SnapMobile = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onClose: () => void }) => {
-  const [step, setStep] = useState<'disclaimer' | 'capture' | 'tagging' | 'success'>('disclaimer');
+const SnapStudio = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onClose: () => void }) => {
+  const STUDIO_STEPS = ['Source', 'Context', 'Review', 'Success'];
+  const [currentStep, setCurrentStep] = useState(0);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [snapData, setSnapData] = useState<any>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -3378,7 +3588,7 @@ const SnapMobile = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onCl
   };
 
   useEffect(() => {
-    if (step === 'capture') {
+    if (currentStep === 0) {
       startCamera();
       navigator.geolocation.getCurrentPosition(
         (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
@@ -3389,7 +3599,7 @@ const SnapMobile = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onCl
       stopCamera();
     }
     return () => stopCamera();
-  }, [step]);
+  }, [currentStep]);
 
   const handleCapture = () => {
     if (!videoRef.current) return;
@@ -3400,7 +3610,7 @@ const SnapMobile = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onCl
     if (ctx) {
       ctx.drawImage(videoRef.current, 0, 0);
       setCapturedImage(canvas.toDataURL('image/jpeg', 0.85));
-      setStep('tagging');
+      setCurrentStep(1); // Move to context
     }
   };
 
@@ -3408,230 +3618,205 @@ const SnapMobile = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onCl
     const file = e.target.files?.[0];
     if (file) {
       try {
-        await loadUploadedImage(file, setCapturedImage, () => setStep('tagging'));
+        await loadUploadedImage(file, setCapturedImage, () => setCurrentStep(1));
       } catch (error) {
         console.warn('Failed to read uploaded image', error);
       }
     }
   };
 
-  if (step === 'disclaimer') {
-    return (
-      <div className="fixed inset-0 z-[200] bg-stone-950 text-white p-10 flex flex-col justify-center items-center text-center space-y-8">
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close snap modal"
-          className="absolute top-8 right-8 w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-xl rounded-2xl flex items-center justify-center transition-colors"
-        >
-          <X size={24} />
-        </button>
-        <div className="w-24 h-24 bg-yellow-400 rounded-[2rem] flex items-center justify-center text-stone-950 shadow-2xl rotate-6">
-          <Info size={48} strokeWidth={2.5} />
-        </div>
-        <h2 className="text-4xl font-black uppercase tracking-tighter italic">Studio Protocol</h2>
-        <p className="text-stone-400 font-bold leading-relaxed max-w-xs">
-          By entering the capture studio, you agree to share high-fidelity culinary data with the FUZO network.
-        </p>
-        <button
-          onClick={() => setStep('capture')}
-          className="w-full py-6 bg-white text-stone-900 rounded-[2rem] font-black uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all"
-        >
-          I Understand
-        </button>
-        <button onClick={onClose} className="text-stone-500 font-bold uppercase tracking-widest text-xs">Cancel</button>
-      </div>
-    );
-  }
-
-  if (step === 'tagging' && capturedImage) {
-    return (
-      <TaggingForm
-        image={capturedImage}
-        location={location}
-        onBack={() => setStep('capture')}
-        onClose={onClose}
-        onSave={async (data) => {
-          setIsUploading(true);
-          const snapId = `snap-${Date.now()}`;
-          const snapItem = await persistSnapData({
-            snapId,
-            imageData: capturedImage,
-            restaurant: data.restaurant,
-            cuisine: data.cuisine,
-            rating: data.rating,
-            description: data.description,
-            locationName: data.locationName,
-            address: data.address,
-            tags: data.tags,
-            location,
-          });
-          onPost(snapItem);
-          setStep('success');
-          setIsUploading(false);
-        }}
-        isUploading={isUploading}
-      />
-    );
-  }
-
-  if (step === 'success') {
-    return (
-      <div className="fixed inset-0 z-[200] bg-emerald-500 text-white flex flex-col items-center justify-center p-10 text-center space-y-8">
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close snap success modal"
-          className="absolute top-8 right-8 w-12 h-12 bg-white/15 hover:bg-white/25 backdrop-blur-xl rounded-2xl flex items-center justify-center transition-colors"
-        >
-          <X size={24} />
-        </button>
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          className="w-32 h-32 bg-white rounded-full flex items-center justify-center text-emerald-500 shadow-2xl"
-        >
-          <Check size={64} strokeWidth={4} />
-        </motion.div>
-        <h2 className="text-5xl font-black uppercase tracking-tighter italic">Snap Saved</h2>
-        <p className="text-emerald-100 font-bold uppercase tracking-widest text-xs">Data Persisted</p>
-        <button
-          onClick={onClose}
-          className="w-full py-6 bg-stone-900 text-white rounded-[2rem] font-black uppercase tracking-widest shadow-2xl"
-        >
-          Return to Feed
-        </button>
-      </div>
-    );
-  }
+  const handleFinish = async (publishToFeed: boolean = false) => {
+    if (!capturedImage || !snapData) return;
+    setIsUploading(true);
+    try {
+      const snapId = `snap-${Date.now()}`;
+      const snapItem = await persistSnapData({
+        snapId,
+        imageData: capturedImage,
+        ...snapData,
+        location,
+      });
+      
+      onPost(snapItem);
+      
+      if (publishToFeed) {
+        // Phase 2: Feed sharing
+        console.log('Publishing to feed...', snapItem);
+      }
+      
+      setCurrentStep(3); // Success step
+    } catch (err) {
+      console.error('Failed to persist snap:', err);
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Camera" className="fixed inset-0 z-[200] bg-black flex flex-col overflow-hidden">
-      <header className="absolute top-0 inset-x-0 p-8 flex justify-between items-center z-20">
-        <button onClick={onClose} className="w-14 h-14 bg-white/10 backdrop-blur-xl rounded-2xl flex items-center justify-center text-white"><X size={28} /></button>
-        <button className="w-14 h-14 bg-white/10 backdrop-blur-xl rounded-2xl flex items-center justify-center text-white"><Zap size={24} /></button>
+    <div role="dialog" aria-modal="true" aria-label="Snap AI Studio" className="fixed inset-0 z-[200] bg-black text-white flex flex-col overflow-hidden">
+      {/* Header with Stepper */}
+      <header className="p-8 md:p-12 border-b border-white/5 bg-stone-950/50 backdrop-blur-xl shrink-0 flex items-center justify-between z-30">
+        <div className="hidden md:block w-32" />
+        <StudioStepper steps={STUDIO_STEPS} currentStep={currentStep} className="flex-grow" />
+        <button
+          onClick={onClose}
+          className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-2xl flex items-center justify-center transition-colors shadow-2xl"
+        >
+          <X size={24} />
+        </button>
       </header>
 
-      <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover">
-        <track kind="captions" />
-      </video>
+      <div className="flex-grow relative overflow-hidden">
+        {/* STEP 1: SOURCE (Camera/Upload) */}
+        {currentStep === 0 && (
+          <div className="h-full flex flex-col relative animate-in fade-in duration-500">
+            <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-stone-950/20 pointer-events-none" />
+            
+            <footer className="absolute bottom-12 inset-x-0 flex justify-around items-center z-20 px-8">
+              <label className="w-16 h-16 bg-white/10 backdrop-blur-3xl rounded-3xl flex items-center justify-center text-white cursor-pointer hover:bg-white/20 transition-all border border-white/20">
+                <ImageIcon size={28} />
+                <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+              </label>
 
-      <footer className="absolute bottom-12 inset-x-0 flex justify-around items-center z-20 px-8">
-        <label className="w-14 h-14 bg-white/10 backdrop-blur-xl rounded-2xl flex items-center justify-center text-white cursor-pointer">
-          <ImageIcon size={24} />
-          <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
-        </label>
+              <button
+                onClick={handleCapture}
+                className="w-32 h-32 rounded-full border-[10px] border-white/30 bg-white/10 shadow-2xl backdrop-blur-xl active:scale-90 transition-transform flex items-center justify-center group"
+              >
+                <div className="w-20 h-20 bg-white rounded-full group-hover:scale-95 transition-transform" />
+              </button>
 
-        <button
-          onClick={handleCapture}
-          className="w-28 h-28 rounded-full border-[8px] border-white bg-white/20 shadow-2xl backdrop-blur-sm active:scale-90 transition-transform flex items-center justify-center"
-        >
-          <div className="w-20 h-20 bg-white rounded-full" />
-        </button>
+              <button className="w-16 h-16 bg-white/10 backdrop-blur-3xl rounded-3xl flex items-center justify-center text-white hover:bg-white/20 transition-all border border-white/20">
+                <RefreshCw size={28} />
+              </button>
+            </footer>
 
-        <button className="w-14 h-14 bg-white/10 backdrop-blur-xl rounded-2xl flex items-center justify-center text-white"><RefreshCw size={24} /></button>
-      </footer>
+            <div className="absolute top-12 left-1/2 -translate-x-1/2">
+               <Badge color="yellow">Live Neural Lens</Badge>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 2: CONTEXT */}
+        {currentStep === 1 && capturedImage && (
+          <div className="h-full bg-white text-stone-950 overflow-y-auto animate-in slide-in-from-right duration-500">
+            <TaggingForm
+              image={capturedImage}
+              location={location}
+              onBack={() => setCurrentStep(0)}
+              onClose={onClose}
+              onSave={(data) => {
+                setSnapData(data);
+                setCurrentStep(2); // Move to review
+              }}
+              isUploading={false}
+            />
+          </div>
+        )}
+
+        {/* STEP 3: REVIEW (Assembly) */}
+        {currentStep === 2 && capturedImage && snapData && (
+          <div className="h-full flex flex-col items-center justify-center p-8 md:p-24 bg-stone-950 space-y-12 animate-in zoom-in-95 duration-500 overflow-y-auto">
+             <div className="space-y-4 text-center">
+                <Badge color="yellow">Step 3</Badge>
+                <h2 className="text-5xl font-black uppercase tracking-tighter italic text-white">Neural Assembly</h2>
+                <p className="text-stone-400 font-bold uppercase tracking-widest text-xs">Verify your culinary snap card</p>
+              </div>
+
+              <div className="max-w-xl w-full">
+                <div className="relative aspect-[9/16] rounded-[4rem] overflow-hidden bg-stone-900 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] border-[12px] border-white group">
+                  <img src={capturedImage} alt="Snap review" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+                  
+                  <div className="absolute top-10 left-10 flex gap-2">
+                    <Badge color="yellow">{snapData.cuisine}</Badge>
+                    <Badge color="stone">Verified</Badge>
+                  </div>
+
+                  <div className="absolute bottom-16 left-10 right-28 text-white space-y-4">
+                    <h3 className="text-4xl font-black uppercase tracking-tighter leading-tight">{snapData.restaurant}</h3>
+                    <div className="flex gap-2">
+                       {[...Array(5)].map((_, i) => (
+                         <Star key={i} size={16} fill={i < snapData.rating ? "white" : "none"} className={i < snapData.rating ? "text-white" : "text-white/30"} />
+                       ))}
+                    </div>
+                    <p className="text-sm font-bold text-white/80 line-clamp-3 italic leading-relaxed">
+                      "{snapData.description}"
+                    </p>
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/60">
+                       <MapPin size={12} /> {snapData.locationName}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 mt-12 mb-8">
+                  <button
+                    onClick={() => setCurrentStep(1)}
+                    className="px-10 py-6 bg-white/10 text-white rounded-[2.5rem] font-black uppercase tracking-widest text-xs hover:bg-white/20 transition-all"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleFinish(false)}
+                    disabled={isUploading}
+                    className="flex-grow py-6 bg-white text-stone-900 rounded-[2.5rem] font-black uppercase tracking-widest text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                  >
+                    {isUploading ? <Loader2 className="animate-spin" /> : <CheckCircle2 size={24} />}
+                    Lock Snap Card
+                  </button>
+                </div>
+              </div>
+          </div>
+        )}
+
+        {/* STEP 4: SUCCESS */}
+        {currentStep === 3 && (
+          <div className="h-full flex flex-col items-center justify-center p-8 bg-emerald-500 animate-in fade-in duration-700 text-center space-y-8">
+             <motion.div
+              initial={{ scale: 0, rotate: -45 }}
+              animate={{ scale: 1, rotate: 0 }}
+              className="w-48 h-48 bg-white rounded-full flex items-center justify-center text-emerald-500 shadow-[0_0_80px_rgba(255,255,255,0.4)] mb-8"
+            >
+              <Check size={96} strokeWidth={4} />
+            </motion.div>
+
+            <div className="space-y-4">
+              <h2 className="text-7xl font-black uppercase tracking-tighter italic text-white leading-none">Snap Locked</h2>
+              <p className="text-emerald-100 font-black uppercase tracking-[0.3em] text-xs">Neural Data Persisted</p>
+            </div>
+
+            <div className="max-w-md w-full space-y-4 pt-12">
+              <button
+                onClick={() => handleFinish(true)}
+                className="w-full py-7 bg-stone-900 text-white rounded-[3rem] font-black uppercase tracking-widest text-sm shadow-2xl flex items-center justify-center gap-4 border-4 border-white/20 hover:scale-105 active:scale-95 transition-all"
+              >
+                <Send size={24} />
+                Share to Fuzo Feed
+              </button>
+              <button
+                onClick={onClose}
+                className="w-full py-7 bg-white text-emerald-600 rounded-[3rem] font-black uppercase tracking-widest text-sm shadow-xl hover:bg-stone-50 transition-colors"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 
+const SnapView = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onClose: () => void }) => {
+  return <SnapStudio onPost={onPost} onClose={onClose} />;
+};
+
+const SnapMobile = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onClose: () => void }) => {
+  return <SnapStudio onPost={onPost} onClose={onClose} />;
+};
+
 const SnapDesktop = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onClose: () => void }) => {
-  const [step, setStep] = useState<'upload' | 'tagging' | 'success'>('upload');
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-
-  useEffect(() => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => setLocation(null),
-      { enableHighAccuracy: true }
-    );
-  }, []);
-
-  if (step === 'tagging' && capturedImage) {
-    return (
-      <TaggingForm
-        image={capturedImage}
-        location={location}
-        onBack={() => setStep('upload')}
-        onClose={onClose}
-        onSave={async (data) => {
-          setIsUploading(true);
-          const snapId = `snap-${Date.now()}`;
-          const snapItem = await persistSnapData({
-            snapId,
-            imageData: capturedImage,
-            restaurant: data.restaurant,
-            cuisine: data.cuisine,
-            rating: data.rating,
-            description: data.description,
-            locationName: data.locationName,
-            address: data.address,
-            tags: data.tags,
-            location,
-          });
-          onPost(snapItem);
-          setStep('success');
-          setIsUploading(false);
-        }}
-        isUploading={isUploading}
-      />
-    );
-  }
-
-  if (step === 'success') {
-    return (
-      <div className="fixed inset-0 z-[200] bg-emerald-500 text-white flex flex-col items-center justify-center p-10 text-center">
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close snap success modal"
-          className="absolute top-8 right-8 w-12 h-12 bg-white/15 hover:bg-white/25 backdrop-blur-xl rounded-2xl flex items-center justify-center transition-colors"
-        >
-          <X size={24} />
-        </button>
-        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-32 h-32 bg-white rounded-full flex items-center justify-center text-emerald-500 shadow-2xl mb-8">
-          <Check size={64} strokeWidth={4} />
-        </motion.div>
-        <h2 className="text-5xl font-black uppercase tracking-tighter italic mb-4">Snap Saved</h2>
-        <button onClick={onClose} className="px-12 py-6 bg-stone-900 text-white rounded-[2rem] font-black uppercase tracking-widest shadow-2xl">Return to Feed</button>
-      </div>
-    );
-  }
-
-  return (
-    <div role="dialog" aria-modal="true" aria-label="Image preview" className="fixed inset-0 z-[200] bg-stone-950 flex items-center justify-center p-10">
-      <button onClick={onClose} className="absolute top-10 right-10 w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center text-white hover:bg-white/20 transition-colors"><X size={32} /></button>
-
-      <div className="max-w-2xl w-full aspect-video bg-stone-900 rounded-[3rem] border-4 border-dashed border-stone-800 flex flex-col items-center justify-center space-y-6 text-center p-12 group hover:border-yellow-400/50 transition-colors relative">
-        <div className="w-24 h-24 bg-stone-800 rounded-3xl flex items-center justify-center text-stone-600 group-hover:text-yellow-400 transition-colors">
-          <ImageIcon size={48} />
-        </div>
-        <div>
-          <h3 className="text-2xl font-black uppercase tracking-tighter text-white">Upload Culinary Data</h3>
-          <p className="text-stone-500 font-bold uppercase tracking-widest text-[12px] mt-2">Max file size: 10MB (JPEG, PNG)</p>
-        </div>
-        <label className="px-10 py-5 bg-white text-stone-900 rounded-[2rem] font-black uppercase tracking-widest cursor-pointer hover:scale-105 active:scale-95 transition-all shadow-2xl">
-          <span>Choose File</span>
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              try {
-                await loadUploadedImage(file, setCapturedImage, () => setStep('tagging'));
-              } catch (error) {
-                console.warn('Failed to read uploaded image', error);
-              }
-            }}
-          />
-        </label>
-      </div>
-    </div>
-  );
+  return <SnapStudio onPost={onPost} onClose={onClose} />;
 };
 
 const SnapView = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onClose: () => void }) => {
