@@ -10,20 +10,30 @@ export const FeedService = {
     }
 
     try {
+      console.log('[FeedService] Attempting to publish item to fuzo_feed:', item.title || item.name || 'Untitled');
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
+
+      if (!userId) {
+        console.warn('[FeedService] No authenticated user found, attempting anonymous post');
+      }
 
       const { data, error } = await supabase.from('fuzo_feed').insert({
         type: item.itemType || item.type || 'recipe',
         metadata: item,
-        user_id: userId,
-      });
+        user_id: userId || null,
+      }).select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[FeedService] Supabase insert error:', error);
+        throw error;
+      }
+      
+      console.log('[FeedService] Successfully published to feed:', data);
       return { success: true, data };
     } catch (error: any) {
-      console.error('FeedService.publishToFeed failed:', error);
-      return { success: false, error: error.message };
+      console.error('[FeedService] publishToFeed failed:', error);
+      return { success: false, error: error.message || 'Unknown database error' };
     }
   },
 
