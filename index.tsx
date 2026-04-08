@@ -10,8 +10,10 @@ import {
   Mail, Phone, Bell, Shield, LogOut, Trophy, Gift, Image as ImageIcon, CheckCheck, AlertCircle,
   Plus,
   ArrowRight,
-  Pin, Youtube, ExternalLink
+  Pin, Youtube, ExternalLink, Award, Facebook, Instagram, Play, Twitter, Utensils, CreditCard
 } from 'lucide-react';
+import { UGC_CATEGORIES, UGC_CUISINES, UGC_DIETS, UGC_VIBES, normalizeTag } from './src/shared/utils/taxonomy';
+import UgcFilterBar from './src/shared/ui/UgcFilterBar';
 import { LeaderboardView } from './src/features/points/components/LeaderboardView';
 import { ProfileView } from './src/features/profile/components/ProfileView';
 import { PublicProfileView } from './src/features/profile/components/PublicProfileView';
@@ -225,19 +227,25 @@ const buildTrimPrompt = ({
   effectiveUrl,
   hasYoutubeUrl,
   oEmbedContext,
+  taxonomy,
 }: {
   description: string;
   effectiveUrl: string;
   hasYoutubeUrl: boolean;
-  oEmbedContext: string;
+  oEmbedContext: any;
+  taxonomy?: any;
 }) => {
-  return `You are a culinary video editor assistant. Build one clean JSON object for a vertical trim card.
-Required fields: title, author, caption, likes, summary, keyFoodItem, location, cuisineTags (array of strings), thumbnailUrl, sourceUrl, nutrition { calories, protein, fat, carbs }.
-If YouTube URL is provided, prioritize extracting real metadata from the URL context.
-Keep response as raw JSON only.
-Context description: ${description || 'N/A'}
-YouTube URL: ${hasYoutubeUrl ? effectiveUrl : 'N/A'}
-${oEmbedContext}`;
+  const taxonomyRule = taxonomy 
+    ? `\nCRITICAL: Use ONLY these cuisine tags: ${taxonomy.cuisines.join(', ')}. Use ONLY these vibes: ${taxonomy.vibes.join(', ')}. Do NOT add "Cuisine" suffix.`
+    : '';
+
+  return `You are a culinary neural analyst. Build a clean JSON trim card.
+${taxonomyRule}
+Context: ${description}
+URL: ${effectiveUrl}
+${hasYoutubeUrl ? 'Target: YouTube Content Extraction' : 'Target: Vertical Media Analysis'}
+${oEmbedContext ? `Metadata: ${JSON.stringify(oEmbedContext)}` : ''}
+Required fields: title, summary, keyFoodItem, location (city/neighborhood), cuisineTags (array), caption.`;
 };
 
 const buildTrimPromptParts = ({
@@ -303,11 +311,13 @@ const requestGeneratedTrimCard = async ({
   effectiveUrl,
   video,
   videoMimeType,
+  taxonomy,
 }: {
   description: string;
   effectiveUrl: string;
   video: string | null;
   videoMimeType: string;
+  taxonomy?: any;
 }): Promise<GeneratedTrimCard> => {
   const hasYoutubeUrl = isYouTubeUrl(effectiveUrl);
 
@@ -321,6 +331,7 @@ const requestGeneratedTrimCard = async ({
     effectiveUrl,
     hasYoutubeUrl,
     oEmbedContext,
+    taxonomy,
   });
   const parts = buildTrimPromptParts({ prompt, video, videoMimeType });
 
@@ -1175,9 +1186,13 @@ const AIRecipeStudio = ({
     try {
       const prompt = `You are an expert chef and nutrition analyst. Build one clean JSON object for a recipe card.
     Fields required: title, category, readyInMinutes, servings, ingredients (array of strings), instructions (string), nutrition { calories, protein, fat, carbs }, aiTag.
-    aiTag must be one of: ${BITES_AI_TAG_OPTIONS.join(', ')}.
-Use the user description and optional image context. Keep response as raw JSON only.
-User description: ${description}`;
+    
+    CRITICAL TAXONOMY RULES:
+    1. category MUST be one of: ${UGC_CUISINES.join(', ')}. Do NOT add suffixes like "Cuisine" or "Food".
+    2. aiTag MUST be one of: ${UGC_CATEGORIES.join(', ')}.
+    3. Use only these Diet tags if applicable: ${UGC_DIETS.join(', ')}.
+
+    User description: ${description}`;
 
       const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [{ text: prompt }];
       if (image?.includes(',')) {
@@ -1557,6 +1572,8 @@ const FeedView = ({ onSave, onShareRequest, onOpenUserProfile }: { onSave: (item
 
   const [batchIndex, setBatchIndex] = useState(0);
   const [batchVisible, setBatchVisible] = useState(false);
+  const [activeCuisine, setActiveCuisine] = useState<string | null>(null);
+  const [activeVibe, setActiveVibe] = useState<string | null>(null);
   const isDesktop = useIsDesktop();
   const feedRequestSeqRef = useRef(0);
   const feedRetryDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1889,20 +1906,30 @@ const FeedView = ({ onSave, onShareRequest, onOpenUserProfile }: { onSave: (item
 };
 
 const BitesView = ({ onSave, onShareRequest }: { onSave: (item: BiteActionItem) => void, onShareRequest: (item: BiteActionItem) => void }) => {
+  const [activeCuisine, setActiveCuisine] = useState<string | null>(null);
+  const [activeDiet, setActiveDiet] = useState<string | null>(null);
   const [selectedRecipe, setSelectedRecipe] = useState<BiteRecipe | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const {
     loading,
     serviceError,
     searchQuery,
-    activeDiet,
-    activeCuisine,
+    activeDiet: _activeDiet,
+    activeCuisine: _activeCuisine,
     filteredRecipes,
     setSearchQuery,
-    setActiveDiet,
-    setActiveCuisine,
+    setActiveDiet: _setActiveDiet,
+    setActiveCuisine: _setActiveCuisine,
     fetchBites,
   } = useBitesFeed();
+
+  const filteredItems = useMemo(() => {
+    return filteredRecipes.filter(item => {
+      if (activeCuisine && item.cuisine !== activeCuisine) return false;
+      if (activeDiet && item.diet !== activeDiet) return false;
+      return true;
+    });
+  }, [filteredRecipes, activeCuisine, activeDiet]);
 
   const handleSearchSubmit = () => {
     fetchBites(true, searchQuery);
@@ -1916,19 +1943,21 @@ const BitesView = ({ onSave, onShareRequest }: { onSave: (item: BiteActionItem) 
   const { handleSaveRecipe, handleShareRecipe } = createBiteRecipeActions(onSave, onShareRequest);
 
   return (
-    <div className="space-y-8 animate-in fade-in pb-24 px-4">
-      <BitesControls
-        loading={loading}
-        searchQuery={searchQuery}
+    <div className="min-h-screen bg-stone-950 text-white p-8 md:p-12 pb-32">
+      <header className="mb-12 space-y-4">
+        <h2 className="text-5xl font-black uppercase tracking-tighter italic">Bites Gallery</h2>
+        <div className="flex items-center gap-4">
+          <Badge color="yellow">Neural Recipes</Badge>
+          <div className="h-0.5 flex-grow bg-white/5" />
+        </div>
+      </header>
+
+      <UgcFilterBar 
+        activeCuisine={activeCuisine} 
+        onCuisineChange={setActiveCuisine}
         activeDiet={activeDiet}
-        activeCuisine={activeCuisine}
-        showFilters={showFilters}
-        onSearchQueryChange={setSearchQuery}
-        onSearchSubmit={handleSearchSubmit}
-        onRefresh={() => fetchBites(true)}
-        onToggleFilters={() => setShowFilters((prev) => !prev)}
-        onToggleDiet={(diet) => setActiveDiet(activeDiet === diet ? null : diet)}
-        onToggleCuisine={(cuisine) => setActiveCuisine(activeCuisine === cuisine ? null : cuisine)}
+        onDietChange={setActiveDiet}
+        className="mb-12"
       />
 
       {serviceError && (
@@ -1936,7 +1965,37 @@ const BitesView = ({ onSave, onShareRequest }: { onSave: (item: BiteActionItem) 
           {serviceError}
         </div>
       )}
-      <BitesGrid loading={loading} filteredRecipes={filteredRecipes} onSelectRecipe={setSelectedRecipe} onReset={handleResetGrid} />
+      
+      {loading && filteredItems.length === 0 ? (
+        <div className="py-24 flex items-center justify-center"><Loader2 className="animate-spin text-white/20" size={48} /></div>
+      ) : filteredItems.length === 0 ? (
+        <div className="py-24 text-center space-y-4">
+          <p className="text-stone-500 font-bold uppercase tracking-widest text-xs">No recipes match these filters</p>
+          <button onClick={() => { setActiveCuisine(null); setActiveDiet(null); }} className="px-8 py-3 bg-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest">Clear Filters</button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {filteredItems.map((recipe) => (
+            <button
+              type="button"
+              key={recipe.id}
+              onClick={() => setSelectedRecipe(recipe)}
+              className="group cursor-pointer text-left w-full"
+            >
+              <div className="relative aspect-[4/5] rounded-[1.75rem] border-4 border-white shadow-xl overflow-hidden group-hover:scale-[1.02] transition-transform duration-500">
+                <img src={recipe.image} alt={recipe.title || 'Recipe'} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent" />
+                <div className="absolute bottom-10 left-10 right-10 text-white">
+                  <h3 className="text-2xl font-black uppercase tracking-tighter mb-2 leading-none">{recipe.title}</h3>
+                  <div className="flex gap-2 items-center text-[12px] font-bold uppercase tracking-widest opacity-80">
+                    <Clock size={14} /> {recipe.readyInMinutes} Min
+                  </div>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
 
       <BitesRecipeModal
         selectedRecipe={selectedRecipe}
@@ -2005,6 +2064,11 @@ const AITrimStudio = ({
         effectiveUrl,
         video,
         videoMimeType,
+        taxonomy: {
+          cuisines: UGC_CUISINES,
+          categories: UGC_CATEGORIES,
+          vibes: UGC_VIBES
+        }
       });
 
       trimDraftIdRef.current = String(Date.now());
@@ -2186,7 +2250,7 @@ const AITrimStudio = ({
                 <button
                   onClick={() => handleGenerate()}
                   disabled={!description.trim() && !isYouTubeUrl(linkURL)}
-                  className="px-12 py-6 bg-white text-stone-900 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-2xl hover:scale-105 transition-all flex items-center gap-4"
+                  className="px-12 py-6 bg-white text-stone-900 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-4"
                 >
                   <Sparkles size={20} />
                   Assemble Trim
@@ -2312,10 +2376,24 @@ const AITrimStudio = ({
 };
 
 const TrimsView = ({ onSave, onShareRequest, authUser }: { onSave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void; authUser: AuthUser | null; }) => {
+  const [activeCuisine, setActiveCuisine] = useState<string | null>(null);
+  const [activeVibe, setActiveVibe] = useState<string | null>(null);
+  const [items, setItems] = useState<AppItem[]>([]);
   const isEmbeddableYouTubeId = (videoId: string) => /^[a-zA-Z0-9_-]{11}$/.test(videoId);
   const buildTrimEmbedUrl = (videoId: string, autoplay: boolean) => (
     `https://www.youtube.com/embed/${videoId}?autoplay=${autoplay ? 1 : 0}&mute=1&playsinline=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1`
   );
+
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      if (activeCuisine && item.cat !== activeCuisine) return false;
+      if (activeVibe) {
+        const itemTags = Array.isArray(item.metadata?.tags) ? item.metadata.tags : [];
+        if (!itemTags.includes(activeVibe)) return false;
+      }
+      return true;
+    });
+  }, [items, activeCuisine, activeVibe]);
 
   const resolveRegionCode = useCallback((): string | undefined => {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -3481,7 +3559,9 @@ const TaggingForm = ({
   onBack,
   onClose,
   onSave,
-  isUploading
+  isUploading,
+  isAnalyzing,
+  initialData
 }: {
   image: string;
   location?: { lat: number; lng: number } | null;
@@ -3497,6 +3577,8 @@ const TaggingForm = ({
     tags: string[];
   }) => void;
   isUploading: boolean;
+  isAnalyzing: boolean;
+  initialData?: any;
 }) => {
   const [restaurant, setRestaurant] = useState('');
   const [cuisine, setCuisine] = useState('');
@@ -3505,6 +3587,15 @@ const TaggingForm = ({
   const [locationName, setLocationName] = useState('');
   const [address, setAddress] = useState('');
   const [tagsInput, setTagsInput] = useState('');
+
+  useEffect(() => {
+    if (initialData) {
+      if (initialData.restaurant) setRestaurant(initialData.restaurant);
+      if (initialData.cuisine) setCuisine(initialData.cuisine);
+      if (initialData.description) setDescription(initialData.description);
+      if (initialData.rating) setRating(initialData.rating);
+    }
+  }, [initialData]);
 
   const hasGps = Number.isFinite(Number(location?.lat)) && Number.isFinite(Number(location?.lng));
   const isValid = restaurant.trim() !== '' && cuisine.trim() !== '' && locationName.trim() !== '' && address.trim() !== '' && hasGps;
@@ -3572,13 +3663,15 @@ const TaggingForm = ({
 
             <div className="space-y-2">
               <label htmlFor="snap-cuisine" className="text-[12px] font-black uppercase tracking-widest text-stone-400">Cuisine Type *</label>
-              <input
+              <select
                 id="snap-cuisine"
                 value={cuisine}
                 onChange={(e) => setCuisine(e.target.value)}
-                placeholder="e.g. Modern Italian"
-                className="w-full bg-stone-50 px-8 py-5 rounded-[2rem] font-bold outline-none border-2 border-transparent focus:border-yellow-400 transition-all"
-              />
+                className="w-full bg-stone-50 px-8 py-5 rounded-[2rem] font-bold outline-none border-2 border-transparent focus:border-yellow-400 transition-all appearance-none cursor-pointer"
+              >
+                <option value="">Select Cuisine</option>
+                {UGC_CUISINES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
 
             <div className="space-y-2">
@@ -3656,6 +3749,7 @@ const SnapStudio = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onCl
   const [isPostingToFeed, setIsPostingToFeed] = useState(false);
   const [feedPostSuccess, setFeedPostSuccess] = useState(false);
   const [snapData, setSnapData] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -3701,6 +3795,43 @@ const SnapStudio = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onCl
       ctx.drawImage(videoRef.current, 0, 0);
       setCapturedImage(canvas.toDataURL('image/jpeg', 0.85));
       setCurrentStep(1); // Move to context
+      handleAnalyze(canvas.toDataURL('image/jpeg', 0.85));
+    }
+  };
+
+  const handleAnalyze = async (imageData: string) => {
+    setIsAnalyzing(true);
+    try {
+      const prompt = `Analyze this food photo. Suggest a restaurant name (if visible), a concise title, a cuisine from ${UGC_CUISINES.join(', ')}, and a 1-sentence description.
+      CRITICAL: Use ONLY normalized cuisine values (e.g. "Italian" not "Italian Cuisine").
+      Format: JSON { restaurant, title, cuisine, description }`;
+      
+      const response = await GeminiService.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: [{
+          role: 'user',
+          parts: [
+            { text: prompt },
+            { inlineData: { mimeType: 'image/jpeg', data: imageData.split(',')[1] } }
+          ]
+        }],
+        config: { responseMimeType: 'application/json' }
+      });
+
+      if (response.success && response.data?.text) {
+        const parsed = parseAiJson(response.data.text);
+        setSnapData((prev: any) => ({
+          ...prev,
+          restaurant: parsed.restaurant || '',
+          cuisine: normalizeTag(parsed.cuisine) || '',
+          description: parsed.description || '',
+          rating: 4, // Default
+        }));
+      }
+    } catch (err) {
+      console.warn('Neural analysis failed:', err);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -3807,6 +3938,8 @@ const SnapStudio = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onCl
                 setCurrentStep(2); // Move to review
               }}
               isUploading={false}
+              isAnalyzing={isAnalyzing}
+              initialData={snapData}
             />
           </div>
         )}

@@ -1,5 +1,6 @@
 import { PlateService } from '../../../services/plateService';
 import { hasSupabaseConfig, supabase } from '../../../services/supabaseClient';
+import { normalizeTag } from '../../../shared/utils/taxonomy';
 
 const snapDataUrlToBlob = (dataUrl: string): Blob => {
   const base64Data = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
@@ -68,7 +69,7 @@ export const persistSnapData = async ({
   const metadata = {
     title: restaurant || `Culinary Snap ${new Date().toLocaleDateString()}`,
     name: restaurant || `Culinary Snap ${new Date().toLocaleDateString()}`,
-    cat: cuisine || 'Studio Post',
+    cat: normalizeTag(cuisine) || 'Studio Post',
     image: imageUrl,
     image_url: imageUrl,
     photos: [imageUrl],
@@ -79,7 +80,7 @@ export const persistSnapData = async ({
     address: address || '',
     latitude: location?.lat ?? null,
     longitude: location?.lng ?? null,
-    tags: Array.isArray(tags) ? tags : [],
+    tags: Array.isArray(tags) ? tags.map(normalizeTag) : [],
     source: 'snap_feature',
   };
 
