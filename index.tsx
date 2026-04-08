@@ -3398,41 +3398,30 @@ const HeroCarousel = ({ onStart }: { onStart: () => void }) => {
   }, []);
 
   return (
-    <section className="relative h-screen bg-stone-900 overflow-hidden">
-      <AnimatePresence mode="wait">
+    <section className="relative h-screen bg-stone-950 overflow-hidden">
+      <AnimatePresence initial={false}>
         <motion.div
           key={index}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 1.2, ease: "easeInOut" }}
+          transition={{ duration: 2, ease: "easeInOut" }}
           className="absolute inset-0"
         >
           {/* Background Video */}
           <div className="absolute inset-0 z-0 bg-stone-950">
-             {LANDING_FEATURES[index].video ? (
+             {LANDING_FEATURES[index].video && (
                <motion.video
                  key={`video-${index}`}
-                 initial={{ opacity: 0, scale: 1.1 }}
-                 animate={{ opacity: 1, scale: 1 }}
-                 transition={{ duration: 1.8 }}
+                 initial={{ opacity: 0 }}
+                 animate={{ opacity: 1 }}
+                 transition={{ duration: 2.2 }}
                  src={LANDING_FEATURES[index].video}
-                 poster={LANDING_FEATURES[index].image}
                  autoPlay
                  muted
                  loop
                  playsInline
                  className="w-full h-full object-cover opacity-60"
-               />
-             ) : (
-               <motion.img 
-                 key={`img-${index}`}
-                 initial={{ scale: 1.2, opacity: 0 }}
-                 animate={{ scale: 1, opacity: 1 }}
-                 transition={{ duration: 2, ease: "easeOut" }}
-                 src={LANDING_FEATURES[index].image} 
-                 className="w-full h-full object-cover opacity-50" 
-                 alt=""
                />
              )}
              {/* Gradient Overlays for Readability */}
