@@ -72,6 +72,7 @@ export const ScoutView = ({
   const [isRoutePlannerOpen, setIsRoutePlannerOpen] = useState(false);
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
   const [currentRoute, setCurrentRoute] = useState<any | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [filter, setFilter] = useState<ScoutFilter>({
     type: 'all',
@@ -534,15 +535,38 @@ export const ScoutView = ({
           <div ref={mapRef} className="absolute inset-0" id="scout-map" />
           
           {/* Map Controls */}
-          <div className="absolute top-6 left-6 md:top-8 md:left-8 bg-white/90 backdrop-blur-md rounded-2xl border border-white/50 shadow-lg px-3 py-2.5">
-            <div className="flex items-center gap-4 text-[11px] md:text-[11px] font-black uppercase tracking-widest text-stone-500">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 border border-white"></span>
-                <span>FUZO Spots</span>
+          <div className="absolute top-6 left-6 right-24 md:top-8 md:left-8 md:right-auto md:w-96 z-10 space-y-3">
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-stone-400 group-focus-within:text-stone-900 transition-colors">
+                <Search size={18} strokeWidth={2.5} />
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-500 border border-white"></span>
-                <span>Community</span>
+              <input 
+                type="text" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search food territory..."
+                className="w-full bg-white/95 backdrop-blur-xl border-none h-14 pl-14 pr-5 rounded-[1.25rem] shadow-2xl font-black text-xs uppercase tracking-widest outline-none focus:ring-4 focus:ring-yellow-400/20 transition-all placeholder:text-stone-300"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="absolute inset-y-0 right-4 flex items-center text-stone-300 hover:text-stone-900"
+                >
+                  <X size={18} />
+                </button>
+              )}
+            </div>
+
+            <div className="bg-white/90 backdrop-blur-md rounded-2xl border border-white/50 shadow-lg px-3 py-2.5 inline-flex">
+              <div className="flex items-center gap-4 text-[11px] font-black uppercase tracking-widest text-stone-500">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 border border-white shadow-sm"></span>
+                  <span>FUZO Spots</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500 border border-white shadow-sm"></span>
+                  <span>Community</span>
+                </div>
               </div>
             </div>
           </div>

@@ -73,6 +73,7 @@ import { StudioStepper } from './src/shared/ui/StudioStepper';
 import { persistSnapData } from './src/features/snap/services/snapPersistence';
 import { SettingsService } from './src/features/settings/services/settingsService';
 import { TRIMS_FALLBACK_VIDEOS } from './src/features/trims/constants/fallbackVideos';
+import { BitesSkeleton } from './src/shared/ui/Skeleton';
 import { buildTrimQueries } from './src/features/trims/lib/buildTrimQueries';
 import type { TrimVideo } from './src/features/trims/types/trimsUi';
 import { API_KEYS } from './src/shared/constants/apiKeys';
@@ -446,7 +447,7 @@ const SwipeCard = ({ children, onSwipe, active }: { children: React.ReactNode; o
   return (
     <button
       type="button"
-      className={`absolute inset-0 w-full h-full rounded-[3.5rem] border-4 border-white shadow-2xl overflow-hidden transition-transform duration-300 ${isSwiping ? 'ease-none' : 'ease-out'}`}
+      className={`absolute inset-0 w-full h-full rounded-[1.75rem] border-4 border-white shadow-2xl overflow-hidden transition-transform duration-300 ${isSwiping ? 'ease-none' : 'ease-out'}`}
       style={{ 
         transform: `translate(${offset.x}px, ${offset.y}px) rotate(${rotation}deg)`,
         zIndex: active ? 10 : 1,
@@ -482,7 +483,7 @@ const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friend
 
   return (
     <div role="dialog" aria-modal="true" aria-label="Share with friend" className="fixed inset-0 z-[120] bg-stone-900/60 backdrop-blur-xl flex items-end md:items-center justify-center p-0 md:p-10 animate-in fade-in duration-300">
-      <div className="bg-white w-full max-w-lg max-h-[90vh] rounded-t-[4rem] md:rounded-[4rem] shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-20 duration-500">
+      <div className="bg-white w-full max-w-lg max-h-[90vh] rounded-t-[4rem] md:rounded-[2rem] shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-20 duration-500">
         <header className="p-10 border-b flex justify-between items-center bg-stone-50">
           <div>
             <Badge color="yellow">Studio Share</Badge>
@@ -610,13 +611,20 @@ const DealCard = ({ item, index, onAction, onAuthorClick }: { item: AppItem, ind
           type="button"
           onClick={() => setIsFlipped(true)}
           aria-label={`Reveal ${item.name}`}
-          className="absolute inset-0 w-full h-full rounded-[3rem] border-8 border-white shadow-2xl bg-yellow-400 flex flex-col items-center justify-center gap-6"
+          className="absolute inset-0 w-full h-full rounded-[1.75rem] border-8 border-white shadow-2xl bg-yellow-400 flex flex-col items-center justify-center gap-6 group/front"
           style={{ backfaceVisibility: 'hidden' }}
         >
-          <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center text-white">
+          <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center text-white scale-110 group-hover/front:scale-125 transition-transform">
             <Eye size={48} strokeWidth={3} />
           </div>
           <p className="font-black uppercase tracking-[0.3em] text-white text-xs">Reveal Bite</p>
+          
+          <div className="absolute bottom-8 left-8 right-8 grid grid-cols-4 gap-3 bg-black/10 backdrop-blur-md p-3 rounded-2xl">
+                   <button onClick={(e) => { e.stopPropagation(); onAction('pass', item); }} className="p-3 bg-white/10 rounded-xl text-white/50 hover:bg-red-500/20 hover:text-red-200 transition-colors flex items-center justify-center"><X size={20} strokeWidth={3} /></button>
+                   <button onClick={(e) => { e.stopPropagation(); onAction('like', item); }} className="p-3 bg-white/10 rounded-xl text-white/50 hover:bg-emerald-500/20 hover:text-emerald-200 transition-colors flex items-center justify-center"><Heart size={20} strokeWidth={3} /></button>
+                   <button onClick={(e) => { e.stopPropagation(); onAction('share', item); }} className="p-3 bg-white/10 rounded-xl text-white/50 hover:bg-yellow-500/20 hover:text-yellow-200 transition-colors flex items-center justify-center"><Share2 size={20} strokeWidth={3} /></button>
+                   <button onClick={(e) => { e.stopPropagation(); onAction('save', item); }} className="p-3 bg-white/10 rounded-xl text-white/50 hover:bg-blue-500/20 hover:text-blue-200 transition-colors flex items-center justify-center"><Bookmark size={20} strokeWidth={3} /></button>
+          </div>
         </button>
 
         {/* Back */}
@@ -785,7 +793,7 @@ const BitesGrid = ({
   onReset: () => void;
 }) => {
   if (loading) {
-    return <div className="py-20 text-center animate-pulse font-black uppercase text-stone-200 tracking-widest">Compiling Pack...</div>;
+    return <BitesSkeleton />;
   }
 
   if (filteredRecipes.length === 0) {
@@ -814,7 +822,7 @@ const BitesGrid = ({
           tabIndex={0}
           className="group cursor-pointer text-left w-full"
         >
-          <div className="relative aspect-[4/5] rounded-[3.5rem] border-4 border-white shadow-xl overflow-hidden group-hover:scale-[1.02] transition-transform duration-500">
+          <div className="relative aspect-[4/5] rounded-[1.75rem] border-4 border-white shadow-xl overflow-hidden group-hover:scale-[1.02] transition-transform duration-500">
             <img src={recipe.image} alt={recipe.title || 'Recipe'} className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent" />
             <div className="absolute bottom-10 left-10 right-10 text-white">
@@ -857,7 +865,7 @@ const BitesRecipeModal = ({
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="bg-white w-full max-w-4xl rounded-[4rem] shadow-2xl overflow-hidden flex flex-col md:flex-row relative max-h-[90vh]"
+        className="bg-white w-full max-w-4xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col md:flex-row relative max-h-[90vh]"
       >
         <button 
           onClick={onClose} 
@@ -1430,7 +1438,7 @@ User description: ${description}`;
                     </div>
                   </div>
                 ) : generatedRecipe ? (
-                  <div className="bg-white text-stone-950 rounded-[4rem] overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] animate-in zoom-in-95 duration-500 border-[12px] border-white">
+                  <div className="bg-white text-stone-950 rounded-[2rem] overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] animate-in zoom-in-95 duration-500 border-[12px] border-white">
                     <div className="aspect-video relative">
                       <img src={image || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?auto=format&fit=crop&w=800'} alt="Recipe preview" className="w-full h-full object-cover" />
                       <div className="absolute top-6 left-6 flex gap-2">
@@ -1750,24 +1758,46 @@ const FeedView = ({ onSave, onShareRequest, onOpenUserProfile }: { onSave: (item
       );
     }
 
-    return items.map((item, i) => {
-      const isAdOrTrivia = item.itemType === 'ad' || item.itemType === 'trivia';
-
-      return (
-        <SwipeCard key={item.id} active={i === 0} onSwipe={handleSwipe}>
-          <img src={item.img} alt={item.name || 'Feed item'} className="w-full h-full object-cover" />
-          {!isAdOrTrivia && (
-            <>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent" />
-              <div className="absolute bottom-10 left-10 right-10 text-white">
-                <h3 className="text-4xl font-black uppercase tracking-tighter mb-2 leading-none">{item.name}</h3>
-                <Badge color="yellow">{item.cat}</Badge>
-              </div>
-            </>
-          )}
-        </SwipeCard>
-      );
-    });
+    return (
+      <div className="flex-grow flex flex-col">
+        <div className="relative flex-grow">
+          {items.map((item, i) => {
+            const isAdOrTrivia = item.itemType === 'ad' || item.itemType === 'trivia';
+            return (
+              <SwipeCard key={item.id} active={i === 0} onSwipe={handleSwipe}>
+                <img src={item.img} alt={item.name || 'Feed item'} className="w-full h-full object-cover" />
+                {!isAdOrTrivia && (
+                  <>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent" />
+                    <div className="absolute bottom-10 left-10 right-10 text-white">
+                      <h3 className="text-4xl font-black uppercase tracking-tighter mb-2 leading-none">{item.name}</h3>
+                      <Badge color="yellow">{item.cat}</Badge>
+                      
+                      <div className="grid grid-cols-4 gap-3 bg-black/10 backdrop-blur-md p-3 rounded-2xl mt-6">
+                        <button onClick={(e) => { e.stopPropagation(); handleAction('pass', item); handleSwipe('left'); }} className="p-3 bg-white/10 rounded-xl text-white/50 hover:bg-red-500/20 hover:text-red-200 transition-colors flex items-center justify-center"><X size={20} strokeWidth={3} /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleAction('like', item); handleSwipe('right'); }} className="p-3 bg-white/10 rounded-xl text-white/50 hover:bg-emerald-500/20 hover:text-emerald-200 transition-colors flex items-center justify-center"><Heart size={20} strokeWidth={3} /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleAction('share', item); }} className="p-3 bg-white/10 rounded-xl text-white/50 hover:bg-yellow-500/20 hover:text-yellow-200 transition-colors flex items-center justify-center"><Share2 size={20} strokeWidth={3} /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleAction('save', item); }} className="p-3 bg-white/10 rounded-xl text-white/50 hover:bg-blue-500/20 hover:text-blue-200 transition-colors flex items-center justify-center"><Bookmark size={20} strokeWidth={3} /></button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </SwipeCard>
+            );
+          })}
+        </div>
+        
+        {/* Mobile Indicators */}
+        <div className="flex justify-center gap-2 mt-8 mb-4">
+          {Array.from({ length: Math.min(items.length, 6) }).map((_, i) => (
+            <div 
+              key={i} 
+              className={`h-1.5 transition-all duration-300 rounded-full ${i === 0 ? 'w-8 bg-yellow-400' : 'w-1.5 bg-stone-200'}`} 
+            />
+          ))}
+        </div>
+      </div>
+    );
   };
 
   const handleAction = (action: string, item: AppItem) => {
@@ -1814,6 +1844,16 @@ const FeedView = ({ onSave, onShareRequest, onOpenUserProfile }: { onSave: (item
         </header>
 
         {renderDesktopFeedContent()}
+
+        {/* Indicators */}
+        <div className="flex gap-2.5">
+          {Array.from({ length: Math.min(Math.ceil(items.length / BATCH_SIZE), 8) }).map((_, i) => (
+            <div 
+              key={i} 
+              className={`h-2 transition-all duration-300 rounded-full ${Math.floor(batchIndex / BATCH_SIZE) === i ? 'w-10 bg-yellow-400' : 'w-2 bg-stone-200'}`} 
+            />
+          ))}
+        </div>
 
         <button 
           onClick={dealNext}
@@ -2178,7 +2218,7 @@ const AITrimStudio = ({
                   </div>
                 ) : generatedTrim ? (
                   <div className="space-y-8">
-                    <div className="relative aspect-[9/16] rounded-[4rem] overflow-hidden bg-stone-900 shadow-2xl border-[12px] border-white group">
+                    <div className="relative aspect-[9/16] rounded-[2rem] overflow-hidden bg-stone-900 shadow-2xl border-[12px] border-white group">
                       {video ? (
                         <video src={video} className="w-full h-full object-cover" autoPlay loop muted />
                       ) : (
@@ -2497,7 +2537,7 @@ const TrimsView = ({ onSave, onShareRequest, authUser }: { onSave: (item: AppIte
 
   if (loading) {
     return (
-      <div className="h-[80vh] w-full max-w-md mx-auto rounded-[3.5rem] bg-stone-900 shadow-2xl border-4 border-white flex items-center justify-center text-white font-black uppercase tracking-widest text-xs">
+      <div className="h-[80vh] w-full max-w-md mx-auto rounded-[1.75rem] bg-stone-900 shadow-2xl border-4 border-white flex items-center justify-center text-white font-black uppercase tracking-widest text-xs">
         Loading Trims...
       </div>
     );
@@ -2506,10 +2546,10 @@ const TrimsView = ({ onSave, onShareRequest, authUser }: { onSave: (item: AppIte
   return (
     <div className="h-[80vh] w-full max-w-md mx-auto relative">
       <div className="absolute top-6 right-6 z-30 px-4 py-2 bg-black/35 border border-white/20 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest backdrop-blur-md">
-        {feedSourceLabel} Â· {locationLabel}
+        {feedSourceLabel} • {locationLabel}
       </div>
 
-      <div ref={trimsScrollRootRef} className="h-full w-full relative snap-y snap-mandatory overflow-y-auto hide-scrollbar rounded-[3.5rem] bg-stone-900 shadow-2xl border-4 border-white">
+      <div ref={trimsScrollRootRef} className="h-full w-full relative snap-y snap-mandatory overflow-y-auto hide-scrollbar rounded-[1.75rem] bg-stone-900 shadow-2xl border-4 border-white">
       {serviceError && (
         <div className="absolute top-4 left-4 right-4 z-30 px-4 py-3 bg-yellow-50/95 border border-yellow-100 rounded-2xl text-[12px] font-bold text-yellow-800 backdrop-blur-sm">
           {serviceError}
@@ -2531,14 +2571,20 @@ const TrimsView = ({ onSave, onShareRequest, authUser }: { onSave: (item: AppIte
 
             if (canEmbed && isActiveTrim) {
               return (
-                <iframe
-                  src={buildTrimEmbedUrl(videoId, true)}
-                  title={v.title || 'Trim video'}
-                  className="w-full h-full object-cover"
-                  allow="autoplay; encrypted-media; picture-in-picture"
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  allowFullScreen
-                />
+                <>
+                  <iframe
+                    src={buildTrimEmbedUrl(videoId, true)}
+                    title={v.title || 'Trim video'}
+                    className="w-full h-full object-cover"
+                    allow="autoplay; encrypted-media; picture-in-picture"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                  />
+                  {/* Video Progress Indicator */}
+                  <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/10 overflow-hidden z-20">
+                    <div className="h-full bg-yellow-400 animate-progress-fill origin-left" style={{ width: '100%' }} />
+                  </div>
+                </>
               );
             }
 
@@ -2613,7 +2659,7 @@ const ChefAIView = () => {
   }, []);
 
   return (
-    <div className="max-w-2xl mx-auto h-[75vh] flex flex-col bg-white rounded-[3.5rem] shadow-2xl border-4 border-white overflow-hidden">
+    <div className="max-w-2xl mx-auto h-[75vh] flex flex-col bg-white rounded-[1.75rem] shadow-2xl border-4 border-white overflow-hidden">
       <header className="p-8 border-b bg-stone-50 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-stone-900 rounded-2xl flex items-center justify-center text-yellow-400 shadow-xl"><Bot size={24} /></div>
@@ -2892,7 +2938,7 @@ const ChatView = ({
   };
 
   if (activeId && active) return (
-    <div className="max-w-2xl mx-auto h-[75vh] flex flex-col bg-white rounded-[3.5rem] shadow-2xl border-4 border-white overflow-hidden animate-in slide-in-from-right duration-300">
+    <div className="max-w-2xl mx-auto h-[75vh] flex flex-col bg-white rounded-[1.75rem] shadow-2xl border-4 border-white overflow-hidden animate-in slide-in-from-right duration-300">
       <header className="p-8 border-b flex items-center justify-between bg-stone-50/50">
         <button onClick={() => setActiveId(null)} className="p-2 hover:bg-stone-50 rounded-xl transition-colors"><ChevronLeft size={28} /></button>
         <div className="flex items-center gap-3">
@@ -3775,7 +3821,7 @@ const SnapStudio = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onCl
               </div>
 
               <div className="max-w-xl w-full">
-                <div className="relative aspect-[9/16] rounded-[4rem] overflow-hidden bg-stone-900 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] border-[12px] border-white group">
+                <div className="relative aspect-[9/16] rounded-[2rem] overflow-hidden bg-stone-900 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] border-[12px] border-white group">
                   <img src={capturedImage} alt="Snap review" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
                   
@@ -4848,7 +4894,7 @@ const App = () => {
       </aside>
 
       <a href="#main-content" className="skip-to-content">Skip to content</a>
-      <main id="main-content" className="flex-grow max-w-6xl mx-auto w-full px-6 md:px-12 relative pt-8 pb-32 md:pb-12">
+      <main id="main-content" className="flex-grow max-w-6xl mx-auto w-full px-6 md:px-12 relative pt-8 pb-48 md:pb-12">
         <header className="flex items-center justify-between mb-8 md:hidden px-2">
           <button onClick={() => setSidebarOpen(true)} aria-label="Open menu" className="p-3 bg-stone-900 text-yellow-400 rounded-2xl shadow-lg active:scale-90 transition-transform rotate-3">
             <ChefHat size={24} strokeWidth={2.5} />
@@ -4891,6 +4937,25 @@ const App = () => {
         <NavIcon icon={PlayCircle} active={tab === 'trims'} onClick={() => setTab('trims')} label="Trims" />
         <NavIcon icon={MapPin} active={tab === 'scout'} onClick={() => setTab('scout')} label="Scout" />
       </nav>
+
+
+      {/* Desktop Chat Widget */}
+      <div className="fixed bottom-8 right-8 z-[150] hidden md:flex flex-col items-end gap-4">
+        <button 
+          onClick={() => setTab('chat')}
+          aria-label="Open Chat"
+          className="w-16 h-16 bg-stone-900 text-yellow-400 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.3)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all group border-4 border-white"
+        >
+          <div className="relative">
+            <MessageSquare size={28} strokeWidth={2.5} />
+            {totalUnread > 0 && (
+              <span className="absolute -top-3 -right-3 min-w-6 h-6 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-black flex items-center justify-center border-2 border-white">
+                {totalUnread > 99 ? '99+' : totalUnread}
+              </span>
+            )}
+          </div>
+        </button>
+      </div>
 
       {sidebarOpen && <button type="button" aria-label="Close sidebar" className="fixed inset-0 bg-stone-900/40 backdrop-blur-xl z-[190] md:hidden" onClick={() => setSidebarOpen(false)} />}
     </div>

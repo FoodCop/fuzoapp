@@ -1,4 +1,4 @@
-import { Trophy } from 'lucide-react';
+import { Trophy, Star, Award } from 'lucide-react';
 import type { LeaderboardEntry } from '../services/pointsService';
 import { Avatar } from '../../../shared/ui/Avatar';
 import type { AuthUser } from '../../auth/types/auth';
@@ -23,9 +23,7 @@ export const LeaderboardView = ({
   };
 
   const medalLabelByRank = (rank: number) => {
-    if (rank === 1) return '🥇';
-    if (rank === 2) return '🥈';
-    return '🥉';
+    return null; // Using Lucide icons now
   };
 
   const leaders = leaderboardUsers.slice(0, 25).map((leader, index) => ({
@@ -39,7 +37,7 @@ export const LeaderboardView = ({
   }));
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in pb-32">
+    <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in pb-12">
       <header className="text-center space-y-4 py-8">
         <div className="inline-flex p-4 bg-yellow-400 rounded-3xl text-stone-900 shadow-2xl rotate-3 mb-4">
           <Trophy size={32} strokeWidth={2.5} />
@@ -52,11 +50,19 @@ export const LeaderboardView = ({
         {leaders.map((leader) => (
           <button key={leader.id} onClick={() => onOpenUserProfile(leader.id)} className="w-full p-8 flex items-center justify-between hover:bg-stone-50 transition-colors text-left">
             <div className="flex items-center gap-6">
-              <div className="w-10 text-center">
-                {leader.rank <= 3 ? (
-                  <span className={`text-2xl ${medalClassByRank(leader.rank)}`}>
-                    {medalLabelByRank(leader.rank)}
-                  </span>
+              <div className="w-12 h-12 flex items-center justify-center">
+                {leader.rank === 1 ? (
+                  <div className="p-3 bg-yellow-50 rounded-2xl text-yellow-500 shadow-sm border border-yellow-100">
+                    <Trophy size={24} strokeWidth={3} />
+                  </div>
+                ) : leader.rank === 2 ? (
+                  <div className="p-3 bg-stone-50 rounded-2xl text-stone-400 shadow-sm border border-stone-100">
+                    <Award size={24} strokeWidth={3} />
+                  </div>
+                ) : leader.rank === 3 ? (
+                  <div className="p-3 bg-orange-50 rounded-2xl text-orange-400 shadow-sm border border-orange-100">
+                    <Star size={24} strokeWidth={3} />
+                  </div>
                 ) : (
                   <span className="text-lg font-black text-stone-200">#{leader.rank}</span>
                 )}
