@@ -114,6 +114,7 @@ const motion = {
   h2: (props: any) => <h2 {...props} />,
   p: (props: any) => <p {...props} />,
   span: (props: any) => <span {...props} />,
+  video: (props: any) => <video {...props} />,
 };
 
 const AnimatePresence = ({ children }: { children?: React.ReactNode; mode?: string }) => <>{children}</>;
@@ -1906,30 +1907,21 @@ const FeedView = ({ onSave, onShareRequest, onOpenUserProfile }: { onSave: (item
 };
 
 const BitesView = ({ onSave, onShareRequest }: { onSave: (item: BiteActionItem) => void, onShareRequest: (item: BiteActionItem) => void }) => {
-  const [activeCuisine, setActiveCuisine] = useState<string | null>(null);
-  const [activeDiet, setActiveDiet] = useState<string | null>(null);
   const [selectedRecipe, setSelectedRecipe] = useState<BiteRecipe | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const {
     loading,
     serviceError,
     searchQuery,
-    activeDiet: _activeDiet,
-    activeCuisine: _activeCuisine,
+    activeDiet,
+    activeCuisine,
     filteredRecipes,
     setSearchQuery,
-    setActiveDiet: _setActiveDiet,
-    setActiveCuisine: _setActiveCuisine,
+    setActiveDiet,
+    setActiveCuisine,
     fetchBites,
   } = useBitesFeed();
 
-  const filteredItems = useMemo(() => {
-    return filteredRecipes.filter(item => {
-      if (activeCuisine && item.cuisine !== activeCuisine) return false;
-      if (activeDiet && item.diet !== activeDiet) return false;
-      return true;
-    });
-  }, [filteredRecipes, activeCuisine, activeDiet]);
 
   const handleSearchSubmit = () => {
     fetchBites(true, searchQuery);
@@ -1966,16 +1958,16 @@ const BitesView = ({ onSave, onShareRequest }: { onSave: (item: BiteActionItem) 
         </div>
       )}
       
-      {loading && filteredItems.length === 0 ? (
+      {loading && filteredRecipes.length === 0 ? (
         <div className="py-24 flex items-center justify-center"><Loader2 className="animate-spin text-white/20" size={48} /></div>
-      ) : filteredItems.length === 0 ? (
+      ) : filteredRecipes.length === 0 ? (
         <div className="py-24 text-center space-y-4">
           <p className="text-stone-500 font-bold uppercase tracking-widest text-xs">No recipes match these filters</p>
           <button onClick={() => { setActiveCuisine(null); setActiveDiet(null); }} className="px-8 py-3 bg-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest">Clear Filters</button>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filteredItems.map((recipe) => (
+          {filteredRecipes.map((recipe) => (
             <button
               type="button"
               key={recipe.id}
@@ -3353,6 +3345,7 @@ const LANDING_FEATURES = [
     description: "Your feed adapts in real time, with recipes, short-form videos, and places curated to your taste, location, and behavior.",
     microline: "Discover -> Save -> Share -> Refine",
     image: "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80",
+    video: "/videos/video1.mp4",
     icon: Sparkles
   },
   {
@@ -3361,6 +3354,7 @@ const LANDING_FEATURES = [
     description: "Break dishes into structured components: ingredients, techniques, and logic, so you don't just follow recipes, you understand them.",
     microline: "From consumption -> comprehension",
     image: "https://images.unsplash.com/photo-1550317138-10000687ad32?auto=format&fit=crop&w=800&q=80",
+    video: "/videos/video2.mp4",
     icon: ChefHat
   },
   {
@@ -3369,6 +3363,7 @@ const LANDING_FEATURES = [
     description: "Explore nearby restaurants through live data, menus, reviews, and geo-aware recommendations tuned to your taste profile.",
     microline: "Map + Memory + Taste Graph",
     image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80",
+    video: "/videos/video3.mp4",
     icon: MapPin
   },
   {
@@ -3377,6 +3372,7 @@ const LANDING_FEATURES = [
     description: "A localized video feed that understands where you are and what you like, delivering relevant culinary content instead of random noise.",
     microline: "Signal > Scroll",
     image: "https://images.unsplash.com/photo-1577308856961-8e9ec50d0c67?auto=format&fit=crop&w=800&q=80",
+    video: "/videos/video4.mp4",
     icon: PlayCircle
   },
   {
@@ -3385,6 +3381,7 @@ const LANDING_FEATURES = [
     description: "Build your culinary identity and unlock exclusive access. Earn points, climb the leaderboard, and partner with AI trained for food workflows.",
     microline: "Think less. Create more. Access more.",
     image: "https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&w=800&q=80",
+    video: "/videos/video5.mp4",
     icon: Trophy
   }
 ];
@@ -3400,7 +3397,7 @@ const HeroCarousel = ({ onStart }: { onStart: () => void }) => {
   }, []);
 
   return (
-    <section className="relative h-screen bg-white overflow-hidden">
+    <section className="relative h-screen bg-stone-900 overflow-hidden">
       <AnimatePresence mode="wait">
         <motion.div
           key={index}
@@ -3410,79 +3407,119 @@ const HeroCarousel = ({ onStart }: { onStart: () => void }) => {
           transition={{ duration: 1.2, ease: "easeInOut" }}
           className="absolute inset-0"
         >
-          <div className="flex h-full flex-col lg:flex-row">
-            {/* Content Side */}
-            <div className={`w-full lg:w-1/2 flex items-center p-12 lg:p-24 ${index === 0 ? 'bg-[#fbd556]' : index % 2 === 0 ? 'bg-stone-50' : 'bg-white'}`}>
-              <div className="space-y-8 max-w-xl text-stone-900">
-                <div className="space-y-4">
-                  <div className={`inline-flex items-center gap-3 px-4 py-2 ${index === 0 ? 'bg-stone-900 text-yellow-400' : 'bg-stone-100 text-stone-900'} rounded-full shadow-sm`}>
-                    {React.createElement(LANDING_FEATURES[index].icon, { size: 18 })}
-                    <span className="text-[12px] font-black uppercase tracking-widest">{LANDING_FEATURES[index].subtitle}</span>
-                  </div>
-                  <motion.h2 className="text-6xl md:text-8xl font-black uppercase tracking-tighter leading-[0.85] text-stone-900">
-                    {LANDING_FEATURES[index].title.split(' ').map((word, i) => (
-                      <span key={i} className={i === 1 || word === 'UNDISCOVERED' ? 'italic opacity-60' : ''}>
-                        {word}{' '}
-                      </span>
-                    ))}
-                  </motion.h2>
-                </div>
-                <motion.p className="text-xl md:text-2xl font-bold leading-tight text-stone-800">
-                  {LANDING_FEATURES[index].description}
-                </motion.p>
-                
-                <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
-                  <button
-                    onClick={onStart}
-                    className="w-full sm:w-auto px-12 py-6 bg-stone-900 text-white rounded-[2.5rem] font-black uppercase tracking-widest text-sm hover:scale-105 active:scale-95 transition-all shadow-xl flex items-center justify-center gap-2 group"
-                  >
-                    Enter FUZO
-                    <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                  </button>
-                  <button
-                    className="w-full sm:w-auto px-12 py-6 bg-white text-stone-900 border-2 border-stone-900/10 rounded-[2.5rem] font-black uppercase tracking-widest text-sm hover:bg-stone-50 hover:border-stone-900 transition-all flex items-center justify-center gap-2"
-                  >
-                    <PlayCircle size={18} />
-                    Watch Reel
-                  </button>
-                </div>
-
-                <motion.p className="text-[11px] font-black uppercase tracking-[0.4em] text-stone-900/30 pt-4">
-                  {LANDING_FEATURES[index].microline}
-                </motion.p>
-              </div>
-            </div>
-
-            {/* Image Side */}
-            <div className="w-full lg:w-1/2 relative bg-stone-950 overflow-hidden">
+          {/* Background Video */}
+          <div className="absolute inset-0 z-0 bg-stone-950">
+             {LANDING_FEATURES[index].video ? (
+               <motion.video
+                 key={`video-${index}`}
+                 initial={{ opacity: 0, scale: 1.1 }}
+                 animate={{ opacity: 1, scale: 1 }}
+                 transition={{ duration: 1.8 }}
+                 src={LANDING_FEATURES[index].video}
+                 poster={LANDING_FEATURES[index].image}
+                 autoPlay
+                 muted
+                 loop
+                 playsInline
+                 className="w-full h-full object-cover opacity-60"
+               />
+             ) : (
                <motion.img 
                  key={`img-${index}`}
                  initial={{ scale: 1.2, opacity: 0 }}
                  animate={{ scale: 1, opacity: 1 }}
                  transition={{ duration: 2, ease: "easeOut" }}
                  src={LANDING_FEATURES[index].image} 
-                 className="w-full h-full object-cover opacity-70" 
+                 className="w-full h-full object-cover opacity-50" 
                  alt=""
                />
-               <div className="absolute inset-0 bg-gradient-to-r from-stone-950/40 to-transparent" />
-               {index === 0 && (
-                 <div className="absolute inset-0 border-[20px] border-white/5 pointer-events-none" />
-               )}
+             )}
+             {/* Gradient Overlays for Readability */}
+             <div className="absolute inset-0 bg-gradient-to-b from-stone-950/40 via-transparent to-stone-950/60 z-10" />
+             <div className="absolute inset-0 bg-black/20 z-10" />
+          </div>
+
+          {/* Centered Content */}
+          <div className="relative z-20 h-full flex flex-col items-center justify-center p-6 text-center">
+            <div className="space-y-8 max-w-4xl mx-auto flex flex-col items-center">
+              <div className="space-y-6 flex flex-col items-center">
+                <motion.div 
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="inline-flex items-center gap-3 px-6 py-2.5 bg-white/10 backdrop-blur-xl text-white rounded-full border border-white/20 shadow-2xl"
+                >
+                  {React.createElement(LANDING_FEATURES[index].icon, { size: 18, className: "text-yellow-400" })}
+                  <span className="text-[12px] font-black uppercase tracking-[0.2em]">{LANDING_FEATURES[index].subtitle}</span>
+                </motion.div>
+                
+                <motion.h2 
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-6xl md:text-9xl font-black uppercase tracking-tighter leading-[0.8] text-white"
+                >
+                  {LANDING_FEATURES[index].title.split(' ').map((word, i) => (
+                    <span key={i} className={i === 1 || word === 'UNDISCOVERED' ? 'italic opacity-60' : ''}>
+                      {word}{' '}
+                    </span>
+                  ))}
+                </motion.h2>
+              </div>
+
+              <motion.p 
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                className="text-xl md:text-3xl font-bold leading-tight text-white/80 max-w-2xl"
+              >
+                {LANDING_FEATURES[index].description}
+              </motion.p>
+              
+              <motion.div 
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.8 }}
+                className="pt-8"
+              >
+                <button
+                  onClick={onStart}
+                  className="px-16 py-8 bg-yellow-400 text-stone-900 rounded-[3rem] font-black uppercase tracking-widest text-sm hover:scale-105 hover:bg-white active:scale-95 transition-all shadow-[0_20px_50px_rgba(251,213,86,0.3)] flex items-center justify-center gap-3 group"
+                >
+                  Enter Experience
+                  <ChevronRight size={22} strokeWidth={3} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+              </motion.div>
+
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.4 }}
+                transition={{ delay: 1 }}
+                className="text-[11px] font-black uppercase tracking-[0.5em] text-white pt-12"
+              >
+                {LANDING_FEATURES[index].microline}
+              </motion.p>
             </div>
           </div>
         </motion.div>
       </AnimatePresence>
 
-      {/* Navigation Controls */}
-      <div className="absolute bottom-12 left-12 lg:left-24 z-30 flex gap-4 items-center">
+      {/* Centered Navigation Controls */}
+      <div className="absolute bottom-16 inset-x-0 z-30 flex justify-center gap-6 items-center">
         {LANDING_FEATURES.map((_, i) => (
           <button
             key={i}
             onClick={() => setIndex(i)}
-            className={`transition-all duration-700 ${index === i ? 'w-16 h-2 bg-stone-900' : 'w-4 h-1.5 bg-stone-200 hover:bg-stone-300'} rounded-full`}
+            className={`transition-all duration-700 ${index === i ? 'w-20 h-2 bg-yellow-400' : 'w-6 h-1.5 bg-white/20 hover:bg-white/40'} rounded-full`}
             aria-label={`Go to slide ${i + 1}`}
           />
         ))}
+      </div>
+
+      <div className="absolute top-12 left-12 z-30 pointer-events-none">
+        <div className="w-16 h-16 bg-white/10 backdrop-blur-2xl rounded-3xl border border-white/20 flex items-center justify-center text-white rotate-3">
+          <ChefHat size={32} />
+        </div>
       </div>
     </section>
   );
@@ -3490,7 +3527,7 @@ const HeroCarousel = ({ onStart }: { onStart: () => void }) => {
 
 const LandingPage = ({ onStart }: { onStart: () => void }) => {
   return (
-    <div className="h-screen bg-[#fbd556] text-stone-900 overflow-hidden selection:bg-stone-900 selection:text-white">
+    <div className="h-screen bg-stone-950 text-white overflow-hidden selection:bg-yellow-400 selection:text-stone-900">
       <HeroCarousel onStart={onStart} />
     </div>
   );

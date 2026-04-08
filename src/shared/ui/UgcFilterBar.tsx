@@ -38,7 +38,7 @@ const UgcFilterBar: React.FC<UgcFilterBarProps> = ({
           >
             {cuisine}
           </button>
-        )}
+        ))}
       </div>
 
       {onDietChange && (
