@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ChefHat, ChevronRight, Loader2 } from 'lucide-react';
 import { supabase } from '../../../services/supabaseClient';
@@ -161,9 +161,15 @@ export const AuthView = ({
   }
 
   return (
-    <div className="min-h-screen bg-stone-900 flex items-center justify-center p-6 relative overflow-hidden">
-      <div className="absolute inset-0 opacity-10 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,#facc15_0%,transparent_70%)]" />
+    <div className="min-h-screen bg-stone-950 flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Cinematic Background */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80" 
+          className="w-full h-full object-cover opacity-40 blur-sm" 
+          alt="" 
+        />
+        <div className="absolute inset-0 bg-gradient-to-tr from-stone-950 via-stone-950/80 to-stone-950/40" />
       </div>
 
       <motion.div 

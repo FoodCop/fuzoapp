@@ -1,4 +1,5 @@
-﻿import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight, MapPin, Phone, RefreshCw } from 'lucide-react';
 import { AUTH_ONBOARDING_V2_DATA } from '../constants/onboardingV2Data';
 import type { OnboardingLocation, OnboardingV2Payload } from '../types/onboarding';
@@ -9,6 +10,12 @@ const defaultLocation: OnboardingLocation = {
   city: '',
   detected: false,
 };
+
+const ONBOARDING_BACKGROUNDS = [
+  "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1200&q=80", // Discovery (Slide 1)
+  "https://images.unsplash.com/photo-1550317138-10000687ad32?auto=format&fit=crop&w=1200&q=80", // Bites (Slide 2)
+  "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=1200&q=80", // Scout (Slide 3)
+];
 
 export const OnboardingV2Flow = ({
   onComplete,
@@ -68,8 +75,27 @@ export const OnboardingV2Flow = ({
   };
 
   return (
-    <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4 sm:p-6">
-      <div className="w-full max-w-xl bg-white p-8 sm:p-12 md:p-16 rounded-[2.5rem] sm:rounded-[4rem] shadow-2xl border-4 border-white space-y-8 md:space-y-10">
+    <div className="min-h-screen bg-stone-950 flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
+      {/* Background Cinematic Backdrop */}
+      <AnimatePresence mode="wait">
+        <motion.div
+           key={`bg-${stepIndex}`}
+           initial={{ opacity: 0 }}
+           animate={{ opacity: 0.3 }}
+           exit={{ opacity: 0 }}
+           transition={{ duration: 1 }}
+           className="absolute inset-0 z-0"
+        >
+          <img 
+            src={ONBOARDING_BACKGROUNDS[stepIndex] || ONBOARDING_BACKGROUNDS[0]} 
+            className="w-full h-full object-cover blur-sm" 
+            alt="" 
+          />
+          <div className="absolute inset-0 bg-stone-950/60" />
+        </motion.div>
+      </AnimatePresence>
+
+      <div className="w-full max-w-xl bg-white p-8 sm:p-12 md:p-16 rounded-[2.5rem] sm:rounded-[4rem] shadow-2xl border-4 border-white space-y-8 md:space-y-10 relative z-10">
         <div className="flex justify-between items-center">
           <span className="px-2.5 py-1 rounded-full text-[12px] font-black uppercase tracking-widest bg-yellow-100 text-yellow-800 whitespace-nowrap">
             Step {stepIndex + 1} of {totalSteps}

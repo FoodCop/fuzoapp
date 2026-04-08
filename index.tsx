@@ -3333,16 +3333,17 @@ const LANDING_FEATURES = [
   {
     subtitle: "FUZO",
     title: "THE UNDISCOVERED GASTRONOMY",
-    description: "The world's first AI-native discovery engine for fine dining, recipe architecture, and culinary networks.",
-    microline: "Think less. Create more. Access more.",
+    description: "The worlds first AI native discovery engine for fine dining recipe architecture and culinary networks",
+    microline: "Think less Create more Access more",
     image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80",
+    video: "/videos/video6.mp4",
     icon: ChefHat,
     isHero: true
   },
   {
     subtitle: "Discovery",
     title: "YOUR PERSONALIZED FOOD GRAPH",
-    description: "Your feed adapts in real time, with recipes, short-form videos, and places curated to your taste, location, and behavior.",
+    description: "Your feed adapts in real time with recipes short form videos and places curated to your taste location and behavior",
     microline: "Discover -> Save -> Share -> Refine",
     image: "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80",
     video: "/videos/video1.mp4",
@@ -3350,8 +3351,8 @@ const LANDING_FEATURES = [
   },
   {
     subtitle: "Studio Bites",
-    title: "RECIPES, REWIRED",
-    description: "Break dishes into structured components: ingredients, techniques, and logic, so you don't just follow recipes, you understand them.",
+    title: "RECIPES REWIRED",
+    description: "Break dishes into structured components ingredients techniques and logic so you dont just follow recipes you understand them",
     microline: "From consumption -> comprehension",
     image: "https://images.unsplash.com/photo-1550317138-10000687ad32?auto=format&fit=crop&w=800&q=80",
     video: "/videos/video2.mp4",
@@ -3359,8 +3360,8 @@ const LANDING_FEATURES = [
   },
   {
     subtitle: "Scout Maps",
-    title: "DISCOVER WHAT'S AROUND YOU, INTELLIGENTLY",
-    description: "Explore nearby restaurants through live data, menus, reviews, and geo-aware recommendations tuned to your taste profile.",
+    title: "DISCOVER WHATS AROUND YOU INTELLIGENTLY",
+    description: "Explore nearby restaurants through live data menus reviews and geo aware recommendations tuned to your taste profile",
     microline: "Map + Memory + Taste Graph",
     image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80",
     video: "/videos/video3.mp4",
@@ -3368,8 +3369,8 @@ const LANDING_FEATURES = [
   },
   {
     subtitle: "Fuzo Trims",
-    title: "SHORT-FORM FOOD. CONTEXTUALIZED.",
-    description: "A localized video feed that understands where you are and what you like, delivering relevant culinary content instead of random noise.",
+    title: "SHORT FORM FOOD CONTEXTUALIZED",
+    description: "A localized video feed that understands where you are and what you like delivering relevant culinary content instead of random noise",
     microline: "Signal > Scroll",
     image: "https://images.unsplash.com/photo-1577308856961-8e9ec50d0c67?auto=format&fit=crop&w=800&q=80",
     video: "/videos/video4.mp4",
@@ -3378,8 +3379,8 @@ const LANDING_FEATURES = [
   {
     subtitle: "Ecosystem",
     title: "TURN ACTION INTO PROGRESSION",
-    description: "Build your culinary identity and unlock exclusive access. Earn points, climb the leaderboard, and partner with AI trained for food workflows.",
-    microline: "Think less. Create more. Access more.",
+    description: "Build your culinary identity and unlock exclusive access Earn points climb the leaderboard and partner with AI trained for food workflows",
+    microline: "Think less Create more Access more",
     image: "https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&w=800&q=80",
     video: "/videos/video5.mp4",
     icon: Trophy
@@ -3440,8 +3441,8 @@ const HeroCarousel = ({ onStart }: { onStart: () => void }) => {
           </div>
 
           {/* Centered Content */}
-          <div className="relative z-20 h-full flex flex-col items-center justify-center p-6 text-center">
-            <div className="space-y-8 max-w-4xl mx-auto flex flex-col items-center">
+          <div className="relative z-20 h-full flex flex-col items-center justify-center p-10 md:p-20 text-center pt-32 md:pt-40">
+            <div className="space-y-8 max-w-5xl mx-auto flex flex-col items-center">
               <div className="space-y-6 flex flex-col items-center">
                 <motion.div 
                   initial={{ y: 20, opacity: 0 }}
@@ -3457,10 +3458,10 @@ const HeroCarousel = ({ onStart }: { onStart: () => void }) => {
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.4 }}
-                  className="text-6xl md:text-9xl font-black uppercase tracking-tighter leading-[0.8] text-white"
+                  className="text-5xl md:text-8xl font-black uppercase tracking-tighter leading-[0.8] text-white"
                 >
                   {LANDING_FEATURES[index].title.split(' ').map((word, i) => (
-                    <span key={i} className={i === 1 || word === 'UNDISCOVERED' ? 'italic opacity-60' : ''}>
+                    <span key={i} className={word === 'UNDISCOVERED' || word === 'REWIRED' ? 'italic opacity-60' : ''}>
                       {word}{' '}
                     </span>
                   ))}
@@ -3471,7 +3472,7 @@ const HeroCarousel = ({ onStart }: { onStart: () => void }) => {
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.6 }}
-                className="text-xl md:text-3xl font-bold leading-tight text-white/80 max-w-2xl"
+                className="text-lg md:text-2xl font-bold leading-tight text-white/80 max-w-3xl"
               >
                 {LANDING_FEATURES[index].description}
               </motion.p>
@@ -3480,11 +3481,11 @@ const HeroCarousel = ({ onStart }: { onStart: () => void }) => {
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.8 }}
-                className="pt-8"
+                className="pt-10"
               >
                 <button
                   onClick={onStart}
-                  className="px-16 py-8 bg-yellow-400 text-stone-900 rounded-[3rem] font-black uppercase tracking-widest text-sm hover:scale-105 hover:bg-white active:scale-95 transition-all shadow-[0_20px_50px_rgba(251,213,86,0.3)] flex items-center justify-center gap-3 group"
+                  className="px-14 py-7 bg-yellow-400 text-stone-900 rounded-[3rem] font-black uppercase tracking-widest text-sm hover:scale-105 hover:bg-white active:scale-95 transition-all shadow-[0_20px_50px_rgba(251,213,86,0.3)] flex items-center justify-center gap-3 group"
                 >
                   Enter Experience
                   <ChevronRight size={22} strokeWidth={3} className="group-hover:translate-x-1 transition-transform" />
@@ -3495,7 +3496,7 @@ const HeroCarousel = ({ onStart }: { onStart: () => void }) => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 0.4 }}
                 transition={{ delay: 1 }}
-                className="text-[11px] font-black uppercase tracking-[0.5em] text-white pt-12"
+                className="text-[10px] font-black uppercase tracking-[0.5em] text-white pt-16"
               >
                 {LANDING_FEATURES[index].microline}
               </motion.p>
