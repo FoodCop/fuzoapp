@@ -48,12 +48,10 @@ import { ensureAdTriviaPresence, logFeedParity, normalizeFeedServiceToCards } fr
 import type { FeedUiItem } from './src/features/feed/types/feedUi';
 import { getUserFeedLocation } from './src/features/feed/services/feedLocation';
 import { FeedService } from './src/features/feed/services/feedService';
-import { AuthView } from './src/features/auth/components/AuthView';
-import OnboardingV2Flow from './src/features/auth/components/OnboardingV2Flow';
+import AuthOrchestrator from './src/features/auth/components/AuthOrchestrator';
 import { LandingPage as LandingView } from './src/features/landing/components/LandingView';
 import { APP_PATH, HOME_ENTRY_URL, authDebugLog, getOAuthRedirectUrl, isAppPath, isAuthCallbackPath } from './src/features/auth/lib/oauthRedirect';
 import type { AuthUser } from './src/features/auth/types/auth';
-import type { OnboardingV2Payload } from './src/features/auth/types/onboarding';
 import { BITE_CUISINES, BITE_DIETS } from './src/features/bites/constants/filters';
 import { BITE_FALLBACK_RECIPES } from './src/features/bites/constants/fallbackRecipes';
 import { createBiteRecipeActions, getBiteKeyNutrients, normalizeRecipeList } from './src/features/bites/lib/bitesHelpers';
@@ -3918,7 +3916,6 @@ const App = () => {
   const viewParam = new URLSearchParams(globalThis.location.search).get('view');
   const homeRoute = (pathname === '/' || pathname === APP_PATH) && (viewParam === null || viewParam === 'home');
   const isOnboardingDemoView = viewParam === 'onboarding-demo';
-  const [onboardingDemoPayload, setOnboardingDemoPayload] = useState<OnboardingV2Payload | null>(null);
   const appRoute = isAppPath(pathname);
   const authCallbackRoute = isAuthCallbackPath(pathname);
 
@@ -4559,81 +4556,7 @@ const App = () => {
     }
   };
 
-  const handleOnboardingComplete = async (payload?: OnboardingV2Payload) => {
-    if (supabase) {
-      const metadataUpdate: Record<string, unknown> = {
-        onboarding_completed: true,
-        has_completed_onboarding: true,
-      };
-
-      if (payload) {
-        // Map types to standard display values
-        const typeMap: Record<string, string> = {
-          'individual': 'Individual',
-          'chef': 'Chef',
-          'restaurant': 'Restaurant',
-          'team': 'Culinary Team'
-        };
-
-        const profileType = typeMap[payload.userType] || 'Individual';
-        
-        metadataUpdate.onboarding_v2 = true;
-        metadataUpdate.profile_type = profileType;
-        metadataUpdate.profile_subtype = payload.quizResult || null;
-        metadataUpdate.onboarding_v2_answers = payload.answers;
-        metadataUpdate.quiz_result = payload.quizResult;
-        metadataUpdate.phone = payload.phone || null;
-        metadataUpdate.location = payload.locationLabel || null;
-        metadataUpdate.onboarding_location = payload.location;
-
-        // Sync to public.users table for permanent storage and profile integration
-        try {
-          const { data: userResponse } = await supabase.auth.getUser();
-          const userId = userResponse.user?.id;
-
-          if (userId) {
-            const { error: dbError } = await supabase
-              .from('users')
-              .update({
-                profile_type: profileType,
-                profile_subtype: payload.quizResult || null,
-                phone: payload.phone || null,
-                location: payload.locationLabel || null,
-                cuisine_preferences: payload.answers?.cuisines || [],
-                dietary_preferences: payload.answers?.dietary ? [payload.answers.dietary] : [],
-                onboarding_completed: true,
-                onboarding_v2_metadata: payload
-              })
-              .eq('id', userId);
-
-            if (dbError) {
-              console.error('Failed to sync onboarding to database:', dbError.message);
-            }
-          } else {
-            console.warn('Cannot sync onboarding to database: No authenticated user ID found.');
-          }
-        } catch (err) {
-          console.error('Database sync error:', err);
-        }
-      }
-
-      const { data, error } = await supabase.auth.updateUser({
-        data: metadataUpdate,
-      });
-
-      if (error) {
-        console.warn('Failed to persist onboarding metadata:', error.message);
-      } else if (data.user) {
-        setAuthUser(data.user as AuthUser);
-      }
-    }
-
-    setIsAuthenticated(true);
-    setHasCompletedOnboarding(true);
-    setShowAuth(false);
-    setTab('feed');
-    globalThis.history.replaceState(null, '', `${APP_PATH}?view=feed`);
-  };
+  // handleOnboardingComplete moved to AuthOrchestrator
 
   const [googleMapsReady, setGoogleMapsReady] = useState(false);
 
@@ -4712,74 +4635,32 @@ const App = () => {
     );
   }
 
-  if (isOnboardingDemoView) {
-    return (
-      <div className="min-h-screen bg-stone-50">
-        <div className="max-w-6xl mx-auto px-6 pt-10 pb-4">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-[12px] font-black uppercase tracking-widest text-stone-400">Client Preview</p>
-              <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-stone-900">Onboarding V2 Demo</h1>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setOnboardingDemoPayload(null);
-                setTab('feed');
-                globalThis.history.replaceState(null, '', `${APP_PATH}?view=feed`);
-              }}
-              className="px-4 py-2 rounded-2xl bg-stone-900 text-white text-[12px] font-black uppercase tracking-widest"
-            >
-              Exit Demo
-            </button>
-          </div>
-        </div>
+  const authView = (
+    <AuthOrchestrator
+      isAuthenticated={isAuthenticated}
+      hasCompletedOnboarding={hasCompletedOnboarding}
+      showAuth={showAuth}
+      setAuthUser={setAuthUser}
+      setIsAuthenticated={setIsAuthenticated}
+      setHasCompletedOnboarding={setHasCompletedOnboarding}
+      setShowAuth={setShowAuth}
+      setTab={setTab as any}
+      onboardingV2Enabled={ONBOARDING_V2_ENABLED}
+      appPath={APP_PATH}
+      homeUrl={HOME_ENTRY_URL}
+      homeRoute={homeRoute}
+      appRoute={appRoute}
+      authCallbackRoute={authCallbackRoute}
+    />
+  );
 
-        <OnboardingV2Flow
-          mode="demo"
-          onComplete={(payload) => {
-            setOnboardingDemoPayload(payload);
-          }}
-        />
-
-        {onboardingDemoPayload && (
-          <div className="max-w-3xl mx-auto px-6 pb-12">
-            <div className="bg-white border border-stone-100 rounded-3xl p-6 shadow-sm">
-              <p className="text-[12px] font-black uppercase tracking-widest text-stone-400 mb-3">Latest Demo Submission</p>
-              <pre className="text-xs text-stone-700 overflow-x-auto whitespace-pre-wrap">{JSON.stringify(onboardingDemoPayload, null, 2)}</pre>
-            </div>
-          </div>
-        )}
-      </div>
-    );
+  // Delegate the entire entry-layer rendering to AuthOrchestrator
+  // It will return null if the user should see the main App shell
+  if (isOnboardingDemoView || homeRoute || (showAuth && !hasCompletedOnboarding)) {
+    return authView;
   }
 
-  if (homeRoute && !showAuth) {
-    return <LandingView onStart={() => setShowAuth(true)} />;
-  }
-
-  if (!appRoute && !authCallbackRoute && !isOnboardingDemoView && !homeRoute) {
-    return null;
-  }
-
-  if (showAuth && !hasCompletedOnboarding) {
-    return (
-      <AuthView
-        initialStep={isAuthenticated ? 'onboarding' : 'signin'}
-        useOnboardingV2={ONBOARDING_V2_ENABLED}
-        onComplete={(payload) => {
-          handleOnboardingComplete(payload).catch((error) => {
-            console.warn('Onboarding completion failed:', error);
-            setIsAuthenticated(true);
-            setHasCompletedOnboarding(true);
-            setShowAuth(false);
-            setTab('feed');
-            globalThis.history.replaceState(null, '', `${APP_PATH}?view=feed`);
-          });
-        }}
-      />
-    );
-  }
+  // Auth and Onboarding Orchestration logic moved to AuthOrchestrator
 
   return (
     <div className="min-h-screen bg-stone-50 flex flex-col md:flex-row pb-[env(safe-area-inset-bottom)] overflow-x-hidden">
