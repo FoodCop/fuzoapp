@@ -117,7 +117,7 @@ const motion = {
   video: (props: any) => <video {...props} />,
 };
 
-const AnimatePresence = ({ children }: { children?: React.ReactNode; mode?: string }) => <>{children}</>;
+const AnimatePresence = ({ children }: { children?: React.ReactNode; mode?: string; initial?: boolean }) => <>{children}</>;
 
 const readImageFileAsDataUrl = (file: File): Promise<string> => new Promise((resolve, reject) => {
   const reader = new FileReader();
@@ -4768,11 +4768,54 @@ const App = () => {
       };
 
       if (payload) {
+        // Map types to standard display values
+        const typeMap: Record<string, string> = {
+          'individual': 'Individual',
+          'chef': 'Chef',
+          'restaurant': 'Restaurant',
+          'team': 'Culinary Team'
+        };
+
+        const profileType = typeMap[payload.userType] || 'Individual';
+        
         metadataUpdate.onboarding_v2 = true;
+        metadataUpdate.profile_type = profileType;
+        metadataUpdate.profile_subtype = payload.quizResult || null;
         metadataUpdate.onboarding_v2_answers = payload.answers;
+        metadataUpdate.quiz_result = payload.quizResult;
         metadataUpdate.phone = payload.phone || null;
         metadataUpdate.location = payload.locationLabel || null;
         metadataUpdate.onboarding_location = payload.location;
+
+        // Sync to public.users table for permanent storage and profile integration
+        try {
+          const { data: userResponse } = await supabase.auth.getUser();
+          const userId = userResponse.user?.id;
+
+          if (userId) {
+            const { error: dbError } = await supabase
+              .from('users')
+              .update({
+                profile_type: profileType,
+                profile_subtype: payload.quizResult || null,
+                phone: payload.phone || null,
+                location: payload.locationLabel || null,
+                cuisine_preferences: payload.answers?.cuisines || [],
+                dietary_preferences: payload.answers?.dietary ? [payload.answers.dietary] : [],
+                onboarding_completed: true,
+                onboarding_v2_metadata: payload
+              })
+              .eq('id', userId);
+
+            if (dbError) {
+              console.error('Failed to sync onboarding to database:', dbError.message);
+            }
+          } else {
+            console.warn('Cannot sync onboarding to database: No authenticated user ID found.');
+          }
+        } catch (err) {
+          console.error('Database sync error:', err);
+        }
       }
 
       const { data, error } = await supabase.auth.updateUser({
@@ -4780,7 +4823,7 @@ const App = () => {
       });
 
       if (error) {
-        console.warn('Failed to persist onboarding completion:', error.message);
+        console.warn('Failed to persist onboarding metadata:', error.message);
       } else if (data.user) {
         setAuthUser(data.user as AuthUser);
       }

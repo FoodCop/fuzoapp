@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ChefHat, ChevronRight, Loader2 } from 'lucide-react';
 import { supabase } from '../../../services/supabaseClient';
 import { Badge } from '../../../shared/ui/Badge';
@@ -30,14 +30,14 @@ const AUTH_ONBOARDING_DATA = [
 
 export const AuthView = ({
   onComplete,
-  initialStep = 'signin',
+  initialStep = 'welcome',
   useOnboardingV2 = false,
 }: {
   onComplete: (payload?: OnboardingV2Payload) => void;
-  initialStep?: 'signin' | 'signup' | 'onboarding';
+  initialStep?: 'welcome' | 'signin' | 'signup' | 'onboarding';
   useOnboardingV2?: boolean;
 }) => {
-  const [step, setStep] = useState<'signin' | 'signup' | 'onboarding'>(initialStep);
+  const [step, setStep] = useState<'welcome' | 'signin' | 'signup' | 'onboarding'>(initialStep);
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -177,100 +177,134 @@ export const AuthView = ({
         animate={{ opacity: 1, scale: 1 }}
         className="w-full max-w-lg bg-white p-12 md:p-16 rounded-[4rem] shadow-2xl relative z-10 space-y-10"
       >
-        <div className="text-center space-y-4">
-          <div className="w-20 h-20 bg-stone-900 rounded-3xl flex items-center justify-center text-yellow-400 shadow-xl mx-auto mb-8 rotate-3">
-            <ChefHat size={40} />
-          </div>
-          <h2 className="text-4xl font-black uppercase tracking-tighter leading-none">
-            {step === 'signin' ? 'Welcome Back' : 'Create Account'}
-          </h2>
-          <p className="text-stone-400 font-bold text-sm">Access your neural culinary studio.</p>
-        </div>
-
-        {/* Social Auth Hub */}
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4">
-            <SocialButton 
-              provider="google" 
-              onClick={() => handleSocialSignIn('google')}
-              isLoading={authLoading}
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <SocialButton 
-                provider="apple" 
-                onClick={() => handleSocialSignIn('apple')}
-                isLoading={authLoading}
-              />
-              <SocialButton 
-                provider="facebook" 
-                onClick={() => handleSocialSignIn('facebook')}
-                isLoading={authLoading}
-              />
-            </div>
-          </div>
-
-          <div className="relative py-4">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-stone-100" /></div>
-            <div className="relative flex justify-center text-[12px] font-black uppercase tracking-widest">
-              <span className="bg-white px-4 text-stone-300">Or continue with email</span>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            {step === 'signup' && (
-              <input 
-                type="text" 
-                placeholder="DISPLAY NAME" 
-                value={name} 
-                onChange={e => setName(e.target.value)}
-                className="w-full px-8 py-5 bg-stone-50 rounded-[2rem] border-2 border-transparent focus:border-yellow-400 focus:bg-white transition-all font-black uppercase tracking-widest text-[12px] outline-none"
-              />
-            )}
-            <input 
-              type="email" 
-              placeholder="EMAIL ADDRESS" 
-              value={email} 
-              onChange={e => setEmail(e.target.value)}
-              className="w-full px-8 py-5 bg-stone-50 rounded-[2rem] border-2 border-transparent focus:border-yellow-400 focus:bg-white transition-all font-black uppercase tracking-widest text-[12px] outline-none"
-            />
-            <input 
-              type="password" 
-              placeholder="PASSWORD" 
-              value={password} 
-              onChange={e => setPassword(e.target.value)}
-              className="w-full px-8 py-5 bg-stone-50 rounded-[2rem] border-2 border-transparent focus:border-yellow-400 focus:bg-white transition-all font-black uppercase tracking-widest text-[12px] outline-none"
-            />
-            
-            {authError && (
-              <p className="text-red-500 font-black uppercase tracking-widest text-[11px] text-center px-4">
-                {authError}
-              </p>
-            )}
-            {authMessage && (
-              <p className="text-emerald-500 font-black uppercase tracking-widest text-[11px] text-center px-4">
-                {authMessage}
-              </p>
-            )}
-
-            <button 
-              onClick={completeEmailAuth}
-              disabled={authLoading}
-              className="w-full py-5 bg-stone-900 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[12px] shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+        <AnimatePresence mode="wait">
+          {step === 'welcome' ? (
+            <motion.div 
+              key="welcome"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-10"
             >
-              {authLoading ? <Loader2 className="animate-spin" size={16} /> : (step === 'signin' ? 'Secure Login' : 'Create Studio')}
-            </button>
-          </div>
-        </div>
+              <div className="text-center space-y-4">
+                <div className="w-24 h-24 bg-stone-900 rounded-[2rem] flex items-center justify-center text-yellow-400 shadow-2xl mx-auto mb-10 rotate-6 hover:rotate-0 transition-transform duration-500">
+                  <ChefHat size={48} />
+                </div>
+                <h2 className="text-5xl font-black uppercase tracking-tighter leading-none">
+                  Welcome to FUZO
+                </h2>
+                <p className="text-stone-400 font-bold text-lg">Discover food your way.</p>
+              </div>
 
-        <div className="text-center pt-4">
-          <button 
-            onClick={() => setStep(step === 'signin' ? 'signup' : 'signin')}
-            className="text-[12px] font-black uppercase tracking-widest text-stone-400 hover:text-stone-900 transition-colors"
-          >
-            {step === 'signin' ? "Don't have an account? Create one" : "Already have an account? Sign in"}
-          </button>
-        </div>
+              <div className="space-y-4 pt-4">
+                <button 
+                  onClick={() => setStep('signup')}
+                  className="w-full py-6 bg-stone-900 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[12px] shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+                >
+                  Get Started
+                </button>
+                <button 
+                  onClick={() => setStep('signin')}
+                  className="w-full py-6 bg-stone-50 text-stone-900 border-2 border-stone-100 rounded-[2rem] font-black uppercase tracking-[0.2em] text-[12px] hover:bg-white transition-all"
+                >
+                  Log In
+                </button>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div 
+              key="auth-form"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-10"
+            >
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 bg-stone-900 rounded-2xl flex items-center justify-center text-yellow-400 shadow-xl mx-auto mb-6 rotate-3">
+                  <ChefHat size={32} />
+                </div>
+                <h2 className="text-4xl font-black uppercase tracking-tighter leading-none">
+                  {step === 'signin' ? 'Welcome Back' : 'Account Setup'}
+                </h2>
+                <p className="text-stone-400 font-bold text-sm">
+                  {step === 'signin' ? 'Access your neural culinary studio.' : 'Begin your journey with FUZO.'}
+                </p>
+              </div>
+
+              {/* Social Auth Hub */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-4">
+                  <SocialButton 
+                    provider="google" 
+                    onClick={() => handleSocialSignIn('google')}
+                    isLoading={authLoading}
+                  />
+                </div>
+
+                <div className="relative py-4">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-stone-100" /></div>
+                  <div className="relative flex justify-center text-[10px] font-black uppercase tracking-widest">
+                    <span className="bg-white px-4 text-stone-300">Or use email</span>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {step === 'signup' && (
+                    <input 
+                      type="text" 
+                      placeholder="DISPLAY NAME" 
+                      value={name} 
+                      onChange={e => setName(e.target.value)}
+                      className="w-full px-8 py-5 bg-stone-50 rounded-[2.5rem] border-2 border-transparent focus:border-yellow-400 focus:bg-white transition-all font-black uppercase tracking-widest text-[12px] outline-none"
+                    />
+                  )}
+                  <input 
+                    type="email" 
+                    placeholder="EMAIL ADDRESS" 
+                    value={email} 
+                    onChange={e => setEmail(e.target.value)}
+                    className="w-full px-8 py-5 bg-stone-50 rounded-[2.5rem] border-2 border-transparent focus:border-yellow-400 focus:bg-white transition-all font-black uppercase tracking-widest text-[12px] outline-none"
+                  />
+                  <input 
+                    type="password" 
+                    placeholder="PASSWORD" 
+                    value={password} 
+                    onChange={e => setPassword(e.target.value)}
+                    className="w-full px-8 py-5 bg-stone-50 rounded-[2.5rem] border-2 border-transparent focus:border-yellow-400 focus:bg-white transition-all font-black uppercase tracking-widest text-[12px] outline-none"
+                  />
+                  
+                  {authError && <p className="text-red-500 font-black uppercase tracking-widest text-[10px] text-center">{authError}</p>}
+                  {authMessage && <p className="text-emerald-500 font-black uppercase tracking-widest text-[10px] text-center">{authMessage}</p>}
+
+                  <button 
+                    onClick={completeEmailAuth}
+                    disabled={authLoading}
+                    className="w-full py-5 bg-stone-900 text-white rounded-[2.5rem] font-black uppercase tracking-[0.2em] text-[12px] shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+                  >
+                    {authLoading ? <Loader2 className="animate-spin" size={16} /> : (step === 'signin' ? 'Secure Login' : 'Continue')}
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-center pt-4 flex flex-col gap-4">
+                <button 
+                  onClick={() => setStep(step === 'signin' ? 'signup' : 'signin')}
+                  className="text-[11px] font-black uppercase tracking-widest text-stone-400 hover:text-stone-900 transition-colors"
+                >
+                  {step === 'signin' ? "Don't have an account? Create one" : "Already have an account? Sign in"}
+                </button>
+                <button 
+                  onClick={() => setStep('welcome')}
+                  className="text-[10px] font-black uppercase tracking-widest text-stone-300 hover:text-stone-400 transition-colors"
+                >
+                  ← Back to welcome
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </div>
   );
 };
+

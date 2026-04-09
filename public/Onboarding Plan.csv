@@ -1,0 +1,90 @@
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+FUZO – Complete Onboarding Flow (Final Version),,,,,,,,,,,,
+🔰 PHASE 1: UNIVERSAL ENTRY (ALL USERS),,,,,,,,,,,,
+Screen 1 – Welcome,,,PHASE 2A: INDIVIDUAL FLOW,,,PHASE 2B: CHEF FLOW,,,PHASE 2C: RESTAURANT FLOW,,,PHASE 2D: CULINARY TEAM FLOW (Cloud Kitchen / Home Business)
+Title: Welcome to FUZO,,,Screen 4A – Role Selection,,,Screen 4B – Chef Type,,,Screen 4C – Business Details,,,Screen 4D – Business Type
+Subtext: Discover food your way,,,,,,Private Chef,,,Restaurant name,,,Cloud Kitchen
+CTAs:,,,“What describes you best?”,,,Catering Chef,,,Address,,,Home-Based Catering
+Get Started,,,,,,Screen 5B – Profile Setup,,,Contact info,,,Meal Prep Service
+Log In,,,Food Explorer,,,Cuisine specialty,,,Screen 5C – Cuisine & Dining Style,,,Screen 5D – Business Profile
+Screen 2 – Account Setup,,,Food Reviewer,,,Years of experience,,,Cuisine types,,,Business name
+Name,,,Screen 5A – Taste Profile Setup,,,Services offered:,,,Dining type:,,,Owner name
+Email / Phone,,,,,,Home dining,,,Casual,,,Contact details
+Password,,,Section 1 – Flavors (Multi-select),,,Events,,,Fine dining,,,Service location
+Optional: Profile picture,,,,,,Meal prep,,,Takeout,,,Screen 6D – Cuisine & Offering
+,,,Sweet 🍬,,,Screen 6B – Portfolio Upload,,,Screen 6C – Menu & Media,,,Cuisine type(s)
+➡️ Continue →,,,Spicy 🌶,,,Upload dish photos,,,Upload menu,,,Food category:
+,,,Tangy 🍋,,,Add signature dishes,,,Add photos,,,Daily meals
+Screen 3 – User Type Selection (Branching Point),,,Salty 🧂,,,Upload sample menu,,,Highlight signature dishes,,,Bulk orders
+,,,Bitter 🍫,,,Screen 7B – Profile Preview,,,Screen 7C – Restaurant Identity,,,Catering
+“How will you use FUZO?”,,,Umami 🍄,,,,,,,,,Specialty dishes
+,,,,,,“This is how clients will see you”,,,“What makes you unique?”,,,Screen 7D – Menu & Media
+Options:,,,Section 2 – Cuisine Preferences,,,,,,,,,Upload menu
+,,,,,,CTA: Go Live,,,Tags:,,,Add dish photos
+🍽 Individual,,,"Indian, Italian, Chinese, Mexican, etc.",,,,,,Family-friendly,,,Highlight bestsellers
+👨‍🍳 Chef,,,,,,,,,Vegan,,,Screen 8D – Order Model
+🏪 Restaurant,,,Section 3 – Dietary Type,,,,,,Date night,,,Made-to-order
+👥 Culinary Team (Cloud kitchen / home-based food business),,,,,,,,,Late-night,,,Pre-order only
+,,,Vegetarian,,,,,,Screen 8C – Integration (Optional),,,Same-day availability
+➡️ Based on selection → route to specific onboarding,,,Vegan,,,,,,Reservation (OpenTable),,,Screen 9D – Pricing Range
+,,,Non-veg,,,,,,Ordering links,,,Budget / Mid / Premium
+,,,Eggetarian,,,,,,Screen 9C – Audience Matching(Optional),,,Or price per plate
+,,,No restrictions,,,,,,,,,Screen 10D – Go Live
+,,,Screen 6A – Food Personality Quiz,,,,,,“Who should discover you?”,,,
+,,,,,,,,,,,,“Your kitchen is now live on FUZO 🍽”
+,,,Q1. What’s your go-to meal vibe?,,,,,,Budget range,,,
+,,,,,,,,,Target food personality,,,CTA: Start Exploring
+,,,🍕 Comfort & indulgent,,,,,,Screen 10C – Go Live,,,
+,,,🌮 Bold & spicy,,,,,,,,,
+,,,🥗 Clean & healthy,,,,,,“You’re now live on FUZO 🍽”,,,
+,,,🍣 Trendy & aesthetic,,,,,,,,,
+,,,,,,,,,CTA: View Profile,,,
+,,,Q2. How do you choose where to eat?,,,,,,,,,
+,,,,,,,,,,,,
+,,,⭐ Ratings,,,,,,,,,
+,,,📸 Social media,,,,,,,,,
+,,,👃 Cravings,,,,,,,,,
+,,,🧠 Health,,,,,,,,,
+,,,,,,,,,,,,
+,,,Q3. What excites you most about food?,,,,,,,,,
+,,,,,,,,,,,,
+,,,🍽 Familiar,,,,,,,,,
+,,,🌍 New cuisines,,,,,,,,,
+,,,🧘 Balanced,,,,,,,,,
+,,,📸 Experience,,,,,,,,,
+,,,,,,,,,,,,
+,,,Q4. Pick a weekend plan:,,,,,,,,,
+,,,,,,,,,,,,
+,,,🛋 Comfort food,,,,,,,,,
+,,,🚶 Explore spots,,,,,,,,,
+,,,👨‍🍳 Cook,,,,,,,,,
+,,,🥗 Healthy café,,,,,,,,,
+,,,,,,,,,,,,
+,,,Q5. How adventurous are you?,,,,,,,,,
+,,,,,,,,,,,,
+,,,❌ Safe,,,,,,,,,
+,,,🙂 Occasional,,,,,,,,,
+,,,😎 Adventurous,,,,,,,,,
+,,,🔥 Extreme,,,,,,,,,
+,,,Screen 7A – Personalized Result,,,,,,,,,
+,,,,,,,,,,,,
+,,,“You’re a Flavor Explorer 🌶” (dynamic result),,,,,,,,,
+,,,,,,,,,,,,
+,,,Subtext:,,,,,,,,,
+,,,"“FUZO will now show you bold, exciting food experiences tailored to your taste.”",,,,,,,,,
+,,,,,,,,,,,,
+,,,CTA: Start Exploring,,,,,,,,,

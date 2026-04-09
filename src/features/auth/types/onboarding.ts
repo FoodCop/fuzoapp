@@ -7,9 +7,14 @@ export type OnboardingLocation = {
   lng?: number;
 };
 
+export type UserType = 'individual' | 'chef' | 'restaurant' | 'culinary_team';
+
 export type OnboardingV2Payload = {
-  answers: Record<string, string>;
-  phone: string;
-  location: OnboardingLocation;
-  locationLabel: string;
+  userType: UserType;
+  answers: Record<string, any>;
+  phone?: string;
+  location?: OnboardingLocation;
+  locationLabel?: string;
+  quizResult?: string;
 };
+
