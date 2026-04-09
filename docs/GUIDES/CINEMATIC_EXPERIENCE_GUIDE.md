@@ -5,20 +5,21 @@ This guide details the architecture, styling, and asset management for the FUZO 
 ---
 
 ## 🏗️ Technical Root
-The entire landing experience is orchestrated as a single-page immersive layer within the main application entry point.
+The landing experience is decoupled from the main application entry point for improved maintainability.
 
-- **Primary File**: `k:\H DRIVE\Quantum Climb\APPS\FUZO_V2\index.tsx`
-- **Core Component**: `HeroCarousel`
+- **Primary Components**: `src/features/landing/components/`
+- **Logic Provider**: `LandingView.tsx` (the container)
+- **Core Visuals**: `HeroCarousel.tsx`
 - **Logic**: Automatically rotates through 6 feature slides using `setInterval` and Framer Motion.
 
 ---
 
 ## 📝 Content Management
-Text and video mapping are controlled via the `LANDING_FEATURES` constant. 
+Text and video mapping are centralized in a dedicated constants file. 
 
-### Location: `index.tsx` (approx. line 3330)
+### Location: `src/features/landing/constants/landingData.ts`
 ```typescript
-const LANDING_FEATURES = [
+export const LANDING_FEATURES = [
   {
     subtitle: "FUZO",
     title: "THE UNDISCOVERED GASTRONOMY",
