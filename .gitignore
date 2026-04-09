@@ -24,6 +24,5 @@ yarn-error.log*
 
 # Local design reference snapshots (do not track)
 public/UPDATE/
-docs/
 .vercel
 .env*.local
