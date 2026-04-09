@@ -8,10 +8,11 @@ This guide details the architecture, logic, and visual integration of the `AuthV
 
 `AuthView` is the primary entry point for user identification. It handles both traditional email/password authentication and social OAuth providers.
 
-- **Primary File**: `k:\H DRIVE\Quantum Climb\APPS\FUZO_V2\src\features\auth\components\AuthView.tsx`
+- **Primary Orchestrator**: `k:\H DRIVE\Quantum Climb\APPS\FUZO_V2\src\features\auth\components\AuthOrchestrator.tsx`
+- **Auth UI Component**: `k:\H DRIVE\Quantum Climb\APPS\FUZO_V2\src\features\auth\components\AuthView.tsx`
 - **Dependencies**:
   - `AuthService`: Located in `../services/authService.ts`.
-  - `OnboardingV2Flow`: The next step in the user journey.
+  - `OnboardingV2Flow`: Managed via the orchestrator.
 
 ---
 
@@ -50,23 +51,22 @@ The backdrop is a high-fidelity image with a complex gradient overlay to ensure 
 
 ---
 
-## 🌳 Authentication Flow Diagram
+## 🌳 Authentication & Entry Flow
+The application uses a layered entry logic: **Landing -> AuthOrchestrator -> AuthView -> Onboarding**.
 
 ```mermaid
 graph TD
-    A[Welcome Screen] -- Get Started --> B[Sign Up Form]
-    A -- Log In --> C[Sign In Form]
-    A -- Social --> D[OAuth Provider]
+    Entry[App Entry] -- Route Detection --> Orch[AuthOrchestrator]
     
-    B -- Success --> E{Has Session?}
-    E -- Yes --> F[Onboarding V2]
-    E -- No --> G[Email Verification Message]
+    Orch -- Home Route --> Landing[LandingView]
+    Orch -- Auth Route --> View[AuthView]
+    Orch -- Demo Route --> Demo[OnboardingV2Flow Demo]
     
-    C -- Success --> H{Needs Onboarding?}
-    H -- Yes --> F
-    H -- No --> I[Main App Feed]
+    View -- Success --> Needs{Needs Onboarding?}
+    Needs -- Yes --> Flow[OnboardingV2Flow Production]
+    Needs -- No --> App[Main App Feed]
     
-    D -- Success --> H
+    Flow -- Sync --> App
 ```
 
 ---

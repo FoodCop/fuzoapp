@@ -23,16 +23,25 @@ This component manages the transition between user-type selection, dynamic branc
 - **Location**: `k:\H DRIVE\Quantum Climb\APPS\FUZO_V2\src\features\auth\components\OnboardingV2Flow.tsx`
 - **Primary State (Line 37-44)**: Tracks `phase`, `userType`, `answers`, `quizAnswers`, `phone`, and `location`.
 
-### 3. The Completion Handler: `index.tsx`
-When onboarding ends, the payload is synchronized to both Auth Metadata (for immediate UI) and the Postgres database (for permanent profile settings).
-- **Location**: `k:\H DRIVE\Quantum Climb\APPS\FUZO_V2\index.tsx`
-- **Function (Line 4763)**: `const handleOnboardingComplete = async (payload?: OnboardingV2Payload)`
+### 3. The Orchestrator: `AuthOrchestrator.tsx`
+This component acts as the high-level gatekeeper, coordinating transitions between Landing, Auth, and Onboarding.
+- **Location**: `k:\H DRIVE\Quantum Climb\APPS\FUZO_V2\src\features\auth\components\AuthOrchestrator.tsx`
+- **Function**: `const handleOnboardingComplete = async (payload?: OnboardingV2Payload)`
 
 ---
 
-## 🌳 Multi-Path Logic Flow
+## 🌳 Multi-Path & Mode Logic
+The system uses a single source of truth (`OnboardingV2Flow.tsx`) but operates in two distinct modes.
 
-The system uses a branching strategy defined in the `onboardingV2Data.ts` constants.
+| Mode | Trigger | Data Action |
+| :--- | :--- | :--- |
+| **Production** | Auth Success (New User) | `handleOnboardingComplete` (DB Sync) |
+| **Demo** | URL `?view=onboarding-demo` | Displays JSON payload only (No DB sync) |
+
+> [!TIP]
+> **No Logic Duplication**: Do not create separate flows for demo vs production. Control all branching via the shared `mode` prop in `OnboardingV2Flow`.
+
+---
 
 ```mermaid
 graph TD
