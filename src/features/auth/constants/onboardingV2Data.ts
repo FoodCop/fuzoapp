@@ -239,6 +239,45 @@ export const TEAM_PATH: OnboardingV2Step[] = [
     options: ['Cloud Kitchen', 'Home-Based Catering', 'Meal Prep Service'],
   },
   {
+    id: 'team_profile',
+    type: 'form',
+    title: 'Business Profile',
+    desc: 'Professional details for your kitchen.',
+    fields: [
+      { id: 'business_name', label: 'Business Name', placeholder: 'Legal business name', type: 'text' },
+      { id: 'owner_name', label: 'Owner Name', placeholder: 'Full name', type: 'text' },
+      { id: 'contact', label: 'Contact Details', placeholder: 'Business phone or email', type: 'text' },
+    ]
+  },
+  {
+    id: 'team_cuisines',
+    type: 'multichoice',
+    title: 'Cuisine Mastery',
+    desc: 'Which cuisines does your team specialize in?',
+    options: ['Indian', 'Chinese', 'Healthy-Bowls', 'Continental', 'Desserts'],
+  },
+  {
+    id: 'team_categories',
+    type: 'multichoice',
+    title: 'Food Categories',
+    desc: 'What type of orders do you handle?',
+    options: ['Daily Meals', 'Bulk Orders', 'Catering', 'Specialty Dishes'],
+  },
+  {
+    id: 'team_media',
+    type: 'media',
+    title: 'Menu & Media',
+    desc: 'Showcase your kitchen and highlight bestsellers.',
+    accept: 'all',
+  },
+  {
+    id: 'order_model',
+    type: 'choice',
+    title: 'Order Model',
+    desc: 'How do customers order?',
+    options: ['Made-to-order', 'Pre-order only', 'Same-day availability'],
+  },
+  {
     id: 'pricing_model',
     type: 'choice',
     title: 'Pricing Range',

@@ -37,7 +37,15 @@ export const FeedService = {
     }
   },
 
-  async generateFeed(params: { pageSize: number; userLocation?: { lat: number; lng: number } }) {
+  async generateFeed(params: { 
+    pageSize: number; 
+    userLocation?: { lat: number; lng: number };
+    preferences?: {
+      cuisines?: string[];
+      dietary?: string[];
+      profileType?: string;
+    }
+  }) {
     if (!hasSupabaseConfig || !supabase) {
       return [] as FeedCard[];
     }
@@ -50,7 +58,8 @@ export const FeedService = {
           author:users(
             username,
             display_name,
-            avatar_url
+            avatar_url,
+            profile_type
           )
         `)
         .order('created_at', { ascending: false })
@@ -58,18 +67,51 @@ export const FeedService = {
 
       if (error) throw error;
 
-      return (data || []).map(row => {
+      const items = (data || []).map(row => {
         const authorData = (row as any).author;
+        const metadata = typeof row.metadata === 'object' ? row.metadata : {};
+        
+        // --- AI Prioritization Logic ---
+        let score = 0;
+        
+        if (params.preferences) {
+          const { cuisines = [], dietary = [] } = params.preferences;
+          
+          // 1. Cuisine Match (+100 per match)
+          const itemCuisines = metadata.cuisines || [metadata.cat];
+          if (Array.isArray(itemCuisines)) {
+            const matches = itemCuisines.filter((c: string) => 
+              cuisines.some(p => c?.toLowerCase().includes(p.toLowerCase()))
+            );
+            score += matches.length * 100;
+          }
+
+          // 2. Dietary Compatibility (Penalty if mismatch)
+          if (dietary.includes('Vegetarian') && metadata.isVeg === false) score -= 500;
+          if (dietary.includes('Vegan') && metadata.isVegan === false) score -= 1000;
+          
+          // 3. User Type Affinity (+50 for related profiles)
+          if (params.preferences.profileType === authorData?.profile_type) {
+            score += 50;
+          }
+        }
+
         return {
-          ...(typeof row.metadata === 'object' ? row.metadata : {}),
+          ...metadata,
           id: row.id,
           type: row.type,
           authorUserId: row.user_id,
           authorName: authorData?.display_name || authorData?.username,
           authorAvatar: authorData?.avatar_url,
+          authorType: authorData?.profile_type,
           createdAt: row.created_at,
+          relevanceScore: score,
         };
-      }) as FeedCard[];
+      }) as (FeedCard & { relevanceScore: number })[];
+
+      // Sort by score (DESC) then by date (inherent from query)
+      return items.sort((a, b) => b.relevanceScore - a.relevanceScore) as FeedCard[];
+      
     } catch (error) {
       console.error('FeedService.generateFeed failed:', error);
       return [] as FeedCard[];

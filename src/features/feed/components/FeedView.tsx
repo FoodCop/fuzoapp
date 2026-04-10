@@ -4,6 +4,7 @@ import { Loader2, RefreshCw, X, Heart, Share2, Bookmark } from 'lucide-react';
 import { useIsDesktop } from '../../../app/hooks/useIsDesktop';
 import { FeedService } from '../services/feedService';
 import { getUserFeedLocation } from '../services/feedLocation';
+import { supabase } from '../../../services/supabaseClient';
 import { LOCAL_CURATED_FEED_ITEMS } from '../constants/curatedFeed';
 import { 
   normalizeFeedServiceToCards, 
@@ -41,6 +42,7 @@ export const FeedView = ({
   const feedRetryDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const feedMountedRef = useRef(true);
   const missingAuthorTelemetryRef = useRef<Set<string>>(new Set());
+  const [userPreferences, setUserPreferences] = useState<{ cuisines?: string[], dietary?: string[], profileType?: string } | null>(null);
 
   useEffect(() => {
     return () => {
@@ -63,10 +65,40 @@ export const FeedView = ({
     const requestSeq = ++feedRequestSeqRef.current;
 
     try {
+      // 1. Get Location
       const userLocation = await getUserFeedLocation();
+      
+      // 2. Resolve Preferences
+      let prefs = userPreferences;
+      if (!prefs && !isRetry) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: profile } = await supabase
+              .from('users')
+              .select('cuisine_preferences, dietary_preferences, profile_type')
+              .eq('id', user.id)
+              .single();
+            
+            if (profile) {
+              prefs = {
+                cuisines: profile.cuisine_preferences || [],
+                dietary: profile.dietary_preferences || [],
+                profileType: profile.profile_type
+              };
+              setUserPreferences(prefs);
+            }
+          }
+        } catch (e) {
+          console.warn('[FeedView] Failed to fetch user preferences for personalization', e);
+        }
+      }
+
+      // 3. Fetch Feed
       const feedCards = await FeedService.generateFeed({
         pageSize: Math.max(LOCAL_CURATED_FEED_ITEMS.length, 12),
         userLocation,
+        preferences: prefs || undefined
       });
 
       console.log('🍽️ [FeedView] Raw FeedService cards:', feedCards);
