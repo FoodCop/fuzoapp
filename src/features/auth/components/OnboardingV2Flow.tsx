@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ChevronRight, MapPin, Phone, RefreshCw, ChefHat, Utensils, Users, ArrowRight, Check } from 'lucide-react';
+import { CheckCircle2, ChevronRight, MapPin, Phone, RefreshCw, ChefHat, Utensils, Users, ArrowRight, Check, Upload, Image, FileText } from 'lucide-react';
 import { 
   ONBOARDING_USER_TYPES, 
   INDIVIDUAL_PATH, 
@@ -9,7 +9,9 @@ import {
   TEAM_PATH,
   FOOD_PERSONALITY_QUIZ,
   type OnboardingV2Step,
-  type OnboardingV2QuizStep
+  type OnboardingV2QuizStep,
+  type OnboardingV2FormStep,
+  type OnboardingV2MediaStep
 } from '../constants/onboardingV2Data';
 import type { OnboardingLocation, OnboardingV2Payload, UserType } from '../types/onboarding';
 
@@ -43,6 +45,8 @@ export const OnboardingV2Flow = ({
   const [phone, setPhone] = useState('');
   const [location, setLocation] = useState<OnboardingLocation>(defaultLocation);
   const [isDetecting, setIsDetecting] = useState(false);
+  const [mediaUploaded, setMediaUploaded] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const currentPath = useMemo(() => {
     if (!userType) return [];
@@ -229,6 +233,112 @@ export const OnboardingV2Flow = ({
                     className="w-full py-5 bg-stone-900 text-white rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-xl disabled:opacity-50"
                   >
                     Continue
+                  </button>
+                </div>
+              )}
+
+              {currentStep.type === 'form' && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 gap-5">
+                    {(currentStep as OnboardingV2FormStep).fields.map((field) => (
+                      <div key={field.id} className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 ml-1">
+                          {field.label}
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={field.type}
+                            placeholder={field.placeholder}
+                            value={answers[field.id] || ''}
+                            onChange={(e) => {
+                              setAnswers(prev => ({ ...prev, [field.id]: e.target.value }));
+                            }}
+                            className="w-full p-5 pl-12 bg-stone-50 rounded-2xl border-2 border-transparent focus:border-stone-900 focus:bg-white transition-all text-sm font-bold placeholder:text-stone-300 outline-none"
+                          />
+                          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300">
+                            {field.id.includes('name') || field.id.includes('contact') ? <Users size={18} /> : 
+                             field.id.includes('cuisine') || field.id.includes('specialty') ? <Utensils size={18} /> : 
+                             <FileText size={18} />}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={handleNext}
+                    disabled={!(currentStep as OnboardingV2FormStep).fields.every(f => answers[f.id]?.trim().length > 0)}
+                    className="w-full py-5 bg-stone-900 text-white rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-xl disabled:opacity-50"
+                  >
+                    Continue
+                  </button>
+                </div>
+              )}
+
+              {currentStep.type === 'media' && (
+                <div className="space-y-6">
+                  <div 
+                    onClick={() => {
+                      if (mediaUploaded) return;
+                      // Simulate upload
+                      setUploadProgress(10);
+                      const interval = setInterval(() => {
+                        setUploadProgress(prev => {
+                          if (prev >= 100) {
+                            clearInterval(interval);
+                            setMediaUploaded(true);
+                            return 100;
+                          }
+                          return prev + 15;
+                        });
+                      }, 200);
+                    }}
+                    className={`group relative p-10 bg-stone-50 rounded-[3rem] border-4 border-dashed transition-all flex flex-col items-center justify-center gap-4 cursor-pointer ${mediaUploaded ? 'border-green-400 bg-green-50/20' : 'border-stone-200 hover:border-yellow-400'}`}
+                  >
+                    {uploadProgress > 0 && uploadProgress < 100 && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-[2.8rem] z-20">
+                        <div className="w-1/2 h-2 bg-stone-100 rounded-full overflow-hidden">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${uploadProgress}%` }}
+                            className="h-full bg-stone-900"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className={`p-6 rounded-3xl transition-transform group-hover:scale-110 ${mediaUploaded ? 'bg-green-400 text-white' : 'bg-white text-stone-400 shadow-sm group-hover:text-yellow-400'}`}>
+                      {mediaUploaded ? <Check size={32} strokeWidth={3} /> : <Upload size={32} />}
+                    </div>
+                    
+                    <div className="text-center">
+                      <p className="font-black uppercase tracking-widest text-[10px] text-stone-900">
+                        {mediaUploaded ? 'Assets Received' : 'Select Media Files'}
+                      </p>
+                      <p className="text-[10px] text-stone-400 font-bold mt-1">
+                        {mediaUploaded ? 'Signatures and portfolios synced' : 'Drag & drop photos or PDFs'}
+                      </p>
+                    </div>
+
+                    {mediaUploaded && (
+                      <div className="mt-4 flex gap-2">
+                        {[1, 2, 3].map(i => (
+                          <div key={i} className="w-10 h-10 rounded-lg bg-stone-200 animate-pulse" />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setMediaUploaded(false);
+                      setUploadProgress(0);
+                      handleNext();
+                    }}
+                    disabled={!mediaUploaded}
+                    className="w-full py-5 bg-stone-900 text-white rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-xl disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    <span>Sync Portfolio</span>
+                    <ArrowRight size={16} />
                   </button>
                 </div>
               )}

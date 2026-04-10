@@ -31,12 +31,31 @@ export type OnboardingV2QuizStep = OnboardingV2BaseStep & {
   }[];
 };
 
+export type OnboardingV2Field = {
+  id: string;
+  label: string;
+  placeholder: string;
+  type: 'text' | 'tel' | 'number';
+};
+
+export type OnboardingV2FormStep = OnboardingV2BaseStep & {
+  type: 'form';
+  fields: OnboardingV2Field[];
+};
+
+export type OnboardingV2MediaStep = OnboardingV2BaseStep & {
+  type: 'media';
+  accept: 'image' | 'pdf' | 'all';
+};
+
 export type OnboardingV2Step = 
   | OnboardingV2ChoiceStep 
   | OnboardingV2MultiChoiceStep 
   | OnboardingV2PhoneStep 
   | OnboardingV2LocationStep 
-  | OnboardingV2QuizStep;
+  | OnboardingV2QuizStep
+  | OnboardingV2FormStep
+  | OnboardingV2MediaStep;
 
 export const ONBOARDING_USER_TYPES = [
   { id: 'individual', label: 'Individual', icon: 'Utensils', desc: 'Personal food exploration & reviews' },
@@ -139,9 +158,26 @@ export const CHEF_PATH: OnboardingV2Step[] = [
   {
     id: 'chef_type',
     type: 'choice',
-    title: 'Chef Portfolio',
+    title: 'Chef Type',
     desc: 'What type of chef are you?',
     options: ['Private Chef', 'Catering Chef'],
+  },
+  {
+    id: 'chef_profile',
+    type: 'form',
+    title: 'Profile Setup',
+    desc: 'Let\'s build your professional identity.',
+    fields: [
+      { id: 'specialty', label: 'Cuisine Specialty', placeholder: 'e.g. Modern Indian, French Pastry', type: 'text' },
+      { id: 'experience', label: 'Years of Experience', placeholder: 'e.g. 8 years', type: 'text' },
+    ]
+  },
+  {
+    id: 'chef_services',
+    type: 'multichoice',
+    title: 'Services Offered',
+    desc: 'Which services do you provide?',
+    options: ['Home Dining', 'Events', 'Meal Prep', 'Consulting'],
   },
   {
     id: 'chef_identity',
@@ -150,9 +186,27 @@ export const CHEF_PATH: OnboardingV2Step[] = [
     desc: 'Your area of expertise?',
     options: ['High-Tech Fusion', 'Sustainable Organic', 'Traditional Heritage', 'Experimental Labs'],
   },
+  {
+    id: 'chef_portfolio',
+    type: 'media',
+    title: 'Portfolio Upload',
+    desc: 'Showcase your signature dishes and menus.',
+    accept: 'all',
+  },
 ];
 
 export const RESTAURANT_PATH: OnboardingV2Step[] = [
+  {
+    id: 'restaurant_identity',
+    type: 'form',
+    title: 'Business Details',
+    desc: 'Tell us about your establishment.',
+    fields: [
+      { id: 'business_name', label: 'Restaurant Name', placeholder: 'Full legal name', type: 'text' },
+      { id: 'address', label: 'Primary Address', placeholder: 'Street, City, State', type: 'text' },
+      { id: 'contact', label: 'Business Contact', placeholder: 'Email or phone for bookings', type: 'text' },
+    ]
+  },
   {
     id: 'restaurant_details',
     type: 'choice',
@@ -166,6 +220,13 @@ export const RESTAURANT_PATH: OnboardingV2Step[] = [
     title: 'Cuisine Grid',
     desc: 'Which types of food do you serve?',
     options: ['Indian', 'Italian', 'Asian', 'Mexican', 'Continental'],
+  },
+  {
+    id: 'restaurant_media',
+    type: 'media',
+    title: 'Menu & Media',
+    desc: 'Upload your menu and high-fidelity photos.',
+    accept: 'all',
   },
 ];
 
