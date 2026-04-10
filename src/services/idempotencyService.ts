@@ -54,10 +54,15 @@ export class IdempotencyService {
       return null;
     }
 
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
+    if (!user) return null;
+
     const { data, error } = await supabase
       .from('idempotency_keys')
       .select('result')
       .eq('key', key)
+      .eq('user_id', user.id)
       .eq('tenant_id', this.APP_TENANT_ID)
       .gt('expires_at', new Date().toISOString())
       .single();
@@ -74,6 +79,10 @@ export class IdempotencyService {
       return;
     }
 
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
+    if (!user) return;
+
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + ttlHours);
 
@@ -81,6 +90,7 @@ export class IdempotencyService {
       .from('idempotency_keys')
       .upsert({
         key,
+        user_id: user.id,
         tenant_id: this.APP_TENANT_ID,
         result: result as Record<string, unknown>,
         expires_at: expiresAt.toISOString(),

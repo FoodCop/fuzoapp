@@ -26,11 +26,21 @@ const normalizeFeedImagePathForType = (itemType: FeedUiItemType, imagePath: stri
 };
 
 const getNormalizedName = (itemType: FeedUiItemType, record: Record<string, unknown>) => {
-  if (itemType === 'recipe') return String(record.title || 'Recipe');
-  if (itemType === 'video' || itemType === 'trim') return String(record.title || 'Video');
-  if (itemType === 'photo' || itemType === 'snap') return String(record.name || record.title || 'Culinary Snap');
-  if (itemType === 'ad') return String(record.brandName || record.headline || 'Sponsored');
-  return String(record.title || record.question || 'Food Trivia');
+  const candidates = [
+    record.name,
+    record.title,
+    record.brandName,
+    record.headline,
+    record.question,
+  ].filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
+
+  if (candidates.length > 0) return String(candidates[0]);
+
+  if (itemType === 'recipe') return 'Recipe';
+  if (itemType === 'video' || itemType === 'trim') return 'Video';
+  if (itemType === 'photo' || itemType === 'snap') return 'Culinary Snap';
+  if (itemType === 'ad') return 'Sponsored';
+  return 'Food Trivia';
 };
 
 const getNormalizedCategory = (itemType: FeedUiItemType) => {
@@ -42,13 +52,16 @@ const getNormalizedCategory = (itemType: FeedUiItemType) => {
 };
 
 const getRawImage = (itemType: FeedUiItemType, record: Record<string, unknown>) => {
-  if (itemType === 'video' || itemType === 'trim') {
-    return String(record.thumbnailUrl || record.img || '');
-  }
-  if (itemType === 'photo' || itemType === 'snap') {
-    return String(record.imageUrl || record.photos?.[0] || record.img || '');
-  }
-  return String(record.imageUrl || record.img || '');
+  const candidates = [
+    record.imageUrl,
+    record.img,
+    record.image,
+    record.thumbnailUrl,
+    ...(Array.isArray(record.photos) ? record.photos : []),
+  ].filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
+
+  if (candidates.length > 0) return String(candidates[0]);
+  return '';
 };
 
 const getOptionalString = (record: Record<string, unknown>, keys: string[]) => {
@@ -82,8 +95,10 @@ export const normalizeDealerContentToCards = (dealerCards: DealerContent[]): Fee
       const normalizedImage = normalizeFeedImagePathForType(itemType, rawImage);
 
       const img = resolvePublicAssetPath(normalizedImage);
-      const author = getOptionalString(record, ['author', 'authorName', 'creatorName', 'username', 'channelTitle']);
+      const author = getOptionalString(record, ['authorName', 'author', 'authorName', 'creatorName', 'username', 'channelTitle']);
       const authorUserId = getOptionalString(record, ['authorUserId', 'author_id', 'userId', 'user_id', 'creatorId']);
+      const authorAvatar = record.authorAvatar as string | undefined;
+      const address = getOptionalString(record, ['address', 'location_name', 'vicinity']);
 
       if (!name || !img) return null;
 
@@ -96,13 +111,17 @@ export const normalizeDealerContentToCards = (dealerCards: DealerContent[]): Fee
         img,
         ...(author ? { author } : {}),
         ...(authorUserId ? { authorUserId } : {}),
+        ...(authorAvatar ? { authorAvatar } : {}),
+        ...(address ? { address } : {}),
         metadata: {
+          ...record,
           title: name,
           name,
           cat,
           image: img,
           ...(author ? { author } : {}),
           ...(authorUserId ? { authorUserId, userId: authorUserId, author_id: authorUserId } : {}),
+          ...(authorAvatar ? { authorAvatar } : {}),
           sourceType,
           sourceId: rawId,
         },
@@ -141,37 +160,15 @@ const isValidImageUrl = (url?: string) => !!url && /^(https?:\/\/|\/)/.test(url)
 
 export const ensureAdTriviaPresence = (
   items: FeedUiItem[],
-  fallbackItems: readonly { id: string; itemType: string; itemId: string; name: string; cat: string; img: string }[]
+  _fallbackItems: readonly { id: string; itemType: string; itemId: string; name: string; cat: string; img: string }[]
 ): FeedUiItem[] => {
+  // --- TEMPORARY TEST OVERRIDE: Returning items as-is to verify organic population ---
+  return items;
+
+  /* Original Logic (Disabled for testing)
   const hasAd = items.some((item) => item.itemType === 'ad');
-  const hasTrivia = items.some((item) => item.itemType === 'trivia');
-  if (hasAd && hasTrivia) return items;
-
-  const fallbackAd = fallbackItems.find((item) => item.itemType === 'ad');
-  const fallbackTrivia = fallbackItems.find((item) => item.itemType === 'trivia');
-
-  const toFeedUiItem = (fallbackItem: { id: string; itemType: string; itemId: string; name: string; cat: string; img: string }): FeedUiItem => ({
-    id: fallbackItem.id,
-    itemType: fallbackItem.itemType as FeedUiItemType,
-    itemId: fallbackItem.itemId,
-    name: fallbackItem.name,
-    cat: fallbackItem.cat,
-    img: fallbackItem.img,
-    metadata: {
-      title: fallbackItem.name,
-      name: fallbackItem.name,
-      cat: fallbackItem.cat,
-      image: fallbackItem.img,
-      sourceType: fallbackItem.itemType,
-      sourceId: fallbackItem.id,
-    },
-  });
-
-  return [
-    ...items,
-    ...(!hasAd && fallbackAd ? [toFeedUiItem(fallbackAd)] : []),
-    ...(!hasTrivia && fallbackTrivia ? [toFeedUiItem(fallbackTrivia)] : []),
-  ];
+  ...
+  */
 };
 
 export const logFeedParity = (localItems: readonly FeedParityItem[], serviceItems: readonly FeedParityItem[]) => {

@@ -6,3 +6,15 @@ export interface TrimVideo {
   likes: string;
   img: string;
 }
+
+export type YouTubeSearchItem = {
+  id?: { videoId?: string };
+  snippet?: {
+    title?: string;
+    channelTitle?: string;
+    thumbnails?: {
+      high?: { url?: string };
+      medium?: { url?: string };
+    };
+  };
+};

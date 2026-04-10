@@ -45,19 +45,31 @@ export const FeedService = {
     try {
       const { data, error } = await supabase
         .from('fuzo_feed')
-        .select('*')
+        .select(`
+          *,
+          author:users(
+            username,
+            display_name,
+            avatar_url
+          )
+        `)
         .order('created_at', { ascending: false })
         .limit(params.pageSize || 12);
 
       if (error) throw error;
 
-      return (data || []).map(row => ({
-        ...(typeof row.metadata === 'object' ? row.metadata : {}),
-        id: row.id,
-        type: row.type,
-        authorUserId: row.user_id,
-        createdAt: row.created_at,
-      })) as FeedCard[];
+      return (data || []).map(row => {
+        const authorData = (row as any).author;
+        return {
+          ...(typeof row.metadata === 'object' ? row.metadata : {}),
+          id: row.id,
+          type: row.type,
+          authorUserId: row.user_id,
+          authorName: authorData?.display_name || authorData?.username,
+          authorAvatar: authorData?.avatar_url,
+          createdAt: row.created_at,
+        };
+      }) as FeedCard[];
     } catch (error) {
       console.error('FeedService.generateFeed failed:', error);
       return [] as FeedCard[];

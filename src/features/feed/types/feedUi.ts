@@ -9,5 +9,7 @@ export type FeedUiItem = {
   img: string;
   author?: string;
   authorUserId?: string;
+  authorAvatar?: string;
+  address?: string;
   metadata: Record<string, unknown>;
 };

@@ -359,21 +359,29 @@ export const ChatService = {
     if (!client) return { success: false, error: 'Supabase is not configured' };
 
     const { data, error } = await client
-      .from('groups')
-      .select(`
-        *,
-        group_members!inner(user_id)
-      `)
-      .eq('group_members.user_id', userId)
-      .order('last_message_at', { ascending: false });
+      .from('group_members')
+      .select('groups(*)')
+      .eq('user_id', userId);
 
     if (error) {
+      console.error('[ChatService] listGroups error:', error);
       return { success: false, error: error.message };
     }
 
+    const groups = (data || [])
+      .map(row => (row as any).groups)
+      .filter(Boolean)
+      .map(toChatGroup);
+
+    groups.sort((a, b) => {
+      const dateA = a.lastMessageAt || a.createdAt;
+      const dateB = b.lastMessageAt || b.createdAt;
+      return dateB.localeCompare(dateA);
+    });
+
     return {
       success: true,
-      data: (data || []).map(toChatGroup),
+      data: groups,
     };
   },
 
