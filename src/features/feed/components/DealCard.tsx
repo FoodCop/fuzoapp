@@ -50,7 +50,7 @@ export const DealCard = ({
           onClick={() => setIsFlipped(true)}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsFlipped(true); }}
           aria-label={`Reveal ${item.name}`}
-          className="absolute inset-0 w-full h-full rounded-[1.75rem] border-8 border-white shadow-2xl bg-yellow-400 flex flex-col items-center justify-center gap-6 group/front select-none"
+          className="absolute inset-0 w-full h-full rounded-[1.75rem] border-8 border-white bg-yellow-400 flex flex-col items-center justify-center gap-6 group/front select-none"
           style={{ backfaceVisibility: 'hidden' }}
         >
           {/* Card Branding */}
@@ -65,7 +65,7 @@ export const DealCard = ({
 
         {/* Back */}
         <div 
-          className="absolute inset-0 w-full h-full rounded-[3rem] border-8 border-white shadow-2xl bg-white overflow-hidden group/back"
+          className="absolute inset-0 w-full h-full rounded-[3rem] border-8 border-white bg-white overflow-hidden group/back"
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
         >
           {/* Back face content - clickable to expand into full detail */}
@@ -96,33 +96,6 @@ export const DealCard = ({
                   </div>
                 </div>
 
-                {/* Right Sidebar Actions - StopPropagation to prevent modal opening */}
-                <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-4 z-20" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onAction('like', item); }}
-                    className="w-14 h-14 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 text-white hover:bg-red-500 hover:border-red-500 transition-all duration-300 flex items-center justify-center shadow-2xl group/btn"
-                  >
-                    <Heart size={24} strokeWidth={2.5} className="group-hover/btn:fill-white transition-all" />
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onAction('pass', item); }}
-                    className="w-14 h-14 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 text-white hover:bg-stone-900 transition-all duration-300 flex items-center justify-center shadow-2xl"
-                  >
-                    <X size={24} strokeWidth={2.5} />
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onAction('share', item); }}
-                    className="w-14 h-14 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 text-white hover:bg-yellow-500/80 transition-all duration-300 flex items-center justify-center shadow-2xl"
-                  >
-                    <Share2 size={24} strokeWidth={2.5} />
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onAction('save', item); }}
-                    className="w-14 h-14 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 text-white hover:bg-blue-600 transition-all duration-300 flex items-center justify-center shadow-2xl"
-                  >
-                    <Bookmark size={24} strokeWidth={2.5} />
-                  </button>
-                </div>
 
                 {/* Bottom Info Overlay */}
                 <div className="absolute bottom-8 left-8 right-24 text-white space-y-4 z-10 pointer-events-none">

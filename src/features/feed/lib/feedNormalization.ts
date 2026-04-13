@@ -26,38 +26,38 @@ const normalizeFeedImagePathForType = (itemType: FeedUiItemType, imagePath: stri
 };
 
 const getNormalizedName = (itemType: FeedUiItemType, record: Record<string, unknown>) => {
+  const nestedMetadata = asRecord(record.metadata);
   const candidates = [
     record.name,
     record.title,
+    nestedMetadata.name,
+    nestedMetadata.title,
     record.brandName,
     record.headline,
     record.question,
   ].filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
 
   if (candidates.length > 0) return String(candidates[0]);
-
-  if (itemType === 'recipe') return 'Recipe';
-  if (itemType === 'video' || itemType === 'trim') return 'Video';
-  if (itemType === 'photo' || itemType === 'snap') return 'Culinary Snap';
-  if (itemType === 'ad') return 'Sponsored';
-  return 'Food Trivia';
+  return 'Untitled';
 };
 
 const getNormalizedCategory = (itemType: FeedUiItemType) => {
-  if (itemType === 'recipe') return 'Recipe';
-  if (itemType === 'video' || itemType === 'trim') return 'Studio Trim';
-  if (itemType === 'photo' || itemType === 'snap') return 'Studio Snap';
-  if (itemType === 'ad') return 'Ad';
-  return 'Trivia';
+  return String(itemType).charAt(0).toUpperCase() + String(itemType).slice(1);
 };
 
 const getRawImage = (itemType: FeedUiItemType, record: Record<string, unknown>) => {
+  const nestedMetadata = asRecord(record.metadata);
   const candidates = [
     record.imageUrl,
     record.img,
     record.image,
+    nestedMetadata.imageUrl,
+    nestedMetadata.img,
+    nestedMetadata.image,
     record.thumbnailUrl,
+    nestedMetadata.thumbnailUrl,
     ...(Array.isArray(record.photos) ? record.photos : []),
+    ...(Array.isArray(nestedMetadata.photos) ? nestedMetadata.photos : []),
   ].filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
 
   if (candidates.length > 0) return String(candidates[0]);
@@ -65,8 +65,9 @@ const getRawImage = (itemType: FeedUiItemType, record: Record<string, unknown>) 
 };
 
 const getOptionalString = (record: Record<string, unknown>, keys: string[]) => {
+  const nestedMetadata = asRecord(record.metadata);
   for (const key of keys) {
-    const value = record[key];
+    const value = record[key] || nestedMetadata[key];
     if (typeof value === 'string' && value.trim().length > 0) {
       return value.trim();
     }
@@ -157,19 +158,6 @@ const getMissingFieldNames = (item: FeedParityItem) => {
 };
 
 const isValidImageUrl = (url?: string) => !!url && /^(https?:\/\/|\/)/.test(url);
-
-export const ensureAdTriviaPresence = (
-  items: FeedUiItem[],
-  _fallbackItems: readonly { id: string; itemType: string; itemId: string; name: string; cat: string; img: string }[]
-): FeedUiItem[] => {
-  // --- TEMPORARY TEST OVERRIDE: Returning items as-is to verify organic population ---
-  return items;
-
-  /* Original Logic (Disabled for testing)
-  const hasAd = items.some((item) => item.itemType === 'ad');
-  ...
-  */
-};
 
 export const logFeedParity = (localItems: readonly FeedParityItem[], serviceItems: readonly FeedParityItem[]) => {
   const localMissing = localItems.map((item) => ({ id: item.id, missing: getMissingFieldNames(item) })).filter((row) => row.missing.length > 0);

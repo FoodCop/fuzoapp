@@ -18,7 +18,7 @@ const uploadSnapImage = async (imageData: string): Promise<string> => {
   }
 
   try {
-    const filePath = `snaps/snap-${Date.now()}-${Math.random().toString(36).slice(2, 10)}.jpg`;
+    const filePath = `snap-${Date.now()}-${Math.random().toString(36).slice(2, 10)}.jpg`;
     const imageBlob = snapDataUrlToBlob(imageData);
 
     const { error: uploadError } = await supabase.storage
@@ -59,7 +59,7 @@ export const persistSnapData = async ({
   cuisine: string;
   rating: number;
   description: string;
-  locationName: string;
+  locationName?: string;
   address: string;
   tags: string[];
   location?: { lat: number; lng: number } | null;

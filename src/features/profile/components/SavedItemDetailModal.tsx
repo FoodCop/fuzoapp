@@ -24,12 +24,14 @@ const SavedActionFooter = ({
   onSaveClick,
   onUnsaveClick,
   onShareClick,
+  itemType,
 }: {
   canSave: boolean;
   isAlreadySaved: boolean;
   onSaveClick: () => void;
   onUnsaveClick?: () => void;
   onShareClick?: () => void;
+  itemType?: string;
 }) => {
   if (!canSave && !onUnsaveClick && !onShareClick) {
     return null;
@@ -48,14 +50,17 @@ const SavedActionFooter = ({
       </button>
     );
   } else if (canSave) {
+    const isMapItem = itemType === 'photo' || itemType === 'restaurant' || itemType === 'spot';
     primaryAction = (
       <button
         type="button"
         onClick={onSaveClick}
         className="flex-1 py-4 rounded-[1.5rem] flex items-center justify-center gap-3 transition-transform shadow-xl bg-stone-900 text-white active:scale-95"
       >
-        <Bookmark size={20} />
-        <span className="font-black uppercase tracking-widest text-[12px]">Save</span>
+        {isMapItem ? <MapPin size={20} /> : <Bookmark size={20} />}
+        <span className="font-black uppercase tracking-widest text-[12px]">
+          {isMapItem ? 'Add to Map' : 'Save'}
+        </span>
       </button>
     );
   }
@@ -457,7 +462,14 @@ export const SavedItemDetailModal = ({ item, onClose, onSave, onUnsave, onShareR
 
           <SavedContentSections resolvedType={resolvedType} address={address} recipeIngredients={recipeIngredients} recipeInstructions={recipeInstructions} keyFoodItem={keyFoodItem} summary={trimSummary} sourceUrl={sourceUrl} phone={phone} vibe={vibe} nutrition={nutrition} />
 
-          <SavedActionFooter canSave={Boolean(onSave)} isAlreadySaved={isAlreadySaved} onSaveClick={handleSaveClick} onUnsaveClick={onUnsave ? handleUnsaveClick : undefined} onShareClick={onShareRequest ? handleShareClick : undefined} />
+          <SavedActionFooter 
+            canSave={Boolean(onSave)} 
+            isAlreadySaved={isAlreadySaved} 
+            onSaveClick={handleSaveClick} 
+            onUnsaveClick={onUnsave ? handleUnsaveClick : undefined} 
+            onShareClick={onShareRequest ? handleShareClick : undefined} 
+            itemType={resolvedType}
+          />
         </div>
       </dialog>
     </div>

@@ -14,18 +14,66 @@ export const UGC_DIETS = [
   'Vegetarian', 'Vegan', 'Gluten Free', 'Keto', 'Halal', 'Kosher', 'Paleo', 'Dairy Free'
 ] as const;
 
+export const UGC_MEAL_TYPES = [
+  'Breakfast', 'Lunch', 'Dinner', 'Brunch', 'Snack', 'Late Night'
+] as const;
+
+export const UGC_VIBES = [
+  'Casual', 'Fine Dining', 'Cafe', 'Rooftop', 'Family-Friendly', 'Street Food', 'Romantic', 'Chill', 'Industrial'
+] as const;
+
+export const UGC_FEATURES = [
+  'Outdoor Seating', 'Live Music', 'Pet-Friendly', 'WiFi', 'Bar', 'Valet Parking', 'Wheelchair Accessible'
+] as const;
+
+export const UGC_PRICE_RANGES = [
+  '$', '$$', '$$$', '$$$$'
+] as const;
+
 export const UGC_CATEGORIES = [
   'Recipe', 'Review', 'Hack', 'Tip', 'Spot', 'News', 'Trivia'
 ] as const;
 
-export const UGC_VIBES = [
-  'Chic', 'Street', 'Healthy', 'Comfort', 'Fancy', 'Budget', 'Hidden Gem', 'Date Night', 'Quick Bite'
-] as const;
-
 export type UgcCuisine = typeof UGC_CUISINES[number];
 export type UgcDiet = typeof UGC_DIETS[number];
-export type UgcCategory = typeof UGC_CATEGORIES[number];
+export type UgcMealType = typeof UGC_MEAL_TYPES[number];
 export type UgcVibe = typeof UGC_VIBES[number];
+export type UgcFeature = typeof UGC_FEATURES[number];
+export type UgcPriceRange = typeof UGC_PRICE_RANGES[number];
+export type UgcCategory = typeof UGC_CATEGORIES[number];
+
+/**
+ * Keyword Mapping for Hybrid Tagging
+ * Maps common description keywords to strict taxonomy tags.
+ */
+export const TAXONOMY_KEYWORD_MAP: Record<string, string> = {
+  'vegan': 'Vegan',
+  'plant-based': 'Vegan',
+  'vegetarian': 'Vegetarian',
+  'halal': 'Halal',
+  'kosher': 'Kosher',
+  'rooftop': 'Rooftop',
+  'outdoor': 'Outdoor Seating',
+  'garden': 'Outdoor Seating',
+  'music': 'Live Music',
+  'band': 'Live Music',
+  'dog': 'Pet-Friendly',
+  'pet': 'Pet-Friendly',
+  'wifi': 'WiFi',
+  'internet': 'WiFi',
+  'fancy': 'Fine Dining',
+  'premium': 'Fine Dining',
+  'street': 'Street Food',
+  'cheap': '$',
+  'affordable': '$',
+  'expensive': '$$$',
+  'cozy': 'Chill',
+  'relaxed': 'Chill',
+  'brunch': 'Brunch',
+  'breakfast': 'Breakfast',
+  'lunch': 'Lunch',
+  'dinner': 'Dinner'
+};
 
 /**
  * Normalization Engine
@@ -42,11 +90,13 @@ export const normalizeTag = (tag: string): string => {
     normalized = normalized.replace(pattern, '');
   });
 
-  // 2. Case normalization (Title Case)
-  normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase();
+  // 2. Case normalization (Title Case) if not price range
+  if (!UGC_PRICE_RANGES.includes(normalized as any)) {
+    normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase();
+  }
 
   // 3. Synonym Mapping
-  const synonymMap: Record<string, UgcCuisine | UgcCategory | string> = {
+  const synonymMap: Record<string, string> = {
     'Chinatown': 'Chinese',
     'Cantonese': 'Chinese',
     'Szechuan': 'Chinese',
@@ -61,11 +111,10 @@ export const normalizeTag = (tag: string): string => {
     'Diner': 'American',
     'Middle-east': 'Middle Eastern',
     'Arab': 'Middle Eastern',
-    'Recipe card': 'Recipe',
     'Kitchen hack': 'Hack',
     'Food hack': 'Hack',
-    'Bite site': 'Spot',
     'Restaurant': 'Spot',
+    ...TAXONOMY_KEYWORD_MAP
   };
 
   if (synonymMap[normalized]) {

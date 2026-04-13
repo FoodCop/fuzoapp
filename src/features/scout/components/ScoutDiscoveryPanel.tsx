@@ -1,6 +1,6 @@
-﻿import React from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star, Clock, Sparkles, ChevronRight, Filter, Info, MapPin } from 'lucide-react';
+import { Star, Clock, ChevronRight, Filter, Info, MapPin } from 'lucide-react';
 import { ScoutPlace, ScoutFilter } from '../types/scoutUi';
 import { getMatchPercentage } from '../lib/scoutLogic';
 
@@ -38,19 +38,12 @@ export const ScoutDiscoveryPanel = ({
     <div className={panelClasses}>
       <header className={`p-6 ${isSidebar ? 'px-4' : 'bg-white/80 backdrop-blur-3xl rounded-t-[3rem] md:rounded-[3rem] border border-white/40 shadow-2xl'} mb-4`}>
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <Sparkles size={16} className="text-yellow-500" />
-            <span className="text-[12px] font-black uppercase tracking-[0.3em] text-stone-400">Discovery</span>
-          </div>
           {!isSidebar && (
             <button onClick={onClose} className="p-2 bg-stone-100 rounded-full md:hidden">
               <ChevronRight className="rotate-90" size={16} />
             </button>
           )}
         </div>
-        <h2 className={`text-2xl font-black uppercase tracking-tighter text-stone-900 leading-none ${isSidebar ? 'mb-4' : 'mb-6'}`}>
-          Premium Picks
-        </h2>
         
         <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2">
           {filterOptions.map(f => (

@@ -5,13 +5,11 @@ import { useIsDesktop } from '../../../app/hooks/useIsDesktop';
 import { FeedService } from '../services/feedService';
 import { getUserFeedLocation } from '../services/feedLocation';
 import { supabase } from '../../../services/supabaseClient';
-import { LOCAL_CURATED_FEED_ITEMS } from '../constants/curatedFeed';
 import { 
   normalizeFeedServiceToCards, 
-  ensureAdTriviaPresence, 
   logFeedParity 
 } from '../lib/feedNormalization';
-import { FEED_COMPARE_WITH_LOCAL, FEED_USE_SERVICE } from '../constants/config';
+import { FEED_USE_SERVICE } from '../constants/config';
 import { shouldApplyLatestRequest } from '../../../shared/utils/async';
 import { Badge } from '../../../shared/ui/Badge';
 import { AppItem } from '../../../shared/types/appItem';
@@ -30,7 +28,7 @@ export const FeedView = ({
   onOpenUserProfile: (userId: string) => void 
 }) => {
   const [items, setItems] = useState<FeedUiItem[]>([]);
-  const [feedSource, setFeedSource] = useState<'local' | 'feedService'>('local');
+  const [feedSource, setFeedSource] = useState<'local' | 'feedService'>('feedService');
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedError, setFeedError] = useState<string>('');
 
@@ -54,7 +52,7 @@ export const FeedView = ({
   }, []);
 
   const fetchFromFeedService = async (isRetry = false) => {
-    const shouldFetch = FEED_COMPARE_WITH_LOCAL || FEED_USE_SERVICE;
+    const shouldFetch = true;
     if (!shouldFetch) return;
 
     if (FEED_USE_SERVICE || isRetry) {
@@ -96,20 +94,14 @@ export const FeedView = ({
 
       // 3. Fetch Feed
       const feedCards = await FeedService.generateFeed({
-        pageSize: Math.max(LOCAL_CURATED_FEED_ITEMS.length, 12),
         userLocation,
-        preferences: prefs || undefined
+        preferences: prefs || undefined,
+        pageSize: 12
       });
 
       console.log('🍽️ [FeedView] Raw FeedService cards:', feedCards);
-      const normalizedSource = normalizeFeedServiceToCards(feedCards);
-      console.log('🍽️ [FeedView] Normalized cards:', normalizedSource);
-
-      const adaptedCards = ensureAdTriviaPresence(normalizedSource, LOCAL_CURATED_FEED_ITEMS);
-
-      if (FEED_COMPARE_WITH_LOCAL) {
-        logFeedParity(LOCAL_CURATED_FEED_ITEMS, adaptedCards);
-      }
+      const adaptedCards = normalizeFeedServiceToCards(feedCards);
+      console.log('🍽️ [FeedView] Normalized cards:', adaptedCards);
 
       const isLatestRequest = shouldApplyLatestRequest(feedMountedRef, requestSeq, feedRequestSeqRef);
 
@@ -307,8 +299,8 @@ export const FeedView = ({
     }
 
     return (
-      <div className="flex-grow flex flex-col">
-        <div className="relative flex-grow">
+      <div className="h-full w-full flex flex-col">
+        <div className="relative flex-grow h-full">
           {items.map((item, i) => {
             const isAdOrTrivia = item.itemType === 'ad' || item.itemType === 'trivia';
             return (
@@ -317,20 +309,36 @@ export const FeedView = ({
                   className="w-full h-full relative"
                   onClick={() => i === 0 && !isAdOrTrivia && handleAction('expand', item)}
                 >
-                  <img src={item.img} alt={item.name || 'Feed item'} className="w-full h-full object-cover" />
+                  <img
+                    src={item.img}
+                    alt={item.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=800';
+                    }}
+                  />
                 {!isAdOrTrivia && (
                   <>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent" />
+                    
+                    {/* Top Profile Header (Mirrored from Desktop) */}
+                    <div className="absolute top-6 left-6 flex items-center gap-3 text-white z-20">
+                      <div className="w-12 h-12 rounded-full border-2 border-white/50 overflow-hidden bg-stone-800 shadow-xl flex-shrink-0">
+                        <img 
+                          src={item.authorAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.author || 'U')}&background=EAB308&color=fff&bold=true`} 
+                          alt={item.author} 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="font-black text-lg tracking-tight leading-none mb-1 truncate">{item.author || 'Anonymous'}</h4>
+                        <p className="text-[8px] uppercase font-black tracking-[0.2em] text-white/60">Food reviewer</p>
+                      </div>
+                    </div>
+
                     <div className="absolute bottom-10 left-10 right-10 text-white">
                       <h3 className="text-4xl font-black uppercase tracking-tighter mb-2 leading-none">{item.name}</h3>
                       <Badge color="yellow">{item.cat}</Badge>
-                      
-                      <div className="grid grid-cols-4 gap-3 bg-black/10 backdrop-blur-md p-3 rounded-2xl mt-6">
-                        <button onClick={(e) => { e.stopPropagation(); handleAction('pass', item); handleSwipe('left'); }} className="p-3 bg-white/10 rounded-xl text-white/50 hover:bg-red-500/20 hover:text-red-200 transition-colors flex items-center justify-center"><X size={20} strokeWidth={3} /></button>
-                        <button onClick={(e) => { e.stopPropagation(); handleAction('like', item); handleSwipe('right'); }} className="p-3 bg-white/10 rounded-xl text-white/50 hover:bg-emerald-500/20 hover:text-emerald-200 transition-colors flex items-center justify-center"><Heart size={20} strokeWidth={3} /></button>
-                        <button onClick={(e) => { e.stopPropagation(); handleAction('share', item); }} className="p-3 bg-white/10 rounded-xl text-white/50 hover:bg-yellow-500/20 hover:text-yellow-200 transition-colors flex items-center justify-center"><Share2 size={20} strokeWidth={3} /></button>
-                        <button onClick={(e) => { e.stopPropagation(); handleAction('save', item); }} className="p-3 bg-white/10 rounded-xl text-white/50 hover:bg-blue-500/20 hover:text-blue-200 transition-colors flex items-center justify-center"><Bookmark size={20} strokeWidth={3} /></button>
-                      </div>
                     </div>
                   </>
                 )}
@@ -340,15 +348,6 @@ export const FeedView = ({
           })}
         </div>
         
-        {/* Mobile Indicators */}
-        <div className="flex justify-center gap-2 mt-8 mb-4">
-          {Array.from({ length: Math.min(items.length, 6) }).map((_, i) => (
-            <div 
-              key={i} 
-              className={`h-1.5 transition-all duration-300 rounded-full ${i === 0 ? 'w-8 bg-yellow-400' : 'w-1.5 bg-stone-200'}`} 
-            />
-          ))}
-        </div>
       </div>
     );
   };
@@ -394,11 +393,20 @@ export const FeedView = ({
           <p className="text-[12px] font-black uppercase tracking-widest text-stone-500 mt-2">Curated Feed Fallback Active</p>
         )}
       </div>
-      <div className="relative w-full max-w-[400px] aspect-[3/4.6]">
+      <div className="relative w-full max-w-[400px] aspect-[3/4.6] overflow-hidden">
         {renderMobileFeedContent()}
       </div>
       {!!feedError && (
         <div className="text-[12px] font-black uppercase tracking-widest text-red-500 px-4 text-center">{feedError}</div>
+      )}
+
+      {selectedItemForDetail && (
+        <SavedItemDetailModal 
+          item={selectedItemForDetail}
+          onClose={() => setSelectedItemForDetail(null)}
+          onSave={onSave}
+          onShareRequest={onShareRequest}
+        />
       )}
     </div>
   );

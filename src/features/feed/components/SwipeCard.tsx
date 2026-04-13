@@ -49,7 +49,7 @@ export const SwipeCard = ({ children, onSwipe, active }: { children: React.React
   return (
     <div
       role="button"
-      className={`absolute inset-0 w-full h-full rounded-[1.75rem] border-4 border-white shadow-2xl overflow-hidden transition-transform duration-300 ${isSwiping ? 'ease-none' : 'ease-out'} select-none`}
+      className={`absolute inset-0 w-full h-full rounded-[1.75rem] border-4 border-white bg-stone-900 overflow-hidden transition-transform duration-300 ${isSwiping ? 'ease-none' : 'ease-out'} select-none`}
       style={{ 
         transform: `translate(${offset.x}px, ${offset.y}px) rotate(${rotation}deg)`,
         zIndex: active ? 10 : 1,

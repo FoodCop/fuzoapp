@@ -18,9 +18,16 @@ export const FeedService = {
         console.warn('[FeedService] No authenticated user found, attempting anonymous post');
       }
 
+      // Flatten metadata to prevent double-nesting in the database
+      const { metadata: nestedMetadata, ...topLevelFields } = item as any;
+      const cleanMetadata = {
+        ...topLevelFields,
+        ...(typeof nestedMetadata === 'object' ? nestedMetadata : {})
+      };
+
       const { data, error } = await supabase.from('fuzo_feed').insert({
         type: item.itemType || item.type || 'recipe',
-        metadata: item,
+        metadata: cleanMetadata,
         user_id: userId || null,
       }).select();
 
@@ -95,6 +102,9 @@ export const FeedService = {
             score += 50;
           }
         }
+
+        // 4. Organic Boost (+200 for posts from actual users)
+        if (row.user_id) score += 200;
 
         return {
           ...metadata,

@@ -1,12 +1,11 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { 
-  MapPin, RefreshCw, LayoutGrid, Sparkles, X, Star, Clock, Info, 
+  MapPin, RefreshCw, LayoutGrid, X, Star, Clock, Info, 
   List, Bookmark, Share2, Plus, ArrowRight, Zap, PlayCircle, Search, Navigation
 } from 'lucide-react';
 
 
-import { Badge } from '../../../shared/ui/Badge';
 import { API_KEYS } from '../../../shared/constants/apiKeys';
 import { 
   getGoogleMaps 
@@ -496,11 +495,6 @@ export const ScoutView = ({
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] md:h-auto space-y-0 md:space-y-8 md:px-4 animate-in fade-in pb-24 md:pb-24 -mx-6 md:mx-0">
       {/* Header with Tabs */}
-      <header className="hidden md:flex justify-between items-end px-4">
-        <div>
-          <Badge color="emerald">Scout v3.0</Badge>
-          <h2 className="text-4xl font-black uppercase tracking-tighter mt-1 text-stone-900">FUZO Map Discovery</h2>
-        </div>
         <div className="flex bg-stone-100 p-1.5 rounded-2xl">
           {(['main', 'fuzo', 'my'] as const).map(tab => (
             <button 
@@ -513,7 +507,6 @@ export const ScoutView = ({
             </button>
           ))}
         </div>
-      </header>
 
       {/* Mobile Tabs */}
       <div className="flex md:hidden bg-white border-b border-stone-100 sticky top-0 z-30">
@@ -594,17 +587,6 @@ export const ScoutView = ({
             isCalculating={isCalculatingRoute}
           />
 
-          <div className="absolute bottom-6 left-6 right-6 md:bottom-8 md:left-8 md:right-8 bg-white/90 backdrop-blur-md p-4 md:p-6 rounded-[2rem] md:rounded-[2.5rem] border border-white/50 shadow-xl flex items-center justify-between">
-
-            <div className="flex items-center gap-3 md:gap-4">
-              <div className="w-8 h-8 md:w-10 md:h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600"><Sparkles size={20} /></div>
-              <div>
-                <p className="text-[11px] md:text-[12px] font-black uppercase tracking-widest text-stone-400 leading-none">Scout Active</p>
-                <h4 className="font-black uppercase text-xs md:text-sm tracking-tighter mt-1 text-stone-900">{scoutHeadline}</h4>
-              </div>
-            </div>
-            <button className="px-4 py-2 md:px-6 md:py-3 bg-stone-900 text-white rounded-xl md:rounded-2xl font-black uppercase text-[11px] md:text-[12px] tracking-widest">Expand</button>
-          </div>
         </div>
 
         {/* Discovery Sidebar (The replacement for the old list sidebar) */}
