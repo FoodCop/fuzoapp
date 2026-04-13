@@ -1,56 +1,4 @@
-
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { 
-  MapPin, RefreshCw, LayoutGrid, X, Star, Clock, Info, 
-  List, Bookmark, Share2, Plus, ArrowRight, Zap, PlayCircle, Search, Navigation
-} from 'lucide-react';
-
-
-import { API_KEYS } from '../../../shared/constants/apiKeys';
-import { 
-  getGoogleMaps 
-} from '../types/scoutUi';
-import type { 
-  ScoutPlace, 
-  MapLike, 
-  MarkerLike,
-  ScoutFilter,
-  PrimaryProfileType
-} from '../types/scoutUi';
-import { 
-  SCOUT_FALLBACK_PLACES, 
-  calculateNeuralMatch, 
-  filterPlaces, 
-  sortPlaces,
-  toScoutPlace,
-  mergePlaceDetails
-} from '../lib/scoutLogic';
-
-import { ScoutDiscoveryPanel } from './ScoutDiscoveryPanel';
-import { ScoutPlaceModal } from './ScoutPlaceModal';
-import { ScoutRoutePlanner } from './ScoutRoutePlanner';
-import { MarkerClusterer } from '@googlemaps/markerclusterer';
-
-import { supabase, hasSupabaseConfig } from '../../../services/supabaseClient';
-import { PlacesService } from '../../../services/placesService';
-import { ScoutPersistence } from '../services/scoutPersistence';
-import type { AuthUser } from '../../auth/types/auth';
-
-type ScoutTab = 'main' | 'fuzo' | 'my';
-
-const shouldApplyLatestRequest = (
-  mounted: { current: boolean },
-  seq: number,
-  ref: { current: number }
-) => mounted.current && seq === ref.current;
-
-interface ScoutViewProps {
-  mapsApiKey?: string;
-  savedItems?: any[];
-  googleMapsReady?: boolean;
-  onAction: (item: any, action: 'save' | 'share') => void;
-  authUser: AuthUser | null;
-}
+import { SnapStudio } from '../../snap/components/SnapView';
 
 export const ScoutView = ({ 
   mapsApiKey = API_KEYS.MAPS,
@@ -72,6 +20,10 @@ export const ScoutView = ({
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
   const [currentRoute, setCurrentRoute] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Snap Studio Bridge
+  const [showSnapStudio, setShowSnapStudio] = useState(false);
+  const [snapStudioData, setSnapStudioData] = useState<any>(null);
 
   const [filter, setFilter] = useState<ScoutFilter>({
     type: 'all',
@@ -184,25 +136,16 @@ export const ScoutView = ({
   }, []);
 
   const handleContribute = useCallback(async (place: ScoutPlace) => {
-    if (!authUser?.id) return;
-    
-    const findData = {
-      name: place.name,
-      category: place.cat,
+    // Standardizing: Bridging into Snap Studio instead of saving silent find
+    setSnapStudioData({
+      restaurant: place.name,
       lat: place.lat,
       lng: place.lng,
       address: place.address || '',
-      notes: place.notes,
-    };
-
-    const result = await ScoutPersistence.saveScoutFind(authUser.id, findData);
-    if (result.success) {
-      setPinnedPlace(null);
-      fetchPlaces(mapInstanceRef.current!);
-    } else {
-      alert(`Failed to save: ${result.error}`);
-    }
-  }, [authUser, fetchPlaces]);
+      cuisine: place.cat
+    });
+    setShowSnapStudio(true);
+  }, []);
 
   const handleCalculateRoute = async (origin: string, destination: string) => {
     setIsCalculatingRoute(true);
@@ -615,6 +558,18 @@ export const ScoutView = ({
           onContribute={handleContribute}
         />
       )}
+
+      {showSnapStudio && (
+        <SnapStudio 
+          initialData={snapStudioData}
+          onPost={(item) => {
+            onAction(item, 'save');
+            setShowSnapStudio(false);
+          }}
+          onClose={() => setShowSnapStudio(false)}
+        />
+      )}
     </div>
   );
 };
+

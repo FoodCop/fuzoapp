@@ -208,25 +208,7 @@ const ExperienceStep = ({ rating, description, onUpdate, onNext }: { rating: num
 };
 
 
-// ---------------------------------------------------------------------------
-// Step 4 — Neural Reveal (Loading)
-// ---------------------------------------------------------------------------
-
-const NeuralRevealStep = ({ onNext }: { onNext: () => void }) => {
-  useEffect(() => {
-    const timer = setTimeout(onNext, 2500);
-    return () => clearTimeout(timer);
-  }, []);
-  return (
-    <div className="fixed inset-0 z-[250] bg-stone-950 flex flex-col items-center justify-center p-8 text-center space-y-8 animate-in zoom-in-95 duration-700">
-      <Sparkles size={80} className="text-yellow-400 animate-pulse" />
-      <h2 className="text-5xl font-black uppercase tracking-tighter italic text-white leading-none">Neural Synthesis</h2>
-      <div className="flex justify-center gap-1">
-        {[1,2,3].map(i => <div key={i} className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.2}s` }} />)}
-      </div>
-    </div>
-  );
-};
+import { NeuralReveal } from '../../../shared/ui/NeuralReveal';
 
 
 // ---------------------------------------------------------------------------
@@ -296,15 +278,35 @@ const SuccessStep = ({ isPosting, postSuccess, onPostToFeed, onClose }: { isPost
 // Main Orchestrator
 // ---------------------------------------------------------------------------
 
-const SnapStudio = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onClose: () => void }) => {
+export interface SnapStudioProps {
+  onPost: (item: AppItem) => void;
+  onClose: () => void;
+  initialData?: {
+    lat?: number;
+    lng?: number;
+    restaurant?: string;
+    address?: string;
+    cuisine?: string;
+  };
+}
+
+export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) => {
   const STUDIO_STEPS = ['Source', 'Location', 'Identity', 'Story', 'Reveal', 'Review', 'Finish'];
   const [currentStep, setCurrentStep] = useState(0);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(
+    initialData?.lat && initialData?.lng ? { lat: initialData.lat, lng: initialData.lng } : null
+  );
   const [isUploading, setIsUploading] = useState(false);
   const [isPostingToFeed, setIsPostingToFeed] = useState(false);
   const [feedPostSuccess, setFeedPostSuccess] = useState(false);
-  const [snapData, setSnapData] = useState<any>(null);
+  const [snapData, setSnapData] = useState<any>({
+    restaurant: initialData?.restaurant || '',
+    address: initialData?.address || '',
+    cuisine: initialData?.cuisine || '',
+    rating: 5,
+    description: ''
+  });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [nearbyPlaces, setNearbyPlaces] = useState<any[]>([]);
 
@@ -331,34 +333,37 @@ const SnapStudio = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onCl
   useEffect(() => {
     if (currentStep === 0) {
       startCamera();
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          setLocation({ lat, lng });
-          
-          try {
-            const result = await PlacesService.searchNearby(lat, lng, 100);
-            if (result.success && result.data?.results?.length) {
-              setNearbyPlaces(result.data.results);
-              const place = result.data.results[0];
-              setSnapData((prev: any) => ({
-                ...prev,
-                address: place.vicinity || place.formatted_address || prev?.address || '',
-              }));
+      
+      if (!initialData?.lat || !initialData?.lng) {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            setLocation({ lat, lng });
+            
+            try {
+              const result = await PlacesService.searchNearby(lat, lng, 100);
+              if (result.success && result.data?.results?.length) {
+                setNearbyPlaces(result.data.results);
+                const place = result.data.results[0];
+                setSnapData((prev: any) => ({
+                  ...prev,
+                  address: place.vicinity || place.formatted_address || prev?.address || '',
+                }));
+              }
+            } catch (err) {
+              console.warn('Auto-geocoding failed:', err);
             }
-          } catch (err) {
-            console.warn('Auto-geocoding failed:', err);
-          }
-        },
-        (err) => console.warn('Location error:', err),
-        { enableHighAccuracy: true }
-      );
+          },
+          (err) => console.warn('Location error:', err),
+          { enableHighAccuracy: true }
+        );
+      }
     } else {
       stopCamera();
     }
     return () => stopCamera();
-  }, [currentStep]);
+  }, [currentStep, initialData]);
 
   const handleCapture = () => {
     if (!videoRef.current) return;
@@ -368,105 +373,90 @@ const SnapStudio = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onCl
     const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.drawImage(videoRef.current, 0, 0);
-      setCapturedImage(canvas.toDataURL('image/jpeg', 0.85));
-      setCurrentStep(1); 
-    }
-  };
-
-  const handleNeuralAnalysis = async () => {
-    if (!snapData?.description) return;
-    setIsAnalyzing(true);
-    try {
-      const localTags = extractLocalTags(snapData.description);
-      const placesContext = nearbyPlaces?.length 
-        ? `Nearby: ${nearbyPlaces.slice(0, 3).map(p => p.name).join(', ')}` 
-        : '';
-
-      const prompt = `Analyze this culinary discovery: "${snapData.description}". ${placesContext}
-      Extract structured tags into these buckets:
-      - cuisine (must be ONE from ${UGC_CUISINES.join(', ')})
-      - dietary (e.g. Vegetarian, Vegan, Halal)
-      - meal_type (e.g. Brunch, Dinner)
-      - ambience (e.g. Rooftop, Casual, Fine Dining)
-      - features (e.g. Live Music, WiFi)
-      - price_range ($, $$, $$$, $$$$)
-      
-      Suggest 5 additional creative tags.
-      Return JSON: { cuisine, dietary, meal_type, ambience, features, price_range, creative_tags }`;
-      
-      const response = await GeminiService.generateContent({
-        model: 'gemini-1.5-flash',
-        contents: [{
-          role: 'user',
-          parts: [{ text: prompt }]
-        }],
-        config: { responseMimeType: 'application/json' }
-      });
-
-      if (response.success && response.data?.text) {
-        const parsed = parseAiJson(response.data.text);
-        const combinedTags = [
-          ...localTags,
-          ...(parsed.dietary || []),
-          ...(parsed.meal_type || []),
-          ...(parsed.ambience || []),
-          ...(parsed.features || []),
-          ...(parsed.creative_tags || []),
-          parsed.price_range
-        ].filter(Boolean).map(normalizeTag);
-
-        setSnapData((prev: any) => ({
-          ...prev,
-          tags: [...new Set(combinedTags)],
-          cuisine: normalizeTag(parsed.cuisine) || prev.cuisine
-        }));
-      }
-    } catch (err) {
-      console.warn('Neural analysis failed:', err);
-    } finally {
-      setIsAnalyzing(false);
+      setCapturedImage(canvas.toDataURL('image/jpeg', 0.9));
+      setCurrentStep(1);
     }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      try {
-        await loadUploadedImage(file, setCapturedImage, () => setCurrentStep(1));
-      } catch (error) {
-        console.warn('Failed to read uploaded image', error);
-      }
+      const dataUrl = await loadUploadedImage(file);
+      setCapturedImage(dataUrl);
+      setCurrentStep(1);
     }
   };
 
-  const handleFinish = async (publishToFeed: boolean = false) => {
-    if (!capturedImage || !snapData) return;
-    setIsUploading(true);
+  const handleNeuralAnalysis = async () => {
+    if (!capturedImage) return;
+    setIsAnalyzing(true);
     try {
-      const snapId = `snap-${Date.now()}`;
-      const snapItem = await persistSnapData({
-        snapId,
-        imageData: capturedImage,
-        ...snapData,
-        location,
-      });
+      await new Promise(r => setTimeout(r, 2000));
+      const geminiResult = await GeminiService.analyzeSnap(capturedImage, snapData.description);
+      const parsed = parseAiJson(geminiResult);
       
-      onPost(snapItem);
+      const localTags = extractLocalTags(snapData.description);
+      const combinedTags = [...new Set([...(parsed.tags || []), ...localTags])];
       
-      if (publishToFeed) {
-        setIsPostingToFeed(true);
-        try {
-          const result = await FeedService.publishToFeed(snapItem);
-          if (result.success) setFeedPostSuccess(true);
-        } finally {
-          setIsPostingToFeed(false);
-        }
-      }
-      setCurrentStep(6); 
-    } catch (err) {
-      console.error('Failed to persist snap:', err);
+      setSnapData((prev: any) => ({
+        ...prev,
+        ...parsed,
+        tags: combinedTags
+      }));
     } finally {
-      setIsUploading(false);
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleFinish = async (publish: boolean) => {
+    if (!capturedImage || !snapData) return;
+    
+    if (publish) {
+      setIsPostingToFeed(true);
+      try {
+        const item: AppItem = {
+          id: `snap-${Date.now()}`,
+          itemType: 'snap',
+          itemId: `sc-${Date.now()}`,
+          name: snapData.restaurant,
+          cat: snapData.cuisine,
+          img: capturedImage,
+          metadata: {
+            ...snapData,
+            image: capturedImage
+          }
+        };
+        const result = await FeedService.publishToFeed(item);
+        if (result.success) {
+          setFeedPostSuccess(true);
+          onPost(item);
+        }
+      } finally {
+        setIsPostingToFeed(false);
+      }
+    } else {
+      setIsUploading(true);
+      try {
+        const item: AppItem = {
+          id: `snap-${Date.now()}`,
+          itemType: 'snap',
+          itemId: `sc-${Date.now()}`,
+          name: snapData.restaurant,
+          cat: snapData.cuisine,
+          img: capturedImage,
+          metadata: {
+            ...snapData,
+            image: capturedImage
+          }
+        };
+        const result = await persistSnapData(item);
+        if (result.success) {
+          onPost(item);
+          setCurrentStep(STUDIO_STEPS.length - 1);
+        }
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -507,7 +497,7 @@ const SnapStudio = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onCl
         {currentStep === 3 && (
           <ExperienceStep rating={snapData?.rating || 5} description={snapData?.description || ''} onUpdate={(data) => setSnapData((prev: any) => ({ ...prev, ...data }))} onNext={() => { setCurrentStep(4); handleNeuralAnalysis(); }} />
         )}
-        {currentStep === 4 && <NeuralRevealStep onNext={() => setCurrentStep(5)} />}
+        {currentStep === 4 && <NeuralReveal onNext={() => setCurrentStep(5)} />}
         {currentStep === 5 && snapData && (
           <ReviewStep image={capturedImage!} data={snapData} onEdit={() => setCurrentStep(2)} onLock={() => handleFinish(false)} isUploading={isUploading} />
         )}

@@ -26,12 +26,16 @@ The Trims Studio supports two distinct entry pipelines:
 
 ### Wizard Steps
 
-| Step | Name         | Description                                          |
+The Trims Studio uses a standardized **6-step wizard** orchestrated by `AITrimStudio`:
+
+| Step | Name         | Component Logic                                      |
 |:----:|:-------------|:-----------------------------------------------------|
-|  0   | **Source**   | Toggle between Video Upload or YouTube URL input    |
-|  1   | **Context**  | User description to guide the AI analysis           |
-|  2   | **Assembly** | **Gemini 2.5 Flash** video analysis & card building |
-|  3   | **Success**  | Final CTAs (Save, Share, Post to Discovery Feed)    |
+|  0   | **Media**    | `TrimsMediaStep`: Video upload or YouTube URL input |
+|  1   | **Identity** | `TrimsIdentityStep`: Title and category mapping      |
+|  2   | **Story**    | `TrimsStoryStep`: AI-guiding description             |
+|  3   | **Reveal**   | `NeuralReveal`: Immersive AI synthesis animation    |
+|  4   | **Review**   | `TrimsReviewStep`: Trim Card preview & confirmation |
+|  5   | **Success**  | Final CTAs & feed syndication                        |
 
 ---
 

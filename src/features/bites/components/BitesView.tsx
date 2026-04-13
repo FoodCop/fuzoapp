@@ -799,6 +799,140 @@ const BitesControls = ({
     </div>
   );
 };
+// Standard Step Components for Bites Studio
+// ---------------------------------------------------------------------------
+
+const BitesSourceStep = ({ image, onUpload, onSkip }: { image: string | null, onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void, onSkip: () => void }) => {
+  return (
+    <div className="fixed inset-0 z-[250] bg-stone-950 p-8 flex flex-col justify-center animate-in fade-in duration-500">
+      <div className="max-w-xl mx-auto w-full space-y-12 text-center">
+        <div className="space-y-4">
+          <Badge color="yellow">Neural Vision</Badge>
+          <h2 className="text-5xl font-black uppercase tracking-tighter italic text-white leading-none">The Plate</h2>
+          <p className="text-stone-400 font-bold uppercase tracking-widest text-[10px]">Upload a dish image to seed the AI</p>
+        </div>
+
+        <div className="aspect-video bg-stone-900 rounded-[3rem] border-4 border-dashed border-stone-800 overflow-hidden group hover:border-yellow-400/50 transition-all relative">
+          {image ? (
+            <img src={image} alt="Recipe context" className="w-full h-full object-cover" />
+          ) : (
+            <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer">
+              <div className="w-20 h-20 bg-stone-800 rounded-2xl flex items-center justify-center text-stone-700 group-hover:text-yellow-400 transition-colors mb-4">
+                <ImageIcon size={40} />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-stone-600">Choose Culinary Image</span>
+              <input type="file" accept="image/*" className="hidden" onChange={onUpload} />
+            </label>
+          )}
+        </div>
+
+        <div className="flex justify-center gap-4">
+          <button onClick={onSkip} className="px-10 py-5 bg-white/5 hover:bg-white/10 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] transition-all">Skip</button>
+          {image && (
+            <button onClick={onSkip} className="px-10 py-5 bg-white text-stone-950 rounded-[2rem] font-black uppercase tracking-widest text-[10px] shadow-2xl hover:scale-105 active:scale-95 transition-all">Next: Identity</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const BitesIdentityStep = ({ title, category, onUpdate, onNext }: { title: string, category: string, onUpdate: (data: any) => void, onNext: () => void }) => {
+  return (
+    <div className="fixed inset-0 z-[250] bg-stone-950 p-8 flex flex-col justify-center animate-in slide-in-from-right duration-500">
+      <div className="max-w-md mx-auto w-full space-y-12">
+        <div className="space-y-4 text-center">
+          <Badge color="yellow">Identity</Badge>
+          <h2 className="text-5xl font-black uppercase tracking-tighter italic text-white leading-none">The Name</h2>
+        </div>
+        <div className="space-y-8">
+          <div className="space-y-3">
+            <label className="text-[10px] font-black uppercase tracking-[0.3em] text-stone-500 ml-6">Dish Name</label>
+            <input autoFocus value={title} onChange={(e) => onUpdate({ title: e.target.value })} placeholder="e.g. Truffle Miso Ramen" className="w-full bg-stone-900/50 border-2 border-white/5 px-8 py-6 rounded-[2.5rem] font-black text-white text-xl uppercase tracking-tighter outline-none focus:border-yellow-400 focus:bg-stone-900 transition-all placeholder:text-stone-800" />
+          </div>
+          <div className="space-y-3">
+            <label className="text-[10px] font-black uppercase tracking-[0.3em] text-stone-500 ml-6">Cuisine Category</label>
+            <div className="grid grid-cols-2 gap-3 max-h-[30vh] overflow-y-auto pr-2 custom-scrollbar">
+              {UGC_CUISINES.map((c) => (
+                <button key={c} onClick={() => onUpdate({ category: c })} className={`py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest border-2 transition-all ${category === c ? 'bg-yellow-400 text-stone-950 border-yellow-400' : 'bg-stone-900 text-stone-400 border-white/5'}`}>{c}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <button onClick={onNext} disabled={!title || !category} className={`w-full py-7 rounded-[3rem] font-black uppercase tracking-widest text-sm shadow-2xl transition-all ${title && category ? 'bg-white text-stone-950 hover:scale-[1.02] active:scale-95' : 'bg-stone-900 text-stone-700 cursor-not-allowed'}`}>
+          Next: Assembly
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const BitesStoryStep = ({ description, onUpdate, onNext }: { description: string, onUpdate: (data: any) => void, onNext: () => void }) => {
+  return (
+    <div className="fixed inset-0 z-[250] bg-stone-950 p-8 flex flex-col justify-center animate-in slide-in-from-right duration-500">
+      <div className="max-w-md mx-auto w-full space-y-12">
+        <div className="space-y-4 text-center">
+          <Badge color="yellow">Assemblage</Badge>
+          <h2 className="text-5xl font-black uppercase tracking-tighter italic text-white leading-none">The Story</h2>
+        </div>
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <label className="text-[10px] font-black uppercase tracking-[0.3em] text-stone-500 ml-6">Notes & Details</label>
+            <textarea autoFocus value={description} onChange={(e) => onUpdate({ description: e.target.value })} placeholder="Describe the textures, flavors, and key steps..." className="w-full bg-stone-900/50 border-2 border-white/5 px-8 py-6 rounded-[2.5rem] font-bold text-white text-lg outline-none focus:border-white/20 focus:bg-stone-900 transition-all h-64 resize-none placeholder:text-stone-800" />
+          </div>
+        </div>
+        <button onClick={onNext} disabled={!description || description.length < 5} className={`w-full py-7 rounded-[3rem] font-black uppercase tracking-widest text-sm shadow-2xl transition-all ${description.length >= 5 ? 'bg-yellow-400 text-stone-950 hover:scale-[1.02] active:scale-95' : 'bg-stone-900 text-stone-700 cursor-not-allowed'}`}>
+          Neural Synthesis
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const BitesReviewStep = ({ image, data, onEdit, onLock, isUploading }: { image: string | null, data: any, onEdit: () => void, onLock: () => void, isUploading: boolean }) => {
+  return (
+    <div className="fixed inset-0 z-[250] bg-stone-950 p-8 flex flex-col items-center justify-center space-y-12 animate-in zoom-in-95 duration-500 overflow-y-auto">
+      <div className="space-y-4 text-center">
+        <Badge color="yellow">Synced & Loaded</Badge>
+        <h2 className="text-5xl font-black uppercase tracking-tighter italic text-white leading-none">Culinary Bite Card</h2>
+      </div>
+      <div className="max-w-xl w-full">
+        <div className="bg-white rounded-[2.5rem] overflow-hidden shadow-2xl border-[12px] border-white">
+          <div className="aspect-video relative">
+            <img src={image || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?auto=format&fit=crop&w=400'} className="w-full h-full object-cover" />
+            <div className="absolute top-6 left-6 flex gap-2">
+              <Badge color="yellow">AI Verified</Badge>
+              <Badge color="stone">{data.category}</Badge>
+            </div>
+          </div>
+          <div className="p-10 space-y-6">
+            <div className="space-y-1">
+              <h3 className="text-3xl font-black uppercase tracking-tighter leading-tight text-stone-950">{data.title}</h3>
+              <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Created via Neural Synthesis</p>
+            </div>
+            <div className="flex gap-4">
+              <div className="flex-1 p-4 bg-stone-50 rounded-2xl">
+                <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest text-center">Prot</p>
+                <p className="text-lg font-black text-center text-stone-900">{data.nutrition?.protein}g</p>
+              </div>
+              <div className="flex-1 p-4 bg-stone-50 rounded-2xl">
+                <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest text-center">Cals</p>
+                <p className="text-lg font-black text-center text-stone-900">{data.nutrition?.calories}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-4 mt-8">
+          <button onClick={onEdit} className="px-8 py-5 bg-white/10 text-white rounded-[2rem] font-black uppercase tracking-widest text-xs border border-white/5">Modify</button>
+          <button onClick={onLock} disabled={isUploading} className="flex-grow py-5 bg-yellow-400 text-stone-900 rounded-[2rem] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3">
+            {isUploading ? <Loader2 className="animate-spin" /> : <CheckCircle2 size={24} />}
+            Confirm & Publish
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const AIRecipeStudio = ({
   onSave,
@@ -825,10 +959,12 @@ export const AIRecipeStudio = ({
     aiTag?: BitesAiTag;
   };
 
-  const STUDIO_STEPS = ['Visuals', 'Context', 'Assembly', 'Success'];
+  const STUDIO_STEPS = ['Visuals', 'Identity', 'Story', 'Synthesis', 'Review', 'Finish'];
   const [currentStep, setCurrentStep] = useState(0);
   const [image, setImage] = useState<string | null>(null);
   const [imageMimeType, setImageMimeType] = useState('image/jpeg');
+  const [title, setTitle] = useState('');
+  const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedRecipe, setGeneratedRecipe] = useState<GeneratedRecipeCard | null>(null);
@@ -846,43 +982,34 @@ export const AIRecipeStudio = ({
       setImage(imageData);
       setImageMimeType(file.type || 'image/jpeg');
       setError(null);
-      // Auto-advance to context after successful upload
       setCurrentStep(1);
     } catch {
-      setError('Failed to read image. Please try another file.');
+      setError('Failed to read image.');
     }
   };
 
   const handleGenerate = async () => {
     if (!description.trim()) return;
 
-    setCurrentStep(2); // Move to Assembly step
+    setCurrentStep(3); // Neural Synthesis Reveal
     setIsGenerating(true);
     setError(null);
 
     try {
-      const prompt = `You are an expert chef and nutrition analyst. Build one clean JSON object for a recipe card.
-    Fields required: title, category, readyInMinutes, servings, ingredients (array of strings), instructions (string), nutrition { calories, protein, fat, carbs }, aiTag.
-    
-    CRITICAL TAXONOMY RULES:
-    1. category MUST be one of: ${UGC_CUISINES.join(', ')}. Do NOT add suffixes like "Cuisine" or "Food".
-    2. aiTag MUST be one of: ${UGC_CATEGORIES.join(', ')}.
-    3. Use only these Diet tags if applicable: ${UGC_DIETS.join(', ')}.
-
-    User description: ${description}`;
+      const prompt = `You are an expert chef. Analyze this disk: "${title}" (${category}). 
+      Description: ${description}. 
+      Generate a clean JSON recipe card.
+      Fields: title, category, readyInMinutes, servings, ingredients (array), instructions, nutrition { calories, protein, fat, carbs }, aiTag.`;
 
       const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [{ text: prompt }];
       if (image?.includes(',')) {
         parts.push({
-          inlineData: {
-            mimeType: imageMimeType,
-            data: image.split(',')[1],
-          },
+          inlineData: { mimeType: imageMimeType, data: image.split(',')[1] }
         });
       }
 
       const response = await GeminiService.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-1.5-flash',
         contents: [{ role: 'user', parts }],
         config: {
           responseMimeType: 'application/json',
@@ -895,10 +1022,7 @@ export const AIRecipeStudio = ({
               servings: { type: 'number' },
               ingredients: { type: 'array', items: { type: 'string' } },
               instructions: { type: 'string' },
-              aiTag: {
-                type: 'string',
-                enum: [...BITES_AI_TAG_OPTIONS],
-              },
+              aiTag: { type: 'string', enum: [...BITES_AI_TAG_OPTIONS] },
               nutrition: {
                 type: 'object',
                 properties: {
@@ -910,29 +1034,17 @@ export const AIRecipeStudio = ({
                 required: ['calories', 'protein', 'fat', 'carbs'],
               },
             },
-            required: ['title', 'readyInMinutes', 'servings', 'ingredients', 'instructions', 'nutrition', 'aiTag'],
+            required: ['title', 'ingredients', 'instructions', 'nutrition'],
           },
         },
       });
 
-      if (!response.success || !response.data?.text) {
-        throw new Error(response.error || 'Gemini generation failed');
-      }
-
+      if (!response.success || !response.data?.text) throw new Error('Generation failed');
       const parsed = parseAiJson(response.data.text);
-      if (!parsed?.title) {
-        throw new Error('Invalid AI response format');
-      }
-
-      const aiTag = BITES_AI_TAG_OPTIONS.includes(parsed.aiTag as BitesAiTag)
-        ? (parsed.aiTag as BitesAiTag)
-        : 'Recipe Card';
-
-      setSelectedTag(aiTag);
       setGeneratedRecipe(parsed);
     } catch {
-      setError('Failed to generate recipe card. Please try again.');
-      setCurrentStep(1); // Go back to context on error
+      setError('Neural Assembly failed.');
+      setCurrentStep(2);
     } finally {
       setIsGenerating(false);
     }
@@ -940,15 +1052,17 @@ export const AIRecipeStudio = ({
 
   const buildActionItem = (): BiteActionItem | null => {
     if (!generatedRecipe) return null;
+    const finalTitle = generatedRecipe.title || title;
+    const finalCat = generatedRecipe.category || category;
     return {
       id: `recipe-ai-${Date.now()}`,
-      name: generatedRecipe.title || 'AI Recipe',
-      cat: generatedRecipe.category || 'AI Recipe',
+      name: finalTitle,
+      cat: finalCat,
       img: image || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?auto=format&fit=crop&w=400',
       metadata: {
-        title: generatedRecipe.title || 'AI Recipe',
-        name: generatedRecipe.title || 'AI Recipe',
-        cat: generatedRecipe.category || 'AI Recipe',
+        title: finalTitle,
+        name: finalTitle,
+        cat: finalCat,
         image: image || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?auto=format&fit=crop&w=400',
         generatedRecipe,
         aiTag: selectedTag,
@@ -963,16 +1077,14 @@ export const AIRecipeStudio = ({
     
     if (action === 'save') {
       onSave(item);
-      setCurrentStep(3); // Show success step
+      setCurrentStep(5); // Success step
     } else if (action === 'share') {
       onShareRequest(item);
     } else if (action === 'feed') {
       setIsPostingToFeed(true);
       try {
         const result = await FeedService.publishToFeed(item);
-        if (result.success) {
-          setFeedPostSuccess(true);
-        }
+        if (result.success) setFeedPostSuccess(true);
       } finally {
         setIsPostingToFeed(false);
       }
@@ -980,263 +1092,51 @@ export const AIRecipeStudio = ({
   };
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Create recipe with AI" className="fixed inset-0 z-[200] bg-stone-950 text-white flex flex-col overflow-hidden">
-      {/* Header with Stepper */}
-      <header className="p-8 md:p-12 border-b border-stone-900 bg-stone-950/50 backdrop-blur-xl shrink-0 flex items-center justify-between">
-        <div className="hidden md:block w-32" /> {/* Spacer */}
-        <StudioStepper steps={STUDIO_STEPS} currentStep={currentStep} className="flex-grow" />
-        <button
-          onClick={onClose}
-          className="w-12 h-12 bg-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center transition-colors shadow-2xl"
-        >
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-[200] bg-black text-white flex flex-col overflow-hidden">
+      <header className="p-8 border-b border-white/5 bg-stone-950/50 backdrop-blur-xl shrink-0 flex items-center justify-between z-30">
+        <StudioStepper steps={STUDIO_STEPS} currentStep={currentStep} className="flex-grow max-w-2xl mx-auto" />
+        <button onClick={onClose} className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-2xl flex items-center justify-center transition-colors">
           <X size={24} />
         </button>
       </header>
 
-      <div className="flex-grow overflow-y-auto p-8 md:p-24">
-        <div className="max-w-4xl mx-auto">
-          {/* STEP 1: VISUALS */}
-          {currentStep === 0 && (
-            <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 space-y-12 text-center">
-              <div className="space-y-4">
-                <Badge color="yellow">Step 1</Badge>
-                <h2 className="text-5xl font-black uppercase tracking-tighter italic">Neural Vision</h2>
-                <p className="text-stone-400 font-bold uppercase tracking-widest text-xs">Upload a dish image to seed the AI</p>
-              </div>
-
-              <div className="max-w-xl mx-auto aspect-video bg-stone-900 rounded-[3rem] border-4 border-dashed border-stone-800 overflow-hidden group hover:border-yellow-400/50 transition-all relative">
-                {image ? (
-                  <>
-                    <img src={image} alt="Recipe context" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => setImage(null)} className="p-6 bg-red-500 rounded-full text-white shadow-2xl scale-0 group-hover:scale-100 transition-transform duration-300">
-                        <X size={32} strokeWidth={3} />
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer">
-                    <div className="w-24 h-24 bg-stone-800 rounded-3xl flex items-center justify-center text-stone-700 group-hover:text-yellow-400 transition-colors mb-6">
-                      <ImageIcon size={48} />
-                    </div>
-                    <span className="text-[12px] font-black uppercase tracking-widest text-stone-600">Choose Culinary Image</span>
-                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                  </label>
-                )}
-              </div>
-
-              <div className="flex justify-center gap-4">
-                <button
-                  onClick={() => setCurrentStep(1)}
-                  className="px-12 py-6 bg-white/5 hover:bg-white/10 rounded-[2rem] font-black uppercase tracking-widest text-xs transition-all"
-                >
-                  Skip for now
-                </button>
-                {image && (
-                  <button
-                    onClick={() => setCurrentStep(1)}
-                    className="px-12 py-6 bg-white text-stone-900 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all"
-                  >
-                    Next Step
-                  </button>
-                )}
-              </div>
+      <div className="flex-grow relative overflow-hidden">
+        {currentStep === 0 && (
+          <BitesSourceStep image={image} onUpload={handleImageUpload} onSkip={() => setCurrentStep(1)} />
+        )}
+        {currentStep === 1 && (
+          <BitesIdentityStep title={title} category={category} onUpdate={(d) => { if(d.title !== undefined) setTitle(d.title); if(d.category !== undefined) setCategory(d.category); }} onNext={() => setCurrentStep(2)} />
+        )}
+        {currentStep === 2 && (
+          <BitesStoryStep description={description} onUpdate={(d) => { if(d.description !== undefined) setDescription(d.description); }} onNext={() => { setCurrentStep(3); handleGenerate(); }} />
+        )}
+        {currentStep === 3 && (
+          <NeuralReveal onNext={() => setCurrentStep(4)} />
+        )}
+        {currentStep === 4 && generatedRecipe && (
+          <BitesReviewStep image={image} data={generatedRecipe} onEdit={() => setCurrentStep(1)} onLock={() => handleFinish('save')} isUploading={isGenerating} />
+        )}
+        {currentStep === 5 && (
+          <div className="fixed inset-0 z-[250] bg-emerald-600 flex flex-col items-center justify-center p-8 text-center space-y-8 animate-in fade-in duration-700">
+            <div className="w-40 h-40 bg-white rounded-full flex items-center justify-center text-emerald-600 shadow-2xl">
+              <Check size={80} strokeWidth={4} />
             </div>
-          )}
-
-          {/* STEP 2: CONTEXT */}
-          {currentStep === 1 && (
-            <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 space-y-12">
-              <div className="space-y-4 text-center">
-                <Badge color="yellow">Step 2</Badge>
-                <h2 className="text-5xl font-black uppercase tracking-tighter italic">Chef's Context</h2>
-                <p className="text-stone-400 font-bold uppercase tracking-widest text-xs">Describe the dish and select its neural tag</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                <div className="space-y-8">
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-stone-500 ml-6">Neural Impressions</label>
-                    <textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="e.g. A spicy avocado toast with poached eggs and sriracha honey drizzle..."
-                      className="w-full h-64 bg-stone-900 border-4 border-stone-800 rounded-[3rem] p-8 font-bold text-sm outline-none focus:border-yellow-400 transition-all resize-none shadow-inner"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-8">
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-stone-500 ml-6">Neural Tag</label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {BITES_AI_TAG_OPTIONS.map((tag) => (
-                        <button
-                          type="button"
-                          key={tag}
-                          onClick={() => setSelectedTag(tag)}
-                          className={`p-6 rounded-3xl text-[12px] font-black uppercase tracking-widest transition-all border-4 ${
-                            selectedTag === tag 
-                              ? 'bg-yellow-400 text-stone-900 border-white shadow-xl scale-105' 
-                              : 'bg-stone-900 text-stone-400 border-stone-800 hover:border-stone-700'
-                          }`}
-                        >
-                          {tag}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-center gap-4 pt-8">
-                <button
-                  onClick={() => setCurrentStep(0)}
-                  className="px-12 py-6 bg-white/5 rounded-[2rem] font-black uppercase tracking-widest text-xs"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={handleGenerate}
-                  disabled={!description.trim()}
-                  className="px-12 py-6 bg-white text-stone-900 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 flex items-center gap-4"
-                >
-                  <Sparkles size={20} />
-                  Assemble Recipe
-                </button>
-              </div>
+            <h2 className="text-6xl font-black uppercase tracking-tighter italic text-white leading-none">Bite Synced</h2>
+            <div className="max-w-md w-full space-y-4 pt-12">
+              <button onClick={() => handleFinish('feed')} disabled={isPostingToFeed || feedPostSuccess} className={`w-full py-6 rounded-[2.5rem] font-black uppercase tracking-widest text-sm shadow-2xl flex items-center justify-center gap-4 border-4 transition-all ${feedPostSuccess ? 'bg-emerald-600 text-white border-emerald-400' : 'bg-stone-900 text-white border-white/20'}`}>
+                {isPostingToFeed ? <Loader2 className="animate-spin" /> : feedPostSuccess ? <Check size={20} /> : <Send size={20} />}
+                {isPostingToFeed ? 'Syndicating...' : feedPostSuccess ? 'Posted' : 'Post to Feed'}
+              </button>
+              <button onClick={onClose} className="w-full py-6 bg-white text-emerald-700 rounded-[2.5rem] font-black uppercase tracking-widest text-sm">Done</button>
             </div>
-          )}
-
-          {/* STEP 3: ASSEMBLY */}
-          {currentStep === 2 && (
-            <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 space-y-12">
-              <div className="space-y-4 text-center">
-                <Badge color="yellow">Step 3</Badge>
-                <h2 className="text-5xl font-black uppercase tracking-tighter italic">Neural Assembly</h2>
-                <p className="text-stone-400 font-bold uppercase tracking-widest text-xs">Review your generated Bite Card</p>
-              </div>
-
-              <div className="max-w-2xl mx-auto">
-                {isGenerating ? (
-                  <div className="py-24 flex flex-col items-center justify-center space-y-8">
-                    <div className="relative">
-                      <div className="w-32 h-32 border-8 border-yellow-400/20 border-t-yellow-400 rounded-full animate-spin shadow-[0_0_40px_rgba(250,204,21,0.2)]" />
-                      <ChefHat size={48} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-yellow-400" />
-                    </div>
-                    <div className="text-center space-y-2">
-                      <p className="font-black uppercase tracking-[0.3em] text-yellow-400 animate-pulse">Deep Neural Synthesis</p>
-                      <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Mapping Nutrients & Flavors...</p>
-                    </div>
-                  </div>
-                ) : generatedRecipe ? (
-                  <div className="bg-white text-stone-950 rounded-[2rem] overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] animate-in zoom-in-95 duration-500 border-[12px] border-white">
-                    <div className="aspect-video relative">
-                      <img src={image || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?auto=format&fit=crop&w=800'} alt="Recipe preview" className="w-full h-full object-cover" />
-                      <div className="absolute top-6 left-6 flex gap-2">
-                        <Badge color="yellow">AI Verified</Badge>
-                        <Badge color="stone">{selectedTag}</Badge>
-                      </div>
-                    </div>
-                    <div className="p-12 space-y-8">
-                      <div className="space-y-2">
-                        <h3 className="text-4xl font-black uppercase tracking-tighter leading-none">{generatedRecipe.title}</h3>
-                        <div className="flex gap-6 text-[10px] font-black uppercase tracking-[0.2em] text-stone-400">
-                          <span>{generatedRecipe.readyInMinutes} Mins</span>
-                          <span className="text-yellow-400">â€¢</span>
-                          <span>{generatedRecipe.servings} Servings</span>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-12">
-                        <div className="space-y-4">
-                          <h4 className="text-[10px] font-black uppercase tracking-widest text-stone-300">Key Ingredients</h4>
-                          <ul className="space-y-3">
-                            {generatedRecipe.ingredients?.slice(0, 5).map((ing, i) => (
-                              <li key={i} className="text-xs font-bold text-stone-600 flex gap-3">
-                                <span className="text-yellow-400">â€¢</span> {ing}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                        <div className="space-y-4">
-                          <h4 className="text-[10px] font-black uppercase tracking-widest text-stone-300">Neural Nutrition</h4>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="p-4 bg-stone-50 rounded-2xl">
-                              <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Cals</p>
-                              <p className="text-lg font-black">{generatedRecipe.nutrition?.calories}</p>
-                            </div>
-                            <div className="p-4 bg-stone-50 rounded-2xl">
-                              <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Prot</p>
-                              <p className="text-lg font-black">{generatedRecipe.nutrition?.protein}g</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-4 pt-4 border-t border-stone-100">
-                        <button
-                          onClick={() => handleFinish('save')}
-                          className="flex-grow py-6 bg-stone-900 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3 hover:scale-105 transition-all shadow-xl"
-                        >
-                          <Bookmark size={20} /> Save to Plate
-                        </button>
-                        <button
-                          onClick={() => handleFinish('share')}
-                          className="p-6 bg-stone-100 text-stone-900 rounded-[2rem] hover:bg-yellow-400 transition-all"
-                        >
-                          <Share2 size={24} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          )}
-
-          {/* STEP 4: SUCCESS */}
-          {currentStep === 3 && (
-            <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 space-y-12 text-center py-12">
-              <div className="w-40 h-40 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-[0_0_60px_rgba(16,185,129,0.3)] mx-auto mb-12">
-                <Check size={80} strokeWidth={4} />
-              </div>
-
-              <div className="space-y-4">
-                <h2 className="text-6xl font-black uppercase tracking-tighter italic">Bite Synced</h2>
-                <p className="text-stone-400 font-bold uppercase tracking-widest text-xs">Recipe card has been successfully generated</p>
-              </div>
-
-              <div className="max-w-md mx-auto space-y-4">
-                <button
-                  onClick={() => !isPostingToFeed && !feedPostSuccess && handleFinish('feed')}
-                  disabled={isPostingToFeed || feedPostSuccess}
-                  className={`w-full py-6 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-2xl flex items-center justify-center gap-4 border-4 transition-all ${
-                    feedPostSuccess 
-                      ? 'bg-emerald-500 text-white border-emerald-400' 
-                      : 'bg-stone-900 text-white border-emerald-500/20'
-                  } ${isPostingToFeed ? 'opacity-80' : 'hover:scale-[1.02]'}`}
-                >
-                  {isPostingToFeed ? (
-                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                  ) : feedPostSuccess ? (
-                    <Check size={20} />
-                  ) : (
-                    <Send size={20} />
-                  )}
-                  {isPostingToFeed ? 'Syndicating...' : feedPostSuccess ? 'Posted to Feed' : 'Post to Fuzo Feed'}
-                </button>
-                <button
-                  onClick={onClose}
-                  className="w-full py-6 bg-white text-stone-900 rounded-[2rem] font-black uppercase tracking-widest text-xs"
-                >
-                  Back to Studio
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+      {error && (
+        <div className="fixed bottom-32 left-1/2 -translate-x-1/2 px-8 py-4 bg-red-500 text-white rounded-full font-black uppercase text-xs tracking-widest shadow-2xl animate-in slide-in-from-bottom-4">
+          {error}
+        </div>
+      )}
     </div>
   );
 };

@@ -17,14 +17,16 @@ The feature is modularized within `src/features/bites/`.
 
 ## 🧭 Multi-Step Studio Architecture
 
-The Bites Studio uses a 4-step wizard orchestrated by `AIRecipeStudio`:
+The Bites Studio uses a standardized **6-step wizard** orchestrated by `AIRecipeStudio`:
 
 | Step | Name         | Component Logic                                      |
 |:----:|:-------------|:-----------------------------------------------------|
-|  0   | **Visuals**  | Image upload handler (Drag & Drop or File Picker)    |
-|  1   | **Context**  | Multi-line text input for culinary description       |
-|  2   | **Assembly** | **Gemini 2.5 Flash** neural generation & parsing     |
-|  3   | **Success**  | Post-generation actions (Save, Share, Post to Feed) |
+|  0   | **Visuals**  | `BitesSourceStep`: Image upload or file picker      |
+|  1   | **Identity** | `BitesIdentityStep`: Dish name + Cuisine mapping    |
+|  2   | **Assembly** | `BitesStoryStep`: Culinary description & notes       |
+|  3   | **Reveal**   | `NeuralReveal`: Immersive AI synthesis animation    |
+|  4   | **Review**   | `BitesReviewStep`: Card preview & data verification |
+|  5   | **Success**  | Final post-creation actions & feed syndication      |
 
 ---
 
