@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChefHat, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { LANDING_FEATURES } from '../constants/landingData';
 
 export const PhoneMockup = ({ image, className = "" }: { image: string, className?: string }) => (
@@ -24,8 +24,8 @@ export const HeroCarousel = ({ onStart }: { onStart: () => void }) => {
   }, []);
 
   return (
-    <section className="relative h-screen bg-stone-950 overflow-hidden">
-      <AnimatePresence initial={false}>
+    <section key="hero-carousel-root" className="relative h-screen bg-stone-950 overflow-hidden">
+      <AnimatePresence mode="wait">
         <motion.div
           key={index}
           initial={{ opacity: 0 }}
@@ -52,16 +52,15 @@ export const HeroCarousel = ({ onStart }: { onStart: () => void }) => {
           </div>
 
           {/* Centered Content */}
-          <div className="relative z-20 h-full flex flex-col items-center justify-center p-10 md:p-20 text-center pt-32 md:pt-40">
+          <div className="relative z-20 h-full flex flex-col items-center justify-center p-6 md:p-20 text-center pt-24 md:pt-40">
             <div className="space-y-8 max-w-5xl mx-auto flex flex-col items-center">
               <div className="space-y-6 flex flex-col items-center">
                 <motion.div 
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.2 }}
-                  className="inline-flex items-center gap-3 px-6 py-2.5 bg-white/10 backdrop-blur-xl text-white rounded-full border border-white/20 shadow-2xl"
+                  className="inline-flex items-center px-6 py-2.5 bg-white/10 backdrop-blur-xl text-white rounded-full border border-white/20 shadow-2xl"
                 >
-                  {React.createElement(LANDING_FEATURES[index].icon, { size: 18, className: "text-yellow-400" })}
                   <span className="text-[12px] font-black uppercase tracking-[0.2em]">{LANDING_FEATURES[index].subtitle}</span>
                 </motion.div>
                 

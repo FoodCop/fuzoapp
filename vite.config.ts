@@ -39,6 +39,13 @@ export default defineConfig(() => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        proxy: {
+          '/api/local-gemini': {
+            target: 'https://lgladnskxmbkhcnrsfxv.supabase.co/functions/v1/gemini-proxy',
+            changeOrigin: true,
+            rewrite: (path) => path.replace(/^\/api\/local-gemini/, ''),
+          },
+        },
       },
       plugins: [react()],
       resolve: {

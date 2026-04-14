@@ -999,51 +999,8 @@ export const AIRecipeStudio = ({
     setError(null);
 
     try {
-      const prompt = `You are an expert chef. Analyze this disk: "${title}" (${category}). 
-      Description: ${description}. 
-      Generate a clean JSON recipe card.
-      Fields: title, category, readyInMinutes, servings, ingredients (array), instructions, nutrition { calories, protein, fat, carbs }, aiTag.`;
-
-      const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [{ text: prompt }];
-      if (image?.includes(',')) {
-        parts.push({
-          inlineData: { mimeType: imageMimeType, data: image.split(',')[1] }
-        });
-      }
-
-      const response = await GeminiService.generateContent({
-        model: 'gemini-1.5-flash',
-        contents: [{ role: 'user', parts }],
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: 'object',
-            properties: {
-              title: { type: 'string' },
-              category: { type: 'string' },
-              readyInMinutes: { type: 'number' },
-              servings: { type: 'number' },
-              ingredients: { type: 'array', items: { type: 'string' } },
-              instructions: { type: 'string' },
-              aiTag: { type: 'string', enum: [...BITES_AI_TAG_OPTIONS] },
-              nutrition: {
-                type: 'object',
-                properties: {
-                  calories: { type: 'number' },
-                  protein: { type: 'number' },
-                  fat: { type: 'number' },
-                  carbs: { type: 'number' },
-                },
-                required: ['calories', 'protein', 'fat', 'carbs'],
-              },
-            },
-            required: ['title', 'ingredients', 'instructions', 'nutrition'],
-          },
-        },
-      });
-
-      if (!response.success || !response.data?.text) throw new Error('Generation failed');
-      const parsed = parseAiJson(response.data.text);
+      const text = await GeminiService.analyzeBite(title, category, description, image || undefined, imageMimeType);
+      const parsed = parseAiJson(text);
       setGeneratedRecipe(parsed);
     } catch {
       setError('Neural Assembly failed.');

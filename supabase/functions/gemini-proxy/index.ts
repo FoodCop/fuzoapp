@@ -1,7 +1,4 @@
-declare const Deno: {
-  env: { get: (key: string) => string | undefined };
-  serve: (handler: (req: Request) => Promise<Response> | Response) => void;
-};
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
@@ -86,13 +83,14 @@ const forwardGeminiRequest = async (model: string, payload: Record<string, unkno
   return { response, data };
 };
 
-const handleRequest = async (req: Request): Promise<Response> => {
+serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
     if (!GEMINI_API_KEY) {
+      console.error('GEMINI_API_KEY not configured');
       return jsonResponse(500, {
         success: false,
         error: 'Gemini API key is not configured in Supabase secrets.',
@@ -103,8 +101,8 @@ const handleRequest = async (req: Request): Promise<Response> => {
       return jsonResponse(405, { success: false, error: 'Method not allowed. Use POST.' });
     }
 
-    const body = await req.json();
-    const model = String(body?.model || 'gemini-2.5-flash');
+    const body = await req.json().catch(() => ({}));
+    const model = String(body?.model || 'gemini-flash-latest');
     const contents = body?.contents;
     const config = (body?.config || {}) as GeminiConfigInput;
 
@@ -116,9 +114,11 @@ const handleRequest = async (req: Request): Promise<Response> => {
     const { response, data } = await forwardGeminiRequest(model, payload);
 
     if (!response.ok) {
+      console.error(`Gemini API Error: ${response.status}`, data);
       return jsonResponse(response.status, {
         success: false,
         error: data?.error?.message || `Gemini proxy failed (${response.status})`,
+        errorDetail: data,
         details: data,
       });
     }
@@ -131,11 +131,11 @@ const handleRequest = async (req: Request): Promise<Response> => {
       },
     });
   } catch (error) {
+    console.error('Edge Function error:', error);
     return jsonResponse(500, {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
-};
+});
 
-Deno.serve(handleRequest);

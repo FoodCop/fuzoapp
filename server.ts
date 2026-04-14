@@ -98,7 +98,7 @@ async function startServer() {
     }).join('').trim();
   };
 
-  app.get('/api/gemini-proxy/health', async (_req, res) => {
+  app.get('/api/local-gemini/health', async (_req, res) => {
     const apiKey = getGeminiApiKey();
     if (!apiKey) {
       return res.status(200).json({
@@ -146,7 +146,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/gemini-proxy', async (req, res) => {
+  app.post('/api/local-gemini', async (req, res) => {
     const apiKey = getGeminiApiKey();
     if (!apiKey) {
       return res.status(500).json({
@@ -155,7 +155,7 @@ async function startServer() {
       });
     }
 
-    const model = String(req.body?.model || 'gemini-2.5-flash');
+    const model = String(req.body?.model || 'gemini-flash-latest');
     const contents = req.body?.contents;
     const config = (req.body?.config || {}) as GeminiConfigInput;
 

@@ -95,7 +95,7 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body || {};
-    const model = String(body.model || 'gemini-2.5-flash');
+    const model = String(body.model || 'gemini-1.5-flash');
     const contents = body.contents;
     const config = body.config || {};
 

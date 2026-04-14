@@ -391,17 +391,29 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
     if (!capturedImage) return;
     setIsAnalyzing(true);
     try {
-      await new Promise(r => setTimeout(r, 2000));
+      // Small delay for UX impact
+      await new Promise(r => setTimeout(r, 1500));
       const geminiResult = await GeminiService.analyzeSnap(capturedImage, snapData.description);
-      const parsed = parseAiJson(geminiResult);
+      const parsed = parseAiJson(geminiResult) || {};
       
       const localTags = extractLocalTags(snapData.description);
       const combinedTags = [...new Set([...(parsed.tags || []), ...localTags])];
       
       setSnapData((prev: any) => ({
         ...prev,
-        ...parsed,
+        restaurant: parsed.restaurant || prev.restaurant,
+        cuisine: parsed.cuisine || prev.cuisine,
+        rating: parsed.rating || prev.rating,
+        description: parsed.description || prev.description,
         tags: combinedTags
+      }));
+    } catch (error) {
+      console.error('Neural analysis failed:', error);
+      // Fallback: use local tags from description
+      const localTags = extractLocalTags(snapData.description);
+      setSnapData((prev: any) => ({
+        ...prev,
+        tags: [...new Set([...(prev.tags || []), ...localTags])]
       }));
     } finally {
       setIsAnalyzing(false);
@@ -411,49 +423,43 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
   const handleFinish = async (publish: boolean) => {
     if (!capturedImage || !snapData) return;
     
+    // Unified item structure for both Feed and Persistence
+    const item: AppItem = {
+      id: `snap-${Date.now()}`,
+      itemType: 'photo',
+      itemId: `sc-${Date.now()}`,
+      name: snapData.restaurant || 'Culinary Snap',
+      cat: snapData.cuisine || 'Culinary',
+      img: capturedImage,
+      metadata: {
+        ...snapData,
+        image: capturedImage
+      }
+    };
+
     if (publish) {
       setIsPostingToFeed(true);
       try {
-        const item: AppItem = {
-          id: `snap-${Date.now()}`,
-          itemType: 'snap',
-          itemId: `sc-${Date.now()}`,
-          name: snapData.restaurant,
-          cat: snapData.cuisine,
-          img: capturedImage,
-          metadata: {
-            ...snapData,
-            image: capturedImage
-          }
-        };
         const result = await FeedService.publishToFeed(item);
         if (result.success) {
           setFeedPostSuccess(true);
           onPost(item);
         }
+      } catch (error) {
+        console.error('Failed to publish to feed:', error);
       } finally {
         setIsPostingToFeed(false);
       }
     } else {
       setIsUploading(true);
       try {
-        const item: AppItem = {
-          id: `snap-${Date.now()}`,
-          itemType: 'snap',
-          itemId: `sc-${Date.now()}`,
-          name: snapData.restaurant,
-          cat: snapData.cuisine,
-          img: capturedImage,
-          metadata: {
-            ...snapData,
-            image: capturedImage
-          }
-        };
         const result = await persistSnapData(item);
-        if (result.success) {
+        if (result && result.success) {
           onPost(item);
           setCurrentStep(STUDIO_STEPS.length - 1);
         }
+      } catch (error) {
+        console.error('Failed to persist snap data:', error);
       } finally {
         setIsUploading(false);
       }

@@ -1,6 +1,6 @@
 import { hasSupabaseConfig, supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from './supabaseClient';
 
-const LOCAL_PROXY_URL = '/api/gemini-proxy';
+const LOCAL_PROXY_URL = '/api/local-gemini';
 const EDGE_PROXY_URL = SUPABASE_URL ? `${SUPABASE_URL}/functions/v1/gemini-proxy` : '';
 
 export interface GeminiInlineData {
@@ -124,6 +124,7 @@ const requestProxy = async (url: string, body: Record<string, unknown>, useSupab
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok || data?.success === false) {
+    console.error(`[Gemini Proxy Error] ${url} failed:`, { status: response.status, data });
     return {
       success: false,
       error: data?.error || `Gemini proxy failed (${response.status})`,
@@ -150,7 +151,7 @@ const requestProxy = async (url: string, body: Record<string, unknown>, useSupab
 export const GeminiService = {
   async generateContent(request: GeminiGenerateRequest): Promise<GeminiServiceResult> {
     const payload = {
-      model: request.model || 'gemini-2.5-flash',
+      model: request.model || 'gemini-flash-latest',
       contents: normalizeContents(request.contents),
       config: request.config || {},
     };
@@ -180,6 +181,124 @@ export const GeminiService = {
         error: (error as Error).message,
       };
     }
+  },
+
+  async analyzeSnap(imageUrl: string, userDescription?: string): Promise<string> {
+    const prompt = `
+      Analyze this culinary snap. 
+      ${userDescription ? `User context: "${userDescription}"` : ''}
+      
+      Extract the following details in JSON format:
+      - restaurant: (Best guess name)
+      - cuisine: (The type of food)
+      - rating: (1-5 star based on visual quality)
+      - description: (A punchy social media caption)
+      - tags: (Array of 3-5 keywords)
+
+      Return ONLY the JSON.
+    `;
+
+    const mimeType = imageUrl.startsWith('data:image/png') ? 'image/png' : 'image/jpeg';
+    const base64Data = imageUrl.includes(',') ? imageUrl.split(',')[1] : imageUrl;
+
+    const result = await this.generateContent({
+      model: 'gemini-flash-latest',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { text: prompt },
+            { 
+              inlineData: {
+                mimeType,
+                data: base64Data
+              }
+            }
+          ]
+        }
+      ]
+    });
+
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+
+    return result.data?.text || '{}';
+  },
+
+  async analyzeBite(title: string, category: string, description: string, image?: string, mimeType = 'image/jpeg'): Promise<string> {
+    const prompt = `You are an expert chef. Analyze this dish: "${title}" (${category}). 
+      Description: ${description}. 
+      Generate a clean JSON recipe card.
+      Fields: title, category, readyInMinutes, servings, ingredients (array), instructions, nutrition { calories, protein, fat, carbs }, aiTag.`;
+
+    const parts: any[] = [{ text: prompt }];
+    if (image?.includes(',')) {
+      parts.push({
+        inlineData: { mimeType, data: image.split(',')[1] }
+      });
+    }
+
+    const result = await this.generateContent({
+      model: 'gemini-flash-latest',
+      contents: [{ role: 'user', parts }],
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'object',
+          properties: {
+            title: { type: 'string' },
+            category: { type: 'string' },
+            readyInMinutes: { type: 'number' },
+            servings: { type: 'number' },
+            ingredients: { type: 'array', items: { type: 'string' } },
+            instructions: { type: 'string' },
+            aiTag: { type: 'string' },
+            nutrition: {
+              type: 'object',
+              properties: {
+                calories: { type: 'number' },
+                protein: { type: 'number' },
+                fat: { type: 'number' },
+                carbs: { type: 'number' },
+              },
+              required: ['calories', 'protein', 'fat', 'carbs'],
+            },
+          },
+          required: ['title', 'ingredients', 'instructions', 'nutrition'],
+        },
+      },
+    });
+
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+
+    return result.data?.text || '{}';
+  },
+
+  async analyzeTrim(prompt: string, schema: any, video?: string | null, mimeType = 'video/mp4'): Promise<string> {
+    const parts: any[] = [{ text: prompt }];
+    if (video?.includes(',')) {
+      parts.push({
+        inlineData: { mimeType, data: video.split(',')[1] }
+      });
+    }
+
+    const result = await this.generateContent({
+      model: 'gemini-1.5-flash',
+      contents: [{ role: 'user', parts }],
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: schema,
+      },
+    });
+
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+
+    return result.data?.text || '{}';
   },
 
   async health() {

@@ -202,20 +202,8 @@ const requestGeneratedTrimCard = async ({
   });
   const parts = buildTrimPromptParts({ prompt, video, videoMimeType });
 
-  const response = await GeminiService.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: [{ role: 'user', parts }],
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: TRIM_RESPONSE_SCHEMA,
-    },
-  });
-
-  if (!response.success || !response.data?.text) {
-    throw new Error(response.error || 'Gemini generation failed');
-  }
-
-  const parsed = parseAiJson(response.data.text);
+  const text = await GeminiService.analyzeTrim(prompt, TRIM_RESPONSE_SCHEMA, video, videoMimeType);
+  const parsed = parseAiJson(text);
   if (!parsed?.title) {
     throw new Error('Invalid AI response format');
   }
