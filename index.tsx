@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import './src/styles/tailwind.css';
 import { mountApp } from './src/app/bootstrap/mountApp';
 import { 
@@ -78,42 +79,9 @@ import { SettingsItem, SettingsSection } from './src/shared/ui/settingsPrimitive
 import type { PublicUserProfile, SettingsProfile } from './src/features/settings/types/settings';
 import { GeminiService } from './src/services/geminiService';
 
-type LightweightMotionProps = {
-  children?: React.ReactNode;
-  [key: string]: unknown;
-};
-
-const MotionDiv = ({
-  children,
-  initial: _initial,
-  animate: _animate,
-  exit: _exit,
-  transition: _transition,
-  whileHover: _whileHover,
-  whileTap: _whileTap,
-  whileInView: _whileInView,
-  viewport: _viewport,
-  variants: _variants,
-  custom: _custom,
-  ...rest
-}: LightweightMotionProps) => <div {...(rest as React.HTMLAttributes<HTMLDivElement>)}>{children}</div>;
-
-const motion = { 
-  div: MotionDiv,
-  img: (props: any) => <img {...props} />,
-  section: (props: any) => <section {...props} />,
-  h1: (props: any) => <h1 {...props} />,
-  h2: (props: any) => <h2 {...props} />,
-  p: (props: any) => <p {...props} />,
-  span: (props: any) => <span {...props} />,
-  video: (props: any) => <video {...props} />,
-};
-
-const AnimatePresence = ({ children }: { children?: React.ReactNode; mode?: string; initial?: boolean }) => <>{children}</>;
-
-
 
 /* --- MODULAR FEATURES --- */
+
 
 // filterFriendsByQuery moved to src/features/chat/lib/chatHelpers.ts
 
@@ -948,7 +916,6 @@ const App = () => {
           apiKey: API_KEYS.MAPS,
           version: 'weekly',
           libraries: ['places', 'visualization', 'geometry']
-
         });
         await loader.load();
         setGoogleMapsReady(true);
@@ -960,9 +927,9 @@ const App = () => {
     initGlobalMaps();
   }, []);
 
-  const renderApp = (tab: typeof TAB_IDS[number]) => {
+  const renderApp = (tabId: string) => {
     const commonProps = {
-      tab: tab as string,
+      tab: tabId,
       setTab: setTab as (t: string) => void,
       handleSave: (item: AppItem) => {
         handleSave(item).catch((error) => {
@@ -1035,194 +1002,199 @@ const App = () => {
     />
   );
 
-  // Delegate the entire entry-layer rendering to AuthOrchestrator
-  // It will return null if the user should see the main App shell
-  if (isOnboardingDemoView || (homeRoute && !isAuthenticated) || (showAuth && !hasCompletedOnboarding)) {
-    return authView;
-  }
-
-  // Auth and Onboarding Orchestration logic moved to AuthOrchestrator
-
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col md:flex-row pb-[env(safe-area-inset-bottom)] overflow-x-hidden">
-      {showSnap && <SnapView onPost={handleSnap} onClose={() => setShowSnap(false)} />}
-      <NotificationsView isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
-      <UnifiedCreationModal 
-        isOpen={showUnifiedCreation} 
-        onClose={() => setShowUnifiedCreation(false)}
-        onSelectOption={(option) => {
-          if (option === 'snap') setShowSnap(true);
-          else if (option === 'bites-ai') setShowAIBitesStudio(true);
-          else if (option === 'trim-ai') setShowAITrimStudio(true);
-        }}
-      />
-      
-      {showAIBitesStudio && (
-        <AIRecipeStudio 
-          onSave={(item) => handleSave(item as any)} 
-          onShareRequest={setActiveShareItem} 
-          onClose={() => setShowAIBitesStudio(false)} 
-        />
-      )}
+    <AnimatePresence mode="wait">
+      {isOnboardingDemoView || (homeRoute && !showAuth) || (showAuth && !hasCompletedOnboarding) ? (
+        <motion.div
+          key="entry-layer"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.6 }}
+          className="w-full h-full"
+        >
+          {authView}
+        </motion.div>
+      ) : (
+        <motion.div
+          key="main-app-shell"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
+          className="min-h-screen bg-stone-50 flex flex-col md:flex-row pb-[env(safe-area-inset-bottom)] overflow-x-hidden w-full"
+        >
+          {showSnap && <SnapView onPost={handleSnap} onClose={() => setShowSnap(false)} />}
+          <NotificationsView isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+          <UnifiedCreationModal 
+            isOpen={showUnifiedCreation} 
+            onClose={() => setShowUnifiedCreation(false)}
+            onSelectOption={(option) => {
+              if (option === 'snap') setShowSnap(true);
+              else if (option === 'bites-ai') setShowAIBitesStudio(true);
+              else if (option === 'trim-ai') setShowAITrimStudio(true);
+            }}
+          />
+          
+          {showAIBitesStudio && (
+            <AIRecipeStudio 
+              onClose={() => setShowAIBitesStudio(false)} 
+              onSave={(item) => handleSave(item as any)} 
+              onShareRequest={setActiveShareItem}
+            />
+          )}
 
-      {showAITrimStudio && (
-        <AITrimStudio 
-          onSave={handleSave} 
-          onShareRequest={setActiveShareItem} 
-          onClose={() => setShowAITrimStudio(false)} 
-        />
-      )}
-      
-      {activeShareItem && (
-        <ShareModal 
-          item={activeShareItem} 
-          friends={friends} 
-          onShare={handleShare} 
-          onClose={() => setActiveShareItem(null)} 
-        />
-      )}
-      
-      <aside aria-label="Main navigation" className={`fixed inset-y-0 left-0 z-[200] w-28 bg-white border-r border-stone-100 transform ${sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'} md:translate-x-0 md:static transition-all duration-500 ease-in-out`}>
-        <div className="flex flex-col h-full p-4 overflow-y-auto hide-scrollbar items-center">
-          <header className="flex flex-col items-center justify-center mb-12 md:mb-16 mt-4 gap-6">
-            <div className="w-14 h-14 bg-stone-900 rounded-3xl items-center justify-center text-yellow-400 shadow-2xl rotate-3 shrink-0 hidden md:flex"><ChefHat size={32} /></div>
+          {showAITrimStudio && (
+            <AITrimStudio 
+              onClose={() => setShowAITrimStudio(false)} 
+              onSave={handleSave} 
+              onShareRequest={setActiveShareItem}
+            />
+          )}
+
+          {activeShareItem && (
+            <ShareModal 
+              item={activeShareItem} 
+              friends={friends} 
+              onShare={handleShare} 
+              onClose={() => setActiveShareItem(null)} 
+            />
+          )}
+
+          {/* Desktop Sidebar */}
+          <aside aria-label="Main navigation" className={`fixed inset-y-0 left-0 z-[200] w-28 bg-white border-r border-stone-100 transform ${sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'} md:translate-x-0 md:static transition-all duration-500 ease-in-out`}>
+            <div className="flex flex-col h-full p-4 overflow-y-auto hide-scrollbar items-center">
+              <header className="flex flex-col items-center justify-center mb-12 md:mb-16 mt-4 gap-6">
+                <div className="w-14 h-14 bg-stone-900 rounded-3xl items-center justify-center text-yellow-400 shadow-2xl rotate-3 shrink-0 hidden md:flex"><ChefHat size={32} /></div>
+                
+                <button 
+                  onClick={() => setShowUnifiedCreation(true)}
+                  aria-label="Create new content"
+                  className="w-12 h-12 bg-white border-2 border-stone-100 rounded-2xl flex items-center justify-center text-stone-900 shadow-sm hover:scale-105 active:scale-95 transition-all group"
+                >
+                  <Plus size={24} strokeWidth={3} className="group-hover:rotate-90 transition-transform" />
+                </button>
+
+                <button 
+                  onClick={() => { setTab('leaderboard'); setSidebarOpen(false); }}
+                  aria-label={`Leaderboard, ${points} points`}
+                  className="flex flex-col items-center gap-1 group min-w-[44px] min-h-[44px]"
+                >
+                  <div className="px-3 py-1 bg-yellow-400 rounded-full text-[12px] font-black text-stone-900 shadow-lg group-hover:scale-110 transition-transform">
+                    {points.toLocaleString()}
+                  </div>
+                  <span className="text-[11px] font-black uppercase tracking-widest text-stone-500">Pts</span>
+                </button>
+                <button onClick={() => setSidebarOpen(false)} aria-label="Close sidebar" className="md:hidden p-4 bg-stone-50 rounded-2xl"><X size={20} /></button>
+              </header>
+              
+              <nav aria-label="App sections" className="space-y-4 flex-grow w-full">
+                {BOTTOM_NAV_ITEMS.filter(item => item.id !== 'snap').map(item => (
+                  <button 
+                    key={item.id}
+                    onClick={() => { setTab(item.id); setSidebarOpen(false); }}
+                    aria-label={item.label}
+                    aria-current={tab === item.id ? 'page' : undefined}
+                    className={`w-full flex items-center justify-center py-5 rounded-[1.5rem] transition-all min-h-[44px] ${tab === item.id ? 'bg-yellow-400 text-stone-900 shadow-xl' : 'text-stone-300 hover:bg-stone-50'}`}
+                  >
+                    <item.icon size={28} strokeWidth={tab === item.id ? 3 : 2} />
+                  </button>
+                ))}
+
+                <div className="my-8 h-px bg-stone-50 w-1/2 mx-auto" />
+                
+                {DRAWER_NAV_ITEMS.map(item => (
+                  <button 
+                    key={item.id}
+                    onClick={() => {
+                      if (item.id === 'chat') {
+                        requestNotificationPermission().catch((error) => {
+                          console.warn('Notification permission request failed:', error);
+                        });
+                      }
+                      if (item.id === 'notifications') {
+                        setShowNotifications(true);
+                      } else {
+                        setTab(item.id);
+                      }
+                      setSidebarOpen(false);
+                    }}
+                    aria-label={item.label}
+                    aria-current={tab === item.id ? 'page' : undefined}
+                    className={`w-full flex items-center justify-center py-5 rounded-[1.5rem] transition-all min-h-[44px] ${tab === item.id ? 'bg-stone-900 text-white shadow-xl' : 'text-stone-300 hover:bg-stone-50'}`}
+                  >
+                    <div className="relative">
+                      <item.icon size={28} strokeWidth={tab === item.id ? 3 : 2} />
+                      {item.id === 'chat' && totalUnread > 0 && (
+                        <span className="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-yellow-400 text-stone-900 text-[12px] font-black flex items-center justify-center">
+                          {totalUnread > 99 ? '99+' : totalUnread}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </nav>
+            </div>
+          </aside>
+
+          <a href="#main-content" className="skip-to-content">Skip to content</a>
+          <main id="main-content" className="flex-grow max-w-6xl mx-auto w-full px-6 md:px-12 relative pt-8 pb-48 md:pb-12 h-screen overflow-y-auto overflow-x-hidden selection:bg-yellow-400 selection:text-stone-900">
+            <header className="flex items-center justify-between mb-8 md:hidden px-2">
+              <button onClick={() => setSidebarOpen(true)} aria-label="Open menu" className="p-3 bg-stone-900 text-yellow-400 rounded-2xl shadow-lg active:scale-90 transition-transform rotate-3">
+                <ChefHat size={24} strokeWidth={2.5} />
+              </button>
+              
+              <button 
+                onClick={() => setShowNotifications(true)}
+                aria-label="Notifications"
+                className="p-3 bg-white text-stone-400 rounded-2xl shadow-sm border border-stone-100 active:scale-90 transition-transform relative"
+              >
+                <Bell size={24} />
+                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" aria-hidden="true" />
+              </button>
+            </header>
+
+            {renderApp(tab)}
+          </main>
+
+          <nav aria-label="Main tabs" role="tablist" className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-2xl border-t border-stone-100 px-8 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex justify-between items-center md:hidden z-[60] shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+            <NavIcon icon={LayoutGrid} active={tab === 'feed'} onClick={() => setTab('feed')} label="Feed" />
+            <NavIcon icon={ChefHat} active={tab === 'bites'} onClick={() => setTab('bites')} label="Bites" />
             
             <button 
-              onClick={() => setShowUnifiedCreation(true)}
+              onClick={() => setShowUnifiedCreation(true)} 
               aria-label="Create new content"
-              className="w-12 h-12 bg-white border-2 border-stone-100 rounded-2xl flex items-center justify-center text-stone-900 shadow-sm hover:scale-105 active:scale-95 transition-all group"
+              className="w-[72px] h-[72px] -mt-14 bg-stone-900 rounded-[2.5rem] flex items-center justify-center text-yellow-400 shadow-[0_20px_40px_rgba(0,0,0,0.3)] border-4 border-white active:scale-90 transition-transform"
             >
-              <Plus size={24} strokeWidth={3} className="group-hover:rotate-90 transition-transform" />
+              <Camera size={29} strokeWidth={3} />
             </button>
 
-            <button 
-              onClick={() => { setTab('leaderboard'); setSidebarOpen(false); }}
-              aria-label={`Leaderboard, ${points} points`}
-              className="flex flex-col items-center gap-1 group min-w-[44px] min-h-[44px]"
-            >
-              <div className="px-3 py-1 bg-yellow-400 rounded-full text-[12px] font-black text-stone-900 shadow-lg group-hover:scale-110 transition-transform">
-                {points.toLocaleString()}
-              </div>
-              <span className="text-[11px] font-black uppercase tracking-widest text-stone-500">Pts</span>
-            </button>
-            <button onClick={() => setSidebarOpen(false)} aria-label="Close sidebar" className="md:hidden p-4 bg-stone-50 rounded-2xl"><X size={20} /></button>
-          </header>
-          
-          <nav aria-label="App sections" className="space-y-4 flex-grow w-full">
-            {BOTTOM_NAV_ITEMS.filter(item => item.id !== 'snap').map(item => (
-              <button 
-                key={item.id}
-                onClick={() => { setTab(item.id); setSidebarOpen(false); }}
-                aria-label={item.label}
-                aria-current={tab === item.id ? 'page' : undefined}
-                className={`w-full flex items-center justify-center py-5 rounded-[1.5rem] transition-all min-h-[44px] ${tab === item.id ? 'bg-yellow-400 text-stone-900 shadow-xl' : 'text-stone-300 hover:bg-stone-50'}`}
-              >
-                <item.icon size={28} strokeWidth={tab === item.id ? 3 : 2} />
-              </button>
-            ))}
-
-            <div className="my-8 h-px bg-stone-50 w-1/2 mx-auto" />
-            
-            {DRAWER_NAV_ITEMS.map(item => (
-              <button 
-                key={item.id}
-                onClick={() => {
-                  if (item.id === 'chat') {
-                    requestNotificationPermission().catch((error) => {
-                      console.warn('Notification permission request failed:', error);
-                    });
-                  }
-                  if (item.id === 'notifications') {
-                    setShowNotifications(true);
-                  } else {
-                    setTab(item.id);
-                  }
-                  setSidebarOpen(false);
-                }}
-                aria-label={item.label}
-                aria-current={tab === item.id ? 'page' : undefined}
-                className={`w-full flex items-center justify-center py-5 rounded-[1.5rem] transition-all min-h-[44px] ${tab === item.id ? 'bg-stone-900 text-white shadow-xl' : 'text-stone-300 hover:bg-stone-50'}`}
-              >
-                <div className="relative">
-                  <item.icon size={28} strokeWidth={tab === item.id ? 3 : 2} />
-                  {item.id === 'chat' && totalUnread > 0 && (
-                    <span className="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-yellow-400 text-stone-900 text-[12px] font-black flex items-center justify-center">
-                      {totalUnread > 99 ? '99+' : totalUnread}
-                    </span>
-                  )}
-                </div>
-              </button>
-            ))}
+            <NavIcon icon={PlayCircle} active={tab === 'trims'} onClick={() => setTab('trims')} label="Trims" />
+            <NavIcon icon={MapPin} active={tab === 'scout'} onClick={() => setTab('scout')} label="Scout" />
           </nav>
-        </div>
-      </aside>
 
-      <a href="#main-content" className="skip-to-content">Skip to content</a>
-      <main id="main-content" className="flex-grow max-w-6xl mx-auto w-full px-6 md:px-12 relative pt-8 pb-48 md:pb-12">
-        <header className="flex items-center justify-between mb-8 md:hidden px-2">
-          <button onClick={() => setSidebarOpen(true)} aria-label="Open menu" className="p-3 bg-stone-900 text-yellow-400 rounded-2xl shadow-lg active:scale-90 transition-transform rotate-3">
-            <ChefHat size={24} strokeWidth={2.5} />
-          </button>
-          
-          <button 
-            onClick={() => setShowNotifications(true)}
-            aria-label="Notifications"
-            className="p-3 bg-white text-stone-400 rounded-2xl shadow-sm border border-stone-100 active:scale-90 transition-transform relative"
-          >
-            <Bell size={24} />
-            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" aria-hidden="true" />
-          </button>
-
-          <button 
-            onClick={() => setTab('leaderboard')}
-            aria-label={`Leaderboard, ${points} points`}
-            className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl shadow-sm border border-stone-100 active:scale-95 transition-all"
-          >
-            <Trophy size={16} className="text-yellow-500" />
-            <span className="text-xs font-black tracking-tighter">{points.toLocaleString()}</span>
-          </button>
-        </header>
-
-        {renderApp(tab)}
-      </main>
-
-      <nav aria-label="Main tabs" role="tablist" className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-2xl border-t border-stone-100 px-8 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex justify-between items-center md:hidden z-[60] shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-        <NavIcon icon={LayoutGrid} active={tab === 'feed'} onClick={() => setTab('feed')} label="Feed" />
-        <NavIcon icon={ChefHat} active={tab === 'bites'} onClick={() => setTab('bites')} label="Bites" />
-        
-        <button 
-          onClick={() => setShowUnifiedCreation(true)} 
-          aria-label="Create new content"
-          className="w-[72px] h-[72px] -mt-14 bg-stone-900 rounded-[2.5rem] flex items-center justify-center text-yellow-400 shadow-[0_20px_40px_rgba(0,0,0,0.3)] border-4 border-white active:scale-90 transition-transform"
-        >
-          <Camera size={29} strokeWidth={3} />
-        </button>
-
-        <NavIcon icon={PlayCircle} active={tab === 'trims'} onClick={() => setTab('trims')} label="Trims" />
-        <NavIcon icon={MapPin} active={tab === 'scout'} onClick={() => setTab('scout')} label="Scout" />
-      </nav>
-
-
-      {/* Desktop Chat Widget */}
-      <div className="fixed bottom-8 right-8 z-[150] hidden md:flex flex-col items-end gap-4">
-        <button 
-          onClick={() => setTab('chat')}
-          aria-label="Open Chat"
-          className="w-16 h-16 bg-stone-900 text-yellow-400 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.3)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all group border-4 border-white"
-        >
-          <div className="relative">
-            <MessageSquare size={28} strokeWidth={2.5} />
-            {totalUnread > 0 && (
-              <span className="absolute -top-3 -right-3 min-w-6 h-6 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-black flex items-center justify-center border-2 border-white">
-                {totalUnread > 99 ? '99+' : totalUnread}
-              </span>
-            )}
+          {/* Desktop Chat Widget */}
+          <div className="fixed bottom-8 right-8 z-[150] hidden md:flex flex-col items-end gap-4">
+            <button 
+              onClick={() => setTab('chat')}
+              aria-label="Open Chat"
+              className="w-16 h-16 bg-stone-900 text-yellow-400 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.3)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all group border-4 border-white"
+            >
+              <div className="relative">
+                <MessageSquare size={28} strokeWidth={2.5} />
+                {totalUnread > 0 && (
+                  <span className="absolute -top-3 -right-3 min-w-6 h-6 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-black flex items-center justify-center border-2 border-white">
+                    {totalUnread > 99 ? '99+' : totalUnread}
+                  </span>
+                )}
+              </div>
+            </button>
           </div>
-        </button>
-      </div>
 
-      {sidebarOpen && <button type="button" aria-label="Close sidebar" className="fixed inset-0 bg-stone-900/40 backdrop-blur-xl z-[190] md:hidden" onClick={() => setSidebarOpen(false)} />}
-    </div>
+          {sidebarOpen && <button type="button" aria-label="Close sidebar" className="fixed inset-0 bg-stone-900/40 backdrop-blur-xl z-[190] md:hidden" onClick={() => setSidebarOpen(false)} />}
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 

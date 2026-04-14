@@ -31,17 +31,13 @@ export const HeroCarousel = ({ onStart }: { onStart: () => void }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 2, ease: "easeInOut" }}
+          transition={{ duration: 0.8 }}
           className="absolute inset-0"
         >
           {/* Background Video */}
           <div className="absolute inset-0 z-0 bg-stone-950">
              {LANDING_FEATURES[index].video && (
-               <motion.video
-                 key={`video-${index}`}
-                 initial={{ opacity: 0 }}
-                 animate={{ opacity: 1 }}
-                 transition={{ duration: 2.2 }}
+               <video
                  src={LANDING_FEATURES[index].video}
                  autoPlay
                  muted
@@ -73,7 +69,7 @@ export const HeroCarousel = ({ onStart }: { onStart: () => void }) => {
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.4 }}
-                  className="text-5xl md:text-8xl font-black uppercase tracking-tighter leading-[0.8] text-white"
+                  className="text-5xl md:text-8xl font-black uppercase tracking-tighter leading-[0.8] text-white text-center"
                 >
                   {LANDING_FEATURES[index].title.split(' ').map((word, i) => (
                     <span key={i} className={word === 'UNDISCOVERED' || word === 'REWIRED' ? 'italic opacity-60' : ''}>
@@ -87,7 +83,7 @@ export const HeroCarousel = ({ onStart }: { onStart: () => void }) => {
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.6 }}
-                className="text-lg md:text-2xl font-bold leading-tight text-white/80 max-w-3xl"
+                className="text-lg md:text-2xl font-bold leading-tight text-white/80 max-w-3xl text-center"
               >
                 {LANDING_FEATURES[index].description}
               </motion.p>
@@ -111,7 +107,7 @@ export const HeroCarousel = ({ onStart }: { onStart: () => void }) => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 0.4 }}
                 transition={{ delay: 1 }}
-                className="text-[10px] font-black uppercase tracking-[0.5em] text-white pt-16"
+                className="text-[10px] font-black uppercase tracking-[0.5em] text-white pt-16 text-center"
               >
                 {LANDING_FEATURES[index].microline}
               </motion.p>
@@ -132,11 +128,6 @@ export const HeroCarousel = ({ onStart }: { onStart: () => void }) => {
         ))}
       </div>
 
-      <div className="absolute top-12 left-12 z-30 pointer-events-none">
-        <div className="w-16 h-16 bg-white/10 backdrop-blur-2xl rounded-3xl border border-white/20 flex items-center justify-center text-white rotate-3">
-          <ChefHat size={32} />
-        </div>
-      </div>
     </section>
   );
 };

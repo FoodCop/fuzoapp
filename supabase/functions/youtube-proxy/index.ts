@@ -71,7 +71,13 @@ const buildQueryCandidates = (params: {
   return Array.from(new Set(queries.map((query) => query.replace(/\s+/g, ' ').trim()))).slice(0, MAX_QUERIES_PER_REFRESH);
 };
 
-const fetchYouTubeSearch = async (query: string, maxResults: number, regionCode?: string | null) => {
+const fetchYouTubeSearch = async (
+  query: string, 
+  maxResults: number, 
+  regionCode?: string | null,
+  location?: string | null,
+  locationRadius?: string | null
+) => {
   const youtubeUrl = new URL(`${YOUTUBE_BASE_URL}/search`);
   youtubeUrl.searchParams.set('q', query);
   youtubeUrl.searchParams.set('key', YOUTUBE_API_KEY || '');
@@ -83,6 +89,18 @@ const fetchYouTubeSearch = async (query: string, maxResults: number, regionCode?
   youtubeUrl.searchParams.set('relevanceLanguage', 'en');
   if (regionCode && regionCode.length === 2) {
     youtubeUrl.searchParams.set('regionCode', regionCode.toUpperCase());
+  }
+
+  // Handle native location parameters if provided as coordinates (lat,lng)
+  if (location) {
+    // Regex to match "lat,lng" or "near lat,lng"
+    const coordMatch = location.match(/([-+]?\d+(\.\d+)?),\s*([-+]?\d+(\.\d+)?)/);
+    if (coordMatch) {
+      const latLng = `${coordMatch[1]},${coordMatch[3]}`;
+      youtubeUrl.searchParams.set('location', latLng);
+      youtubeUrl.searchParams.set('locationRadius', locationRadius || '50km');
+      console.log(`[YouTubeProxy] Using native geo-anchor: ${latLng} with ${locationRadius || '50km'} radius`);
+    }
   }
 
   const response = await fetch(youtubeUrl.toString());
@@ -183,8 +201,9 @@ serve(async (req) => {
 
       const maxResultsPerQuery = Math.min(Math.max(Number(body?.maxResultsPerQuery || MAX_RESULTS_PER_QUERY), 1), MAX_RESULTS_PER_QUERY);
       const regionCode = typeof body?.regionCode === 'string' ? body.regionCode : null;
+      const location = typeof body?.location === 'string' ? body.location : null;
+      const locationRadius = typeof body?.locationRadius === 'string' ? body.locationRadius : '50km';
       const normalizedRegionCode = typeof regionCode === 'string' && regionCode.length === 2 ? regionCode.toUpperCase() : '';
-      const location = typeof body?.location === 'string' ? body.location : '';
       const cuisine = typeof body?.cuisine === 'string' ? body.cuisine : '';
       const diet = typeof body?.diet === 'string' ? body.diet : '';
       const profileHash = hashText(`${normalizeLocation(location)}|${cuisine}|${diet}|${normalizedRegionCode}`);
@@ -234,7 +253,7 @@ serve(async (req) => {
       for (const query of queries) {
         try {
           globalDailyCount += 1;
-          const data = await fetchYouTubeSearch(query, maxResultsPerQuery, regionCode);
+          const data = await fetchYouTubeSearch(query, maxResultsPerQuery, regionCode, location, locationRadius);
           const items = Array.isArray(data?.items) ? data.items : [];
           for (const item of items) {
             const id = item?.id?.videoId;

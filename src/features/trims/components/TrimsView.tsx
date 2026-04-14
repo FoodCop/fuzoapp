@@ -9,15 +9,18 @@
  * @see docs/GUIDES/TRIMS_STUDIO_READY_RECKONER.md
  */
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   X, Star, Loader2, MapPin, Send, RefreshCw, Sparkles,
   Image as ImageIcon, Play, Youtube, ExternalLink, Music2, Eye,
+  Heart, // Neural Heart
+  MessageSquare, Share2, PlayCircle, CheckCircle2, Check
 } from 'lucide-react';
 import { UGC_CUISINES, UGC_VIBES, normalizeTag } from '../../../shared/utils/taxonomy';
 import { Badge } from '../../../shared/ui/Badge';
 import { StudioStepper } from '../../../shared/ui/StudioStepper';
 import { readImageFileAsDataUrl, parseAiJson } from '../../../shared/lib/studioHelpers';
+import { NeuralReveal } from '../../../shared/ui/NeuralReveal';
 import { normalizeExternalUrl } from '../../../shared/lib/urlHelpers';
 import { GeminiService } from '../../../services/geminiService';
 import { YouTubeService } from '../../../services/youtubeService';
@@ -27,6 +30,8 @@ import type { TrimVideo, YouTubeSearchItem } from '../types/trimsUi';
 import type { AppItem } from '../../../shared/types/appItem';
 import type { AuthUser } from '../../auth/types/auth';
 import { API_KEYS } from '../../../shared/constants/apiKeys';
+import { SettingsService } from '../../settings/services/settingsService';
+import { FeedService, getUserFeedLocation } from '../../feed';
 
 // Lightweight motion shims
 type LightweightMotionProps = { children?: React.ReactNode; [key: string]: unknown; };
@@ -624,6 +629,15 @@ export const TrimsView = ({ onSave, onShareRequest, authUser }: { onSave: (item:
 
     return undefined;
   }, []);
+  
+  const REGION_NAME_MAP: Record<string, string> = {
+    'IN': 'India',
+    'US': 'USA',
+    'GB': 'UK',
+    'CA': 'Canada',
+    'AE': 'Dubai',
+    'AU': 'Australia',
+  };
 
   const [videos, setVideos] = useState<TrimVideo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -742,23 +756,26 @@ export const TrimsView = ({ onSave, onShareRequest, authUser }: { onSave: (item:
         const profileDiet = settings.success ? settings.data?.diet : '';
 
         const geo = await getUserFeedLocation();
-        const locationText = geo
-          ? `near ${geo.lat.toFixed(2)},${geo.lng.toFixed(2)}`
-          : (profileLocation?.trim() || 'local');
-        const regionCode = resolveRegionCode();
-
-        setLocationLabel(locationText);
-
         const userHash = authUser?.id || authUser?.email || 'guest';
+        const regionCode = resolveRegionCode();
+        
+        // Native Geographic Search: If we have GPS, use it as the definitive anchor
+        const locationPayload = geo 
+          ? `${geo.lat.toFixed(6)},${geo.lng.toFixed(6)}` 
+          : (profileLocation?.trim() || 'India'); // Default to India if GPS fails
+
+        // Query Anchor: If we have GPS, we don't need the location name in the search string
         const queries = buildTrimQueries({
-          location: locationText,
+          location: geo ? '' : (profileLocation || 'India'),
           cuisine: profileCuisine,
           diet: profileDiet,
         });
 
+        console.log(`[TrimsView] Fetching localized feed. Anchor: ${locationPayload}, Queries:`, queries);
+
         const response = await YouTubeService.getLocalizedTrimsFeed({
           userHash,
-          location: locationText,
+          location: locationPayload,
           cuisine: profileCuisine,
           diet: profileDiet,
           regionCode,
@@ -822,7 +839,7 @@ export const TrimsView = ({ onSave, onShareRequest, authUser }: { onSave: (item:
   return (
     <div className="h-[80vh] w-full max-w-md mx-auto relative">
       <div className="absolute top-6 right-6 z-30 px-4 py-2 bg-black/35 border border-white/20 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest backdrop-blur-md">
-        {feedSourceLabel} • {locationLabel}
+        {feedSourceLabel}
       </div>
 
       <div ref={trimsScrollRootRef} className="h-full w-full relative snap-y snap-mandatory overflow-y-auto hide-scrollbar rounded-[1.75rem] bg-stone-900 shadow-2xl border-4 border-white">

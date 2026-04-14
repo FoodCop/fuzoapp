@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../services/supabaseClient';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AuthView } from './AuthView';
 import OnboardingV2Flow from './OnboardingV2Flow';
 import { LandingPage as LandingView } from '../../landing/components/LandingView';
@@ -164,10 +165,6 @@ export const AuthOrchestrator: React.FC<AuthOrchestratorProps> = ({
 
   if (homeRoute && !showAuth) {
     return <LandingView onStart={() => setShowAuth(true)} />;
-  }
-
-  if (!appRoute && !authCallbackRoute && !isOnboardingDemo && !homeRoute) {
-    return null;
   }
 
   if (showAuth && !hasCompletedOnboarding) {

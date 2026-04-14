@@ -14,14 +14,17 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   Search, ChefHat, Clock, User, X, Star, Loader2,
   Bookmark, Share2, RefreshCw, SlidersHorizontal, Sparkles,
-  List, PieChart, Image as ImageIcon,
+  List, PieChart, Image as ImageIcon, CheckCircle2, Check
 } from 'lucide-react';
 import { UGC_CUISINES, normalizeTag, TAXONOMY_KEYWORD_MAP } from '../../../shared/utils/taxonomy';
 import { Badge } from '../../../shared/ui/Badge';
 import { StudioStepper } from '../../../shared/ui/StudioStepper';
 import { BitesSkeleton } from '../../../shared/ui/Skeleton';
 import { readImageFileAsDataUrl, parseAiJson } from '../../../shared/lib/studioHelpers';
+import { NeuralReveal } from '../../../shared/ui/NeuralReveal';
 import { BITE_CUISINES, BITE_DIETS } from '../constants/filters';
+import { FeedService } from '../../feed';
+import UgcFilterBar from '../../../shared/ui/UgcFilterBar';
 import { BITE_FALLBACK_RECIPES } from '../constants/fallbackRecipes';
 import { createBiteRecipeActions, getBiteKeyNutrients, normalizeRecipeList } from '../lib/bitesHelpers';
 import type { BiteActionItem, BiteRecipe, BiteRecipeInput } from '../types/bites';

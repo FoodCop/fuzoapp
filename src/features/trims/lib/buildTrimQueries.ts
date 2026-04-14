@@ -12,18 +12,18 @@ export const buildTrimQueries = (params: {
   cuisine?: string;
   diet?: string;
 }) => {
-  const location = (params.location || '').trim().toLowerCase();
+  const location = (params.location || '').trim();
   const cuisines = normalizeTokens(params.cuisine);
-  const diets = normalizeTokens(params.diet);
-
-  const cuisinePrimary = cuisines[0] || 'local';
-  const dietPrimary = diets[0] || '';
+  
+  const cuisinePrimary = cuisines[0] || '';
+  const locationSuffix = location ? `in ${location}` : '';
 
   const raw = [
-    `${location || 'local'} ${cuisinePrimary} street food shorts`,
-    `${location || 'local'} ${dietPrimary} cooking recipes shorts`,
-    `${cuisinePrimary} chef techniques shorts`,
+    `Street food ${cuisinePrimary} ${locationSuffix} shorts`,
+    `recipes cooking videos ${cuisinePrimary} ${locationSuffix} shorts`,
+    `kitchen tips ${cuisinePrimary} shorts`,
+    `trending restaurants ${locationSuffix} shorts`,
   ];
 
-  return Array.from(new Set(raw.map((query) => query.replace(/\s+/g, ' ').trim()))).slice(0, 3);
+  return Array.from(new Set(raw.map((query) => query.replace(/\s+/g, ' ').trim()))).slice(0, 4);
 };
