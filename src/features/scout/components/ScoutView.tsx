@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Search, X, RefreshCw, Navigation } from 'lucide-react';
+import { Search, X, RefreshCw, Navigation, Locate, ChefHat, Menu, Bell } from 'lucide-react';
 import { API_KEYS } from '../../../shared/constants/apiKeys';
 import { hasSupabaseConfig, supabase } from '../../../services/supabaseClient';
 import { PlacesService } from '../../../services/placesService';
@@ -8,7 +8,6 @@ import type { AppItem } from '../../../shared/types/appItem';
 import type { AuthUser } from '../../auth/types/auth';
 import { 
   ScoutPlace, 
-  ScoutMapTab as ScoutTab, 
   ScoutFilter, 
   MapLike, 
   getGoogleMaps 
@@ -27,6 +26,8 @@ import { SnapStudio } from '../../snap/components/SnapView';
 import { ScoutDiscoveryPanel } from './ScoutDiscoveryPanel';
 import { ScoutPlaceModal } from './ScoutPlaceModal';
 import { ScoutRoutePlanner } from './ScoutRoutePlanner';
+import { ScoutAddPinModal } from './ScoutAddPinModal';
+import { Plus } from 'lucide-react';
 
 interface ScoutViewProps {
   mapsApiKey?: string;
@@ -43,16 +44,16 @@ export const ScoutView = ({
   onAction,
   authUser
 }: ScoutViewProps) => {
-  const [scoutTab, setScoutTab] = useState<ScoutTab>('main');
+  // --- State ---
   const [mainMapPlaces, setMainMapPlaces] = useState<ScoutPlace[]>([]);
   const [communitySnapPlaces, setCommunitySnapPlaces] = useState<ScoutPlace[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<ScoutPlace | null>(null);
   const [modalTab, setModalTab] = useState('overview');
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
   const [isRoutePlannerOpen, setIsRoutePlannerOpen] = useState(false);
+  const [isAddPinModalOpen, setIsAddPinModalOpen] = useState(false);
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
   const [currentRoute, setCurrentRoute] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -71,11 +72,11 @@ export const ScoutView = ({
   const [pinnedPlace, setPinnedPlace] = useState<ScoutPlace | null>(null);
   const [isPinning, setIsPinning] = useState(false);
 
+  // Refs
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<MapLike | null>(null);
   const directionsRendererRef = useRef<any>(null);
   const clustererRef = useRef<MarkerClusterer | null>(null);
-
   const requestSeq = useRef(0);
   const mounted = useRef(true);
 
@@ -84,7 +85,9 @@ export const ScoutView = ({
     return () => { mounted.current = false; };
   }, []);
 
-  const fetchPlaces = useCallback(async (map: MapLike) => {
+  // --- Data Fetching ---
+
+  const fetchPlaces = useCallback(async (map: MapLike, query?: string) => {
     setIsLoading(true);
     const seq = ++requestSeq.current;
 
@@ -93,32 +96,21 @@ export const ScoutView = ({
       const lat = typeof center.lat === 'function' ? center.lat() : center.lat;
       const lng = typeof center.lng === 'function' ? center.lng() : center.lng;
 
-      console.log(`🔍 Scout: Searching near ${lat}, ${lng}`);
-      const result = await PlacesService.searchNearby(lat, lng);
+      const result = query 
+        ? await PlacesService.searchByText(query, lat, lng) 
+        : await PlacesService.searchNearby(lat, lng);
       
       if (!shouldApplyLatestRequest(mounted, seq, requestSeq)) return;
       setIsLoading(false);
 
       if (result.success && result.data?.results && result.data.results.length > 0) {
-        console.log(`✅ Scout: Found ${result.data.results.length} results`);
         const transformed = result.data.results.map((r, i) => toScoutPlace(r, i, mapsApiKey));
         setMainMapPlaces(transformed);
-        
-        // Fit bounds to results if we have them
-        if (transformed.length > 0) {
-          const google = getGoogleMaps();
-          if (google && mapInstanceRef.current) {
-            const bounds = new google.LatLngBounds();
-            transformed.forEach(p => bounds.extend({ lat: p.lat, lng: p.lng }));
-            mapInstanceRef.current.fitBounds(bounds);
-          }
-        }
       } else {
-        console.warn('Scout search returned no results or failed:', result.error || result.data?.status);
         if (result.data?.status === 'ZERO_RESULTS') {
-            setMainMapPlaces([]); // Don't fallback to NY if we just found nothing here
+          setMainMapPlaces([]);
         } else {
-            setMainMapPlaces(SCOUT_FALLBACK_PLACES);
+          setMainMapPlaces(SCOUT_FALLBACK_PLACES);
         }
       }
     } catch (err) {
@@ -129,6 +121,67 @@ export const ScoutView = ({
       }
     }
   }, [mapsApiKey]);
+
+  // Load FUZO community data
+  useEffect(() => {
+    if (!hasSupabaseConfig || !supabase) return;
+    const loadFuzo = async () => {
+      const { data } = await supabase.from('fuzo_locations').select('*').limit(50);
+      if (data) {
+        setCommunitySnapPlaces(data.map((row, i) => ({
+          id: `fuzo-${row.id || i}`,
+          markerSource: 'fuzo' as const,
+          name: row.location_name || row.restaurant_name || 'FUZO Discovery',
+          cat: row.cuisine || 'Spot',
+          rating: 4.5,
+          reviews: 12,
+          address: row.address || '',
+          phone: '',
+          website: '',
+          img: row.photos?.[0] || '',
+          lat: Number(row.latitude),
+          lng: Number(row.longitude),
+          vibe: row.tags || [],
+          timings: {},
+          menu: [],
+          userReviews: [],
+          photos: row.photos || []
+        })));
+      }
+    };
+    loadFuzo();
+  }, []);
+
+  // Transform saved items to ScoutPlace
+  const myMapPlaces = useMemo(() => {
+    return savedItems
+      .filter(item => Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lng)))
+      .map((item, i) => toSavedScoutPlace(item, i));
+  }, [savedItems]);
+
+  // --- UNIFIED data: merge all three sources ---
+  const activePlaces = useMemo(() => {
+    const seen = new Set<string>();
+    const merged: ScoutPlace[] = [];
+
+    const addUnique = (places: ScoutPlace[]) => {
+      for (const p of places) {
+        const key = p.placeId || p.id;
+        if (!seen.has(key)) {
+          seen.add(key);
+          merged.push({ ...p, matchPercentage: calculateNeuralMatch(p) });
+        }
+      }
+    };
+
+    addUnique(mainMapPlaces);
+    addUnique(communitySnapPlaces);
+    addUnique(myMapPlaces);
+
+    return sortPlaces(filterPlaces(merged, filter), filter.sortBy);
+  }, [mainMapPlaces, communitySnapPlaces, myMapPlaces, filter]);
+
+  // --- Callbacks ---
 
   const reverseGeocode = useCallback(async (lat: number, lng: number) => {
     const google = getGoogleMaps();
@@ -148,7 +201,7 @@ export const ScoutView = ({
           address: res.formatted_address,
           phone: '',
           website: '',
-          img: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80', // Default discovery food image
+          img: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80',
           lat,
           lng,
           markerSource: 'saved',
@@ -159,7 +212,7 @@ export const ScoutView = ({
           menu: [],
           userReviews: [],
           photos: [],
-          isNewFind: true // Custom flag for modal
+          isNewFind: true
         };
         setPinnedPlace(newFind);
         setSelectedPlace(newFind);
@@ -172,7 +225,6 @@ export const ScoutView = ({
   }, []);
 
   const handleContribute = useCallback(async (place: ScoutPlace) => {
-    // Standardizing: Bridging into Snap Studio instead of saving silent find
     setSnapStudioData({
       restaurant: place.name,
       lat: place.lat,
@@ -193,13 +245,11 @@ export const ScoutView = ({
         
         const google = getGoogleMaps();
         if (google && mapInstanceRef.current && directionsRendererRef.current) {
-          // Set direction result to renderer
           directionsRendererRef.current.setDirections(result.data);
           
           const polyline = (google as any).geometry.encoding.decodePath(route.polyline.encodedPolyline);
           const path = new (google as any).Polyline({ path: polyline });
           
-          // 1. Fetch External Results Along Route
           const searchResult = await PlacesService.searchAlongRoute(route.polyline.encodedPolyline, 'restaurants');
           let combinedResults: ScoutPlace[] = [];
           
@@ -207,8 +257,7 @@ export const ScoutView = ({
             combinedResults = searchResult.data.results.map((r, i) => toScoutPlace(r, i, mapsApiKey));
           }
 
-          // 2. Filter existing results and saved items along the route corridor
-          const corridorTolerance = 0.005; // ~500m
+          const corridorTolerance = 0.005;
           const savedAsScout = savedItems.map((item, i) => toSavedScoutPlace(item, i));
           
           const localAlongRoute = [...mainMapPlaces, ...savedAsScout].filter(p => {
@@ -217,7 +266,6 @@ export const ScoutView = ({
              return (google as any).geometry.poly.isLocationOnEdge(point, path, corridorTolerance);
           });
 
-          // Combine and deduplicate by place_id / id
           const seen = new Set();
           const finalPlaces = [...combinedResults, ...localAlongRoute].filter(p => {
             const id = p.placeId || p.id || p.name;
@@ -245,61 +293,39 @@ export const ScoutView = ({
   };
 
   const handleMapClick = useCallback((e: any) => {
-
     if (!e.latLng) return;
     const lat = e.latLng.lat();
     const lng = e.latLng.lng();
     reverseGeocode(lat, lng);
   }, [reverseGeocode]);
 
-  useEffect(() => {
-    if (!hasSupabaseConfig || !supabase) return;
-    const loadFuzo = async () => {
-      const { data } = await supabase.from('fuzo_locations').select('*').limit(50);
-      if (data) {
-        setCommunitySnapPlaces(data.map((row, i) => ({
-          id: `fuzo-${row.id || i}`,
-          markerSource: 'fuzo',
-          name: row.location_name || row.restaurant_name || 'FUZO Discovery',
-          cat: row.cuisine || 'Spot',
-          rating: 4.5,
-          reviews: 12,
-          address: row.address || '',
-          phone: '',
-          website: '',
-          img: row.photos?.[0] || '',
-          lat: Number(row.latitude),
-          lng: Number(row.longitude),
-          vibe: row.tags || [],
-          timings: {},
-          menu: [],
-          userReviews: [],
-          photos: row.photos || []
-        })));
+  const handleRecenterMap = useCallback(() => {
+    navigator.geolocation.getCurrentPosition((p) => {
+      const pos = { lat: p.coords.latitude, lng: p.coords.longitude };
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.setCenter(pos);
+        mapInstanceRef.current.setZoom(14);
+        fetchPlaces(mapInstanceRef.current);
       }
-    };
-    loadFuzo();
-  }, []);
+    });
+  }, [fetchPlaces]);
 
-  const myMapPlaces = useMemo(() => {
-    return savedItems
-      .filter(item => Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lng)))
-      .map((item, i) => toSavedScoutPlace(item, i));
-  }, [savedItems]);
+  const handleSearch = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (mapInstanceRef.current) {
+      fetchPlaces(mapInstanceRef.current, searchQuery);
+    }
+  };
 
-  const activePlaces = useMemo(() => {
-    let base = mainMapPlaces;
-    if (scoutTab === 'fuzo') base = communitySnapPlaces;
-    if (scoutTab === 'my') base = myMapPlaces;
-    
-    // Apply neural match simulation
-    const withMatch = base.map(p => ({
-      ...p,
-      matchPercentage: calculateNeuralMatch(p)
-    }));
-    
-    return sortPlaces(filterPlaces(withMatch, filter), filter.sortBy);
-  }, [scoutTab, mainMapPlaces, communitySnapPlaces, myMapPlaces, filter]);
+  const handlePlaceSelect = (place: ScoutPlace) => {
+    setSelectedPlace(place);
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.panTo({ lat: place.lat, lng: place.lng });
+      mapInstanceRef.current.setZoom(16);
+    }
+  };
+
+  // --- Map Initialization ---
 
   useEffect(() => {
     if (!mapRef.current || !mapsApiKey) return;
@@ -312,12 +338,20 @@ export const ScoutView = ({
         center: { lat: 40.7128, lng: -74.0060 },
         zoom: 13,
         disableDefaultUI: true,
+        styles: [
+          { elementType: 'geometry', stylers: [{ color: '#f5f5f5' }] },
+          { elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
+          { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
+          { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#e0e0e0' }] },
+          { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#c9e8f5' }] },
+          { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+          { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#e5f5e0' }] },
+        ]
       });
 
       mapInstanceRef.current = map;
       setIsMapReady(true);
       
-      // Init Directions Renderer
       directionsRendererRef.current = new google.DirectionsRenderer({
         map: map,
         suppressMarkers: false,
@@ -329,9 +363,6 @@ export const ScoutView = ({
       });
 
       fetchPlaces(map);
-
-
-      // Add Click Listener for Pinning
       map.addListener('click', handleMapClick);
 
       // Attempt geolocation
@@ -345,6 +376,14 @@ export const ScoutView = ({
     initMap();
   }, [mapsApiKey, fetchPlaces, googleMapsReady, handleMapClick]);
 
+  // --- Marker Rendering ---
+
+  const MARKER_COLORS: Record<string, string> = {
+    google: '#3b82f6',  // Blue
+    fuzo: '#facc15',     // Yellow
+    saved: '#10b981',    // Green
+  };
+
   useEffect(() => {
     if (!isMapReady || !mapInstanceRef.current) return;
     const google = getGoogleMaps();
@@ -355,22 +394,16 @@ export const ScoutView = ({
     }
 
     const markers = activePlaces.map(place => {
+      const color = MARKER_COLORS[place.markerSource || 'google'] || '#3b82f6';
       const marker = new google.Marker({
         position: { lat: place.lat, lng: place.lng },
-        label: {
-          text: place.matchPercentage ? `${place.matchPercentage}% Match` : place.name,
-          color: '#ffffff',
-          fontSize: '10px',
-          fontWeight: '900',
-          className: 'marker-label-premium bg-stone-900/80 px-2 py-1 rounded-full border border-yellow-400/30 backdrop-blur-md'
-        },
         icon: {
           path: google.SymbolPath.CIRCLE,
-          scale: 6,
-          fillColor: place.markerSource === 'fuzo' ? '#facc15' : '#3b82f6',
+          scale: 8,
+          fillColor: color,
           fillOpacity: 1,
           strokeColor: '#ffffff',
-          strokeWeight: 2,
+          strokeWeight: 2.5,
         }
       });
 
@@ -391,7 +424,7 @@ export const ScoutView = ({
         icon: {
           path: google.SymbolPath.BACKWARD_CLOSED_ARROW,
           scale: 8,
-          fillColor: '#a855f7', // Purple/Discovery color
+          fillColor: '#a855f7',
           fillOpacity: 1,
           strokeColor: '#ffffff',
           strokeWeight: 2,
@@ -404,22 +437,12 @@ export const ScoutView = ({
 
   }, [isMapReady, activePlaces, pinnedPlace]);
 
-  const handlePlaceSelect = (place: ScoutPlace) => {
-    setSelectedPlace(place);
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.panTo({ lat: place.lat, lng: place.lng });
-      mapInstanceRef.current.setZoom(16);
-    }
-  };
+  // --- Auto-fetch details ---
 
-  // Auto-fetch details when a place is selected
   useEffect(() => {
     if (!selectedPlace || selectedPlace.isNewFind) return;
-    
-    // If we've already fetched details (using phone or userReviews length as heuristic)
     if (selectedPlace.phone || (selectedPlace.userReviews && selectedPlace.userReviews.length > 0)) return;
 
-    // Only fetch for Google places that have a placeId
     if (selectedPlace.markerSource === 'google' && selectedPlace.placeId) {
       const fetchDetails = async () => {
         setIsLoadingDetails(true);
@@ -427,11 +450,7 @@ export const ScoutView = ({
           const result = await PlacesService.getPlaceDetails(selectedPlace.placeId as string);
           if (result.success && result.data?.result) {
             const detailedPlace = mergePlaceDetails(selectedPlace, result.data.result, mapsApiKey);
-            
-            // Update the selected place to trigger UI update
             setSelectedPlace(detailedPlace);
-            
-            // Optionally update the place in the main list so it's cached
             setMainMapPlaces(prev => 
               prev.map(p => p.id === selectedPlace.id ? detailedPlace : p)
             );
@@ -442,130 +461,140 @@ export const ScoutView = ({
           setIsLoadingDetails(false);
         }
       };
-      
       fetchDetails();
     }
   }, [selectedPlace?.id, mapsApiKey]);
 
+  // --- Count by source for legend ---
+  const sourceCounts = useMemo(() => {
+    const counts = { google: 0, fuzo: 0, saved: 0 };
+    activePlaces.forEach(p => {
+      const src = p.markerSource || 'google';
+      if (src in counts) counts[src as keyof typeof counts]++;
+    });
+    return counts;
+  }, [activePlaces]);
 
-  const scoutHeadline = useMemo(() => {
-    if (isLoading) return 'Scouting your area...';
-    if (activePlaces.length === 0) return 'No matches found';
-    return `Discovering ${activePlaces.length} premium spots`;
-  }, [isLoading, activePlaces.length]);
+  // --- RENDER ---
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] md:h-auto space-y-0 md:space-y-8 md:px-4 animate-in fade-in pb-24 md:pb-24 -mx-6 md:mx-0">
-      {/* Header with Tabs */}
-        <div className="flex bg-stone-100 p-1.5 rounded-2xl">
-          {(['main', 'fuzo', 'my'] as const).map(tab => (
-            <button 
-              key={tab}
-              onClick={() => setScoutTab(tab)}
-              aria-label={`Switch to ${tab === 'main' ? 'Main Map' : tab === 'fuzo' ? 'FUZO Locations' : 'My Map'}`}
-              className={`px-6 py-2.5 min-h-[44px] rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${scoutTab === tab ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
-            >
-              {tab === 'main' ? 'Main Map' : tab === 'fuzo' ? 'FUZO Locations' : 'My Map'}
-            </button>
-          ))}
-        </div>
+    <div className="relative w-full h-full">
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* FULL-BLEED MAP                                                */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <div ref={mapRef} className="absolute inset-0 z-0" id="scout-map" />
 
-      {/* Mobile Tabs */}
-      <div className="flex md:hidden bg-white border-b border-stone-100 sticky top-0 z-30">
-        {(['main', 'fuzo', 'my'] as const).map(tab => (
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* FLOATING SEARCH BAR                                           */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <div className="absolute top-4 left-4 right-20 md:left-6 md:right-auto md:w-[400px] z-10 space-y-2.5">
+        <form onSubmit={handleSearch} className="relative group">
           <button 
-            key={tab}
-            onClick={() => setScoutTab(tab)}
-            aria-label={`Switch to ${tab === 'main' ? 'Main' : tab === 'fuzo' ? 'FUZO' : 'My Map'}`}
-            className={`flex-1 py-5 min-h-[50px] text-[12px] font-black uppercase tracking-widest border-b-2 transition-all ${scoutTab === tab ? 'border-yellow-400 text-stone-900' : 'border-transparent text-stone-400'}`}
+            type="submit"
+            className="absolute inset-y-0 left-5 flex items-center text-stone-400 group-focus-within:text-stone-900 transition-colors"
           >
-            {tab === 'main' ? 'Main' : tab === 'fuzo' ? 'FUZO' : 'My Map'}
+            <Search size={18} strokeWidth={2.5} />
           </button>
-        ))}
-      </div>
+          <input 
+            type="text" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            placeholder="Search food territory..."
+            className="w-full bg-white h-12 md:h-14 pl-14 pr-12 rounded-full shadow-[0_2px_12px_rgba(0,0,0,0.12)] font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500/30 focus:shadow-[0_2px_20px_rgba(0,0,0,0.15)] transition-all placeholder:text-stone-400 border border-stone-100/80"
+          />
+          {searchQuery && (
+            <button 
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                if (mapInstanceRef.current) fetchPlaces(mapInstanceRef.current);
+              }}
+              className="absolute inset-y-0 right-4 flex items-center text-stone-300 hover:text-stone-900"
+            >
+              <X size={18} />
+            </button>
+          )}
+        </form>
 
-      <div className="flex flex-col lg:grid lg:grid-cols-3 gap-0 md:gap-8 flex-grow">
-        {/* Map Area */}
-        <div className="lg:col-span-2 h-[60vh] md:h-[50vh] lg:h-[75vh] rounded-none md:rounded-[3.5rem] overflow-hidden border-0 md:border-[12px] border-white shadow-2xl bg-stone-100 relative group">
-          <div ref={mapRef} className="absolute inset-0" id="scout-map" />
-          
-          {/* Map Controls */}
-          <div className="absolute top-6 left-6 right-24 md:top-8 md:left-8 md:right-auto md:w-96 z-10 space-y-3">
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-stone-400 group-focus-within:text-stone-900 transition-colors">
-                <Search size={18} strokeWidth={2.5} />
-              </div>
-              <input 
-                type="text" 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search food territory..."
-                className="w-full bg-white/95 backdrop-blur-xl border-none h-14 pl-14 pr-5 rounded-[1.25rem] shadow-2xl font-black text-xs uppercase tracking-widest outline-none focus:ring-4 focus:ring-yellow-400/20 transition-all placeholder:text-stone-300"
-              />
-              {searchQuery && (
-                <button 
-                  onClick={() => setSearchQuery('')}
-                  className="absolute inset-y-0 right-4 flex items-center text-stone-300 hover:text-stone-900"
-                >
-                  <X size={18} />
-                </button>
-              )}
+        {/* Legend Pill */}
+        <div className="bg-white/95 backdrop-blur-md rounded-full shadow-md px-4 py-2 inline-flex border border-stone-100/60">
+          <div className="flex items-center gap-4 text-[11px] font-bold text-stone-500">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-sm" />
+              <span>Nearby ({sourceCounts.google})</span>
             </div>
-
-            <div className="bg-white/90 backdrop-blur-md rounded-2xl border border-white/50 shadow-lg px-3 py-2.5 inline-flex">
-              <div className="flex items-center gap-4 text-[11px] font-black uppercase tracking-widest text-stone-500">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 border border-white shadow-sm"></span>
-                  <span>FUZO Spots</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500 border border-white shadow-sm"></span>
-                  <span>Community</span>
-                </div>
-              </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 shadow-sm" />
+              <span>FUZO ({sourceCounts.fuzo})</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm" />
+              <span>Saved ({sourceCounts.saved})</span>
             </div>
           </div>
-
-          <div className="absolute top-6 right-6 md:top-8 md:right-8 flex flex-col gap-3">
-            <button 
-              onClick={() => mapInstanceRef.current && fetchPlaces(mapInstanceRef.current)} 
-              className="p-3 md:p-4 bg-white rounded-2xl shadow-xl hover:bg-stone-50 transition-colors"
-            >
-              <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
-            </button>
-            <button 
-              onClick={() => setIsRoutePlannerOpen(true)} 
-              className={`p-3 md:p-4 rounded-2xl shadow-xl transition-all ${currentRoute ? 'bg-blue-500 text-white' : 'bg-white text-stone-900'}`}
-            >
-              <Navigation size={20} />
-            </button>
-          </div>
-          
-          <ScoutRoutePlanner 
-            isVisible={isRoutePlannerOpen}
-            onClose={() => setIsRoutePlannerOpen(false)}
-            onCalculateRoute={handleCalculateRoute}
-            onClear={handleClearRoute}
-            isCalculating={isCalculatingRoute}
-          />
-
-        </div>
-
-        {/* Discovery Sidebar (The replacement for the old list sidebar) */}
-        <div className="relative space-y-6 p-6 md:p-0 bg-white md:bg-transparent rounded-t-[3rem] -mt-12 md:mt-0 z-20 shadow-[0_-20px_40px_rgba(0,0,0,0.05)] md:shadow-none h-full overflow-hidden">
-          <div className="w-12 h-1.5 bg-stone-100 rounded-full mx-auto mb-6 md:hidden" />
-          <ScoutDiscoveryPanel
-            places={activePlaces}
-            onPlaceSelect={handlePlaceSelect}
-            filter={filter}
-            onFilterChange={setFilter}
-            onClose={() => {}} // No close button needed in side panel mode
-            className="h-[60vh] md:h-full relative pointer-events-auto"
-            isSidebar={true}
-          />
         </div>
       </div>
 
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* FLOATING MAP CONTROLS (right side)                            */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <div className="absolute top-4 right-4 md:top-6 md:right-6 flex flex-col gap-2.5 z-10">
+        <button 
+          onClick={() => mapInstanceRef.current && fetchPlaces(mapInstanceRef.current)} 
+          className="w-11 h-11 bg-white rounded-full shadow-md flex items-center justify-center hover:bg-stone-50 transition-colors border border-stone-100/60"
+          aria-label="Refresh nearby places"
+        >
+          <RefreshCw size={18} className={isLoading ? 'animate-spin text-blue-500' : 'text-stone-600'} />
+        </button>
+        <button 
+          onClick={() => setIsRoutePlannerOpen(true)} 
+          className={`w-11 h-11 rounded-full shadow-md flex items-center justify-center transition-all border ${currentRoute ? 'bg-blue-500 text-white border-blue-400' : 'bg-white text-stone-600 border-stone-100/60 hover:bg-stone-50'}`}
+          aria-label="Route planner"
+        >
+          <Navigation size={18} />
+        </button>
+        <button 
+          onClick={handleRecenterMap}
+          className="w-11 h-11 bg-white rounded-full shadow-md flex items-center justify-center hover:bg-stone-50 transition-colors border border-stone-100/60"
+          aria-label="My location"
+        >
+          <Locate size={18} className="text-stone-600" />
+        </button>
+        <button 
+          onClick={() => setIsAddPinModalOpen(true)}
+          className="w-11 h-11 bg-stone-900 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-2 border-white/20"
+          aria-label="Add new discovery"
+        >
+          <Plus size={20} strokeWidth={3} />
+        </button>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* ROUTE PLANNER OVERLAY                                         */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <ScoutRoutePlanner 
+        isVisible={isRoutePlannerOpen}
+        onClose={() => setIsRoutePlannerOpen(false)}
+        onCalculateRoute={handleCalculateRoute}
+        onClear={handleClearRoute}
+        isCalculating={isCalculatingRoute}
+      />
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* DISCOVERY PANEL (bottom sheet on mobile, side panel on desktop)*/}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <ScoutDiscoveryPanel
+        places={activePlaces}
+        onPlaceSelect={handlePlaceSelect}
+        filter={filter}
+        onFilterChange={setFilter}
+        onClose={() => {}}
+      />
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* PLACE DETAIL MODAL                                            */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
       {selectedPlace && (
         <ScoutPlaceModal
           place={selectedPlace}
@@ -578,6 +607,21 @@ export const ScoutView = ({
         />
       )}
 
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* ADD PIN MODAL                                                 */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {isAddPinModalOpen && (
+        <ScoutAddPinModal 
+          onClose={() => setIsAddPinModalOpen(false)}
+          onSuccess={() => {
+            if (mapInstanceRef.current) fetchPlaces(mapInstanceRef.current);
+          }}
+        />
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* SNAP STUDIO BRIDGE                                            */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
       {showSnapStudio && (
         <SnapStudio 
           initialData={snapStudioData}
@@ -591,4 +635,3 @@ export const ScoutView = ({
     </div>
   );
 };
-

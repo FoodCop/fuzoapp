@@ -1139,7 +1139,8 @@ const App = () => {
           </aside>
 
           <a href="#main-content" className="skip-to-content">Skip to content</a>
-          <main id="main-content" className="flex-grow max-w-6xl mx-auto w-full px-6 md:px-12 relative pt-8 pb-48 md:pb-12 h-screen overflow-y-auto overflow-x-hidden selection:bg-yellow-400 selection:text-stone-900">
+          <main id="main-content" className={`flex-grow w-full relative h-screen overflow-x-hidden selection:bg-yellow-400 selection:text-stone-900 ${tab === 'scout' ? 'max-w-none px-0 pt-0 pb-0 md:pb-0 overflow-hidden' : 'max-w-6xl mx-auto px-6 md:px-12 pt-8 pb-48 md:pb-12 overflow-y-auto'}`}>
+            {tab !== 'scout' && (
             <header className="flex items-center justify-between mb-8 md:hidden px-2">
               <button onClick={() => setSidebarOpen(true)} aria-label="Open menu" className="p-3 bg-stone-900 text-yellow-400 rounded-2xl shadow-lg active:scale-90 transition-transform rotate-3">
                 <ChefHat size={24} strokeWidth={2.5} />
@@ -1154,6 +1155,7 @@ const App = () => {
                 <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" aria-hidden="true" />
               </button>
             </header>
+            )}
 
             {renderApp(tab)}
           </main>

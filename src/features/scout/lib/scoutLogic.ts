@@ -1,6 +1,6 @@
 import React from 'react';
 import { AppItem } from '../../../shared/types/appItem';
-import { ScoutPlace, ScoutMapTab, ScoutFilter } from '../types/scoutUi';
+import { ScoutPlace, ScoutFilter } from '../types/scoutUi';
 import { API_KEYS } from '../../../shared/constants/apiKeys';
 
 /**

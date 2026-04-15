@@ -47,7 +47,7 @@ export const ScoutRoutePlanner = ({
   if (!isVisible) return null;
 
   return (
-    <div className="absolute top-24 left-6 right-6 md:left-8 md:w-96 z-[60] bg-white/90 backdrop-blur-2xl rounded-[3rem] p-8 shadow-2xl border border-white/50 animate-in slide-in-from-top duration-500">
+    <div className="absolute top-20 left-4 right-4 md:left-6 md:w-[400px] z-20 bg-white/95 backdrop-blur-2xl rounded-2xl p-6 md:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.1)] border border-stone-100/80 animate-in slide-in-from-top duration-300">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">
           <Navigation size={18} className="text-blue-500" />

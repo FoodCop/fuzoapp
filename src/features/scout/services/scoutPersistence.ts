@@ -10,6 +10,9 @@ export interface ScoutFindData {
   address: string;
   notes?: string;
   tags?: string[];
+  photos?: string[];
+  timings?: Record<string, string>;
+  rating?: number;
 }
 
 export const ScoutPersistence = {
@@ -28,6 +31,9 @@ export const ScoutPersistence = {
         content: contentParts.join('\n'),
         latitude: find.lat,
         longitude: find.lng,
+        rating: find.rating || 0,
+        images: find.photos || [],
+        image_url: find.photos?.[0] || '',
         created_at: new Date().toISOString(),
       }).select('id').single();
 
@@ -47,6 +53,9 @@ export const ScoutPersistence = {
         address: find.address,
         notes: find.notes || '',
         tags: find.tags || [],
+        photos: find.photos || [],
+        timings: find.timings || {},
+        rating: find.rating || 0,
       });
 
       if (datasetError) {
@@ -61,6 +70,9 @@ export const ScoutPersistence = {
         lat: find.lat,
         lng: find.lng,
         notes: find.notes,
+        photos: find.photos || [],
+        timings: find.timings || {},
+        rating: find.rating || 0,
         source: 'scout_pin',
       };
 

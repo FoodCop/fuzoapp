@@ -13,7 +13,7 @@ export interface ScoutUserReview {
 
 export type ScoutTimings = Record<string, string>;
 
-export type ScoutMapTab = 'main' | 'fuzo' | 'my';
+// ScoutMapTab removed — all data sources now unified on one map
 export type PrimaryProfileType = 'chef' | 'individual' | 'restaurant' | 'culinary_team' | 'private_chef';
 export interface ScoutFilter {
   type: 'all' | 'top' | 'open' | 'distance';
@@ -87,6 +87,7 @@ export type GoogleMapsLike = {
       streetViewControl?: boolean;
       mapTypeControl?: boolean;
       fullscreenControl?: boolean;
+      styles?: any[];
     }
   ) => MapLike;
   Marker: any;
