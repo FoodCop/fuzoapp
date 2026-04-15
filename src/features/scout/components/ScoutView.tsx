@@ -1,4 +1,40 @@
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Search, X, RefreshCw, Navigation } from 'lucide-react';
+import { API_KEYS } from '../../../shared/constants/apiKeys';
+import { hasSupabaseConfig, supabase } from '../../../services/supabaseClient';
+import { PlacesService } from '../../../services/placesService';
+import { MarkerClusterer } from '@googlemaps/markerclusterer';
+import type { AppItem } from '../../../shared/types/appItem';
+import type { AuthUser } from '../../auth/types/auth';
+import { 
+  ScoutPlace, 
+  ScoutMapTab as ScoutTab, 
+  ScoutFilter, 
+  MapLike, 
+  getGoogleMaps 
+} from '../types/scoutUi';
+import { 
+  toScoutPlace, 
+  toSavedScoutPlace,
+  SCOUT_FALLBACK_PLACES, 
+  calculateNeuralMatch, 
+  sortPlaces, 
+  filterPlaces, 
+  mergePlaceDetails, 
+  shouldApplyLatestRequest 
+} from '../lib/scoutLogic';
 import { SnapStudio } from '../../snap/components/SnapView';
+import { ScoutDiscoveryPanel } from './ScoutDiscoveryPanel';
+import { ScoutPlaceModal } from './ScoutPlaceModal';
+import { ScoutRoutePlanner } from './ScoutRoutePlanner';
+
+interface ScoutViewProps {
+  mapsApiKey?: string;
+  savedItems?: AppItem[];
+  googleMapsReady?: boolean;
+  onAction: (item: AppItem, action: 'save' | 'share' | 'delete') => void;
+  authUser?: AuthUser | null;
+}
 
 export const ScoutView = ({ 
   mapsApiKey = API_KEYS.MAPS,
@@ -173,8 +209,9 @@ export const ScoutView = ({
 
           // 2. Filter existing results and saved items along the route corridor
           const corridorTolerance = 0.005; // ~500m
+          const savedAsScout = savedItems.map((item, i) => toSavedScoutPlace(item, i));
           
-          const localAlongRoute = [...mainMapPlaces, ...savedItems].filter(p => {
+          const localAlongRoute = [...mainMapPlaces, ...savedAsScout].filter(p => {
              if (!p.lat || !p.lng) return false;
              const point = new (google as any).LatLng(p.lat, p.lng);
              return (google as any).geometry.poly.isLocationOnEdge(point, path, corridorTolerance);
@@ -247,25 +284,7 @@ export const ScoutView = ({
   const myMapPlaces = useMemo(() => {
     return savedItems
       .filter(item => Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lng)))
-      .map((item, i): ScoutPlace => ({
-        id: item.id || `saved-${i}`,
-        name: item.name,
-        cat: item.cat,
-        img: item.img,
-        lat: Number(item.lat),
-        lng: Number(item.lng),
-        markerSource: 'saved' as const,
-        rating: 5,
-        reviews: 0,
-        address: item.address || '',
-        phone: item.phone || '',
-        website: item.website || '',
-        vibe: [],
-        timings: {},
-        menu: [],
-        userReviews: [],
-        photos: []
-      }));
+      .map((item, i) => toSavedScoutPlace(item, i));
   }, [savedItems]);
 
   const activePlaces = useMemo(() => {

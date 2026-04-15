@@ -381,9 +381,7 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const dataUrl = await loadUploadedImage(file);
-      setCapturedImage(dataUrl);
-      setCurrentStep(1);
+      await loadUploadedImage(file, setCapturedImage, () => setCurrentStep(1));
     }
   };
 

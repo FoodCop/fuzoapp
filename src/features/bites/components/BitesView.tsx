@@ -14,7 +14,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   Search, ChefHat, Clock, User, X, Star, Loader2,
   Bookmark, Share2, RefreshCw, SlidersHorizontal, Sparkles,
-  List, PieChart, Image as ImageIcon, CheckCircle2, Check
+  List, PieChart, Image as ImageIcon, CheckCircle2, Check, Send
 } from 'lucide-react';
 import { UGC_CUISINES, normalizeTag, TAXONOMY_KEYWORD_MAP } from '../../../shared/utils/taxonomy';
 import { Badge } from '../../../shared/ui/Badge';
@@ -32,6 +32,8 @@ import { SpoonacularService } from '../../../services/spoonacularService';
 import { GeminiService } from '../../../services/geminiService';
 import { shouldApplyLatestRequest } from '../../../shared/utils/async';
 import type { AppItem } from '../../../shared/types/appItem';
+import type { ChatInboxItem } from '../../chat/types/chatUi';
+import type { IconComponent } from '../../../shared/types/ui';
 
 // Lightweight motion shims (same as index.tsx)
 type LightweightMotionProps = { children?: React.ReactNode; [key: string]: unknown; };

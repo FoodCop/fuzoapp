@@ -84,6 +84,7 @@ import { GeminiService } from './src/services/geminiService';
 
 
 // filterFriendsByQuery moved to src/features/chat/lib/chatHelpers.ts
+import { filterFriendsByQuery } from './src/features/chat/lib/chatHelpers';
 
 
 
