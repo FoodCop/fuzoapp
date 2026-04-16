@@ -8,7 +8,18 @@ FUZO is a food discovery and social platform built with Vite + React + TypeScrip
 - Build and deploy are root-level (`npm run build`, `vercel.json`)
 - `public/References` has been removed
 
-## Latest Updates (2026-03-11)
+## Latest Updates (2026-04-16)
+
+- **AAA Chat Overhaul**:
+  - Implemented a full-screen, responsive dual-pane layout for Desktop and a single-pane flow for Mobile.
+  - Removed legacy floating chat buttons; activation is now exclusively via the main navigation system.
+  - Added support for deep-linking into specific conversations from external triggers (notifications).
+- **Real-time Notifications**:
+  - Connected the notifications bell to live data from the Chat service.
+  - Implemented "New Message" and "Connection Request" alerts derived from the `friends` list status.
+  - Added a premium "All Caught Up" empty state illustration.
+
+## Previous Updates (2026-03-11)
 
 - Added public profile viewing for other users:
   - new route mode: `view=user-profile&userId=<uuid>`

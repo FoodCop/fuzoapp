@@ -127,7 +127,22 @@ Prevent production CSS purge regressions and keep style behavior deterministic.
 - If dynamic styling is unavoidable, add explicit safelist coverage in `tailwind.config.cjs`.
 - Re-run build after style-system edits to catch purge issues early.
 
-## 9. Refactor Execution Skill
+## 9. Chat + Notifications Integration Skill
+
+### Purpose
+Maintain the AAA full-screen chat experience and ensure notifications correctly deep-link into conversations.
+
+### Key Files
+- Layout Logic: `src/features/chat/components/ChatView.tsx`
+- Notification Engine: `src/features/notifications/components/NotificationsView.tsx`
+- Routing: `src/app/routes/renderAppView.tsx`
+
+### Guardrails
+- **Full-Screen Layout**: Ensure the `activeId` correctly toggles the mobile single-pane view.
+- **Derived State**: Notifications must be derived from the `friends` list to ensure consistency with the chat unread counts.
+- **Deep Linking**: Always clear `initialActiveId` once the chat view has successfully opened the target conversation to prevent state loops.
+
+## 10. Refactor Execution Skill
 
 ### Purpose
 Ship low-risk refactors without behavior regression.
@@ -139,7 +154,7 @@ Ship low-risk refactors without behavior regression.
 4. Keep fallbacks and error messages intact.
 5. Push only when build + lint are both green.
 
-## 10. Release Readiness Checklist
+## 11. Release Readiness Checklist
 
 Before push/deploy:
 - `npm run lint` passes.
@@ -149,7 +164,7 @@ Before push/deploy:
 - README reflects major behavior changes.
 - If contracts changed, verify both frontend and edge proxy callers.
 
-## 11. Current Active Priorities
+## 12. Current Active Priorities
 
 - Complete and document 48-hour Trims rollout audit.
 - Continue extracting large feature blocks out of `index.tsx`.
