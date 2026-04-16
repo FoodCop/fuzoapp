@@ -10,6 +10,7 @@ import {
   logFeedParity 
 } from '../lib/feedNormalization';
 import { FEED_USE_SERVICE } from '../constants/config';
+import { LOCAL_CURATED_FEED_ITEMS } from '../constants/curatedFeed';
 import { shouldApplyLatestRequest } from '../../../shared/utils/async';
 import { Badge } from '../../../shared/ui/Badge';
 import { AppItem } from '../../../shared/types/appItem';
@@ -52,13 +53,17 @@ export const FeedView = ({
   }, []);
 
   const fetchFromFeedService = async (isRetry = false) => {
-    const shouldFetch = true;
-    if (!shouldFetch) return;
-
-    if (FEED_USE_SERVICE || isRetry) {
-      setFeedLoading(true);
-      setFeedError('');
+    // 0. Fallback Logic: If service is disabled and not retrying, show curated items immediately
+    if (!FEED_USE_SERVICE && !isRetry) {
+      console.log('🍽️ [FeedView] Service disabled, loading local curated items');
+      setItems(LOCAL_CURATED_FEED_ITEMS);
+      setFeedSource('local');
+      setFeedLoading(false);
+      return;
     }
+
+    setFeedLoading(true);
+    setFeedError('');
 
     const requestSeq = ++feedRequestSeqRef.current;
 
@@ -105,31 +110,44 @@ export const FeedView = ({
 
       const isLatestRequest = shouldApplyLatestRequest(feedMountedRef, requestSeq, feedRequestSeqRef);
 
-      if ((FEED_USE_SERVICE || isRetry) && isLatestRequest) {
+      if (isLatestRequest) {
         if (adaptedCards.length > 0) {
           setItems(adaptedCards);
           setBatchIndex(0);
           setFeedSource('feedService');
           setFeedError('');
         } else {
-          setItems([]);
-          setBatchIndex(0);
-          setFeedSource('feedService');
-          setFeedError('Feed returned no results.');
+          // If service returns nothing, fallback to local items if enabled
+          if (!isRetry) {
+            setItems(LOCAL_CURATED_FEED_ITEMS);
+            setFeedSource('local');
+            setFeedError('');
+          } else {
+            setItems([]);
+            setBatchIndex(0);
+            setFeedSource('feedService');
+            setFeedError('Feed returned no results.');
+          }
         }
       }
     } catch (error) {
       console.error('FeedService fetch failed:', error);
       const isLatestRequest = shouldApplyLatestRequest(feedMountedRef, requestSeq, feedRequestSeqRef);
-      if ((FEED_USE_SERVICE || isRetry) && isLatestRequest) {
-        setItems([]);
-        setBatchIndex(0);
-        setFeedSource('feedService');
-        setFeedError('Feed service connection failed.');
+      if (isLatestRequest) {
+        if (!isRetry) {
+          setItems(LOCAL_CURATED_FEED_ITEMS);
+          setFeedSource('local');
+          setFeedError('');
+        } else {
+          setItems([]);
+          setBatchIndex(0);
+          setFeedSource('feedService');
+          setFeedError('Feed service connection failed.');
+        }
       }
     } finally {
       const isLatestRequest = shouldApplyLatestRequest(feedMountedRef, requestSeq, feedRequestSeqRef);
-      if ((FEED_USE_SERVICE || isRetry) && isLatestRequest) {
+      if (isLatestRequest) {
         setFeedLoading(false);
       }
     }
@@ -389,7 +407,7 @@ export const FeedView = ({
       <div className="w-full max-w-sm px-4 hidden md:block">
         <Badge color="yellow">Discovery</Badge>
         <h2 className="text-4xl font-black uppercase tracking-tighter mt-1">Feed</h2>
-        {feedSource === 'local' && FEED_USE_SERVICE && (
+        {feedSource === 'local' && (
           <p className="text-[12px] font-black uppercase tracking-widest text-stone-500 mt-2">Curated Feed Fallback Active</p>
         )}
       </div>

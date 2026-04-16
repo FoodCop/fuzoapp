@@ -31,6 +31,9 @@ export interface AppItem {
 	imageUrl?: string;
 	thumbnailUrl?: string;
 	author?: string;
+	authorAvatar?: string;
+	authorUserId?: string;
+	authorType?: string;
 	caption?: string;
 	description?: string;
 	likes?: string;
