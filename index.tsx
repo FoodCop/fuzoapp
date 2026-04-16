@@ -251,6 +251,8 @@ const App = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [savedItems, setSavedItems] = useState<AppItem[]>(FALLBACK_SAVED_ITEMS);
   const [activeShareItem, setActiveShareItem] = useState<AppItem | null>(null);
+  const [chatActiveId, setChatActiveId] = useState<string | null>(null);
+  const [chatActiveType, setChatActiveType] = useState<'dm' | 'group' | null>(null);
 
   const [friends, setFriends] = useState<ChatInboxItem[]>(DEFAULT_FRIENDS);
   const totalUnread = useMemo(() => friends.reduce((sum, friend) => sum + (friend.unreadCount || 0), 0), [friends]);
@@ -956,6 +958,12 @@ const App = () => {
       handleBackToOwnProfile,
       mapsApiKey: API_KEYS.MAPS,
       googleMapsReady,
+      chatActiveId,
+      chatActiveType,
+      onClearChatActiveId: () => {
+        setChatActiveId(null);
+        setChatActiveType(null);
+      },
       components: {
         FeedView,
         BitesView,
@@ -1026,7 +1034,18 @@ const App = () => {
           className="min-h-screen bg-stone-50 flex flex-col md:flex-row pb-[env(safe-area-inset-bottom)] overflow-x-hidden w-full"
         >
           {showSnap && <SnapView onPost={handleSnap} onClose={() => setShowSnap(false)} />}
-          <NotificationsView isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+          <NotificationsView 
+            isOpen={showNotifications} 
+            onClose={() => setShowNotifications(false)} 
+            friends={friends}
+            onOpenChat={(id, type) => {
+              setShowNotifications(false);
+              setChatActiveId(id);
+              setChatActiveType(type);
+              setSidebarOpen(false);
+              setTab('chat');
+            }}
+          />
           <UnifiedCreationModal 
             isOpen={showUnifiedCreation} 
             onClose={() => setShowUnifiedCreation(false)}
@@ -1176,23 +1195,6 @@ const App = () => {
             <NavIcon icon={MapPin} active={tab === 'scout'} onClick={() => setTab('scout')} label="Scout" />
           </nav>
 
-          {/* Desktop Chat Widget */}
-          <div className="fixed bottom-8 right-8 z-[150] hidden md:flex flex-col items-end gap-4">
-            <button 
-              onClick={() => setTab('chat')}
-              aria-label="Open Chat"
-              className="w-16 h-16 bg-stone-900 text-yellow-400 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.3)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all group border-4 border-white"
-            >
-              <div className="relative">
-                <MessageSquare size={28} strokeWidth={2.5} />
-                {totalUnread > 0 && (
-                  <span className="absolute -top-3 -right-3 min-w-6 h-6 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-black flex items-center justify-center border-2 border-white">
-                    {totalUnread > 99 ? '99+' : totalUnread}
-                  </span>
-                )}
-              </div>
-            </button>
-          </div>
 
           {sidebarOpen && <button type="button" aria-label="Close sidebar" className="fixed inset-0 bg-stone-900/40 backdrop-blur-xl z-[190] md:hidden" onClick={() => setSidebarOpen(false)} />}
         </motion.div>

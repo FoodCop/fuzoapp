@@ -17,6 +17,9 @@ interface RenderComponents {
     setTab: (tab: string) => void;
     onConversationOpened: (friendId: string) => void;
     onOpenUserProfile: (userId: string) => void;
+    initialActiveId?: string | null;
+    initialActiveType?: 'dm' | 'group' | null;
+    onClearInitial?: () => void;
   }>;
   ScoutView: React.ComponentType<{
     mapsApiKey?: string;
@@ -52,6 +55,9 @@ export const renderAppView = ({
   handleBackToOwnProfile,
   mapsApiKey,
   googleMapsReady,
+  chatActiveId,
+  chatActiveType,
+  onClearChatActiveId,
   components,
 }: {
   tab: string;
@@ -72,6 +78,9 @@ export const renderAppView = ({
   handleBackToOwnProfile: () => void;
   mapsApiKey: string;
   googleMapsReady?: boolean;
+  chatActiveId?: string | null;
+  chatActiveType?: 'dm' | 'group' | null;
+  onClearChatActiveId?: () => void;
   components: RenderComponents;
 }) => {
   const {
@@ -98,7 +107,18 @@ export const renderAppView = ({
     case 'chef':
       return <ChefAIView />;
     case 'chat':
-      return <ChatView friends={friends} authUser={authUser} onSave={handleSave} onShareRequest={setActiveShareItem} setTab={setTab} onConversationOpened={handleConversationOpened} onOpenUserProfile={handleOpenUserProfile} />;
+      return <ChatView 
+        friends={friends} 
+        authUser={authUser} 
+        onSave={handleSave} 
+        onShareRequest={setActiveShareItem} 
+        setTab={setTab} 
+        onConversationOpened={handleConversationOpened} 
+        onOpenUserProfile={handleOpenUserProfile}
+        initialActiveId={chatActiveId}
+        initialActiveType={chatActiveType}
+        onClearInitial={onClearChatActiveId}
+      />;
     case 'scout':
       return (
         <ScoutView
