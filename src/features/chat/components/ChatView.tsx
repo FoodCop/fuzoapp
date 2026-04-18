@@ -59,6 +59,8 @@ export const ChatView = ({
   const [friendSearch, setFriendSearch] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  const [isSubmittingGroup, setIsSubmittingGroup] = useState(false);
+  const [groupError, setGroupError] = useState<string | null>(null);
   const [newGroupName, setNewGroupName] = useState('');
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -266,17 +268,29 @@ export const ChatView = ({
   const createGroup = async () => {
     if (!newGroupName.trim() || selectedMemberIds.length === 0 || !authUser?.id) return;
 
-    const result = await ChatService.createGroup({
-      name: newGroupName,
-      memberIds: [authUser.id, ...selectedMemberIds],
-      createdBy: authUser.id,
-    });
+    setIsSubmittingGroup(true);
+    setGroupError(null);
 
-    if (result.success && result.data) {
-      setIsCreatingGroup(false);
-      setNewGroupName('');
-      setSelectedMemberIds([]);
-      openConversation(result.data.id, 'group');
+    try {
+      const result = await ChatService.createGroup({
+        name: newGroupName,
+        memberIds: [authUser.id, ...selectedMemberIds],
+        createdBy: authUser.id,
+      });
+
+      if (result.success && result.data) {
+        setIsCreatingGroup(false);
+        setNewGroupName('');
+        setSelectedMemberIds([]);
+        openConversation(result.data.id, 'group');
+      } else {
+        setGroupError(result.error || 'Failed to create group');
+      }
+    } catch (err) {
+      console.error('[ChatView] createGroup exception:', err);
+      setGroupError('An unexpected error occurred');
+    } finally {
+      setIsSubmittingGroup(false);
     }
   };
 
@@ -318,22 +332,34 @@ export const ChatView = ({
             <div className="space-y-4">
               <input
                 value={newGroupName}
-                onChange={(e) => setNewGroupName(e.target.value)}
+                onChange={(e) => {
+                  setNewGroupName(e.target.value);
+                  setGroupError(null);
+                }}
+                disabled={isSubmittingGroup}
                 placeholder="Group Name..."
-                className="w-full bg-white px-6 py-4 rounded-2xl font-bold outline-none border focus:border-yellow-400"
+                className="w-full bg-white px-6 py-4 rounded-2xl font-bold outline-none border focus:border-yellow-400 disabled:opacity-50"
               />
-              <div className="space-y-2">
-                <p className="text-[12px] font-black uppercase tracking-widest text-stone-400 px-2">Select Members</p>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center px-2">
+                  <p className="text-[12px] font-black uppercase tracking-widest text-stone-400">Select Members</p>
+                  {selectedMemberIds.length === 0 && (
+                    <p className="text-[10px] font-black uppercase tracking-widest text-yellow-600 animate-pulse">Add at least 1 friend</p>
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {friends.filter(f => f.type !== 'group').map(f => (
                     <button
                       key={f.id}
                       onClick={() => {
+                        if (isSubmittingGroup) return;
                         setSelectedMemberIds(prev => prev.includes(String(f.id)) ? prev.filter(mid => mid !== String(f.id)) : [...prev, String(f.id)]);
+                        setGroupError(null);
                       }}
+                      disabled={isSubmittingGroup}
                       className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${
                         selectedMemberIds.includes(String(f.id)) ? 'bg-stone-900 text-white shadow-lg' : 'bg-white text-stone-500 border hover:border-stone-300'
-                      }`}
+                      } ${isSubmittingGroup ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       <img src={f.avatar} alt={`${f.name || 'Member'} avatar`} className="w-4 h-4 rounded-full" />
                       {f.name}
@@ -342,12 +368,23 @@ export const ChatView = ({
                 </div>
               </div>
             </div>
+            {groupError && (
+              <div className="flex items-center gap-2 px-4 py-3 bg-red-50 text-red-600 rounded-xl text-[11px] font-bold uppercase tracking-widest border border-red-100">
+                <AlertCircle size={14} />
+                {groupError}
+              </div>
+            )}
             <button
               onClick={createGroup}
-              disabled={!newGroupName.trim() || selectedMemberIds.length === 0}
-              className="w-full py-4 bg-yellow-400 text-stone-900 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
+              disabled={!newGroupName.trim() || selectedMemberIds.length === 0 || isSubmittingGroup}
+              className="w-full py-4 bg-yellow-400 text-stone-900 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2"
             >
-              Create Studio Group
+              {isSubmittingGroup ? (
+                <>
+                  <Clock size={16} className="animate-spin" />
+                  Creating...
+                </>
+              ) : 'Create Studio Group'}
             </button>
           </div>
         )}
