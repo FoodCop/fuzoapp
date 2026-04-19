@@ -39,7 +39,7 @@ export const NotificationsView = ({ isOpen, onClose, friends, onOpenChat }: Noti
           description: isRequest 
             ? `${f.name} wants to join your Culinary Crew.`
             : `You have ${f.unreadCount} unread message${(f.unreadCount ?? 0) > 1 ? 's' : ''} from ${f.name}.`,
-          time: f.time || 'now',
+          time: ('time' in f ? f.time : f.lastMessageAt) || 'now',
           unread: true,
           originalType: f.type || 'dm'
         };
