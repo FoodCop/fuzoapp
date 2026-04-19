@@ -1,7 +1,26 @@
+/**
+ * ============================================================================
+ * APPLICATION NAVIGATION REGISTRY — UX Orchestration
+ * ============================================================================
+ * 
+ * This module defines the architectural navigation structure of the platform.
+ * It maps view IDs to their respective icons and labels, ensuring consistency 
+ * between the Mobile 'Bottom Nav' and the Sidebar 'Drawer Nav'.
+ */
+
 import { Bell, Bot, Camera, ChefHat, Gift, LayoutGrid, MapPin, MessageSquare, PlayCircle, Settings, Trophy, User } from 'lucide-react';
 
+/**
+ * SECTION: Global Tab Definitions
+ * The definitive list of all top-level entry points for the React orchestrator.
+ */
 export const TAB_IDS = ['feed', 'bites', 'trims', 'chef', 'chat', 'scout', 'profile', 'user-profile', 'leaderboard', 'rewards', 'settings', 'notifications'] as const;
 
+/**
+ * SECTION: Primary Bottom Navigation
+ * Logic: These features constitute the "Core Loop" of the application and 
+ * are accessible from any screen via the primary navigation bar.
+ */
 export const BOTTOM_NAV_ITEMS = [
   { id: 'feed', icon: LayoutGrid, label: 'Feed' },
   { id: 'bites', icon: ChefHat, label: 'Bites' },
@@ -10,6 +29,11 @@ export const BOTTOM_NAV_ITEMS = [
   { id: 'scout', icon: MapPin, label: 'Scout' },
 ] as const;
 
+/**
+ * SECTION: Secondary Drawer Navigation
+ * Logic: Deeper features, social interactions, and configuration settings 
+ * typically accessed via the profile or hamburger menu.
+ */
 export const DRAWER_NAV_ITEMS = [
   { id: 'profile', icon: User, label: 'Profile' },
   { id: 'leaderboard', icon: Trophy, label: 'Leaderboard' },
@@ -20,6 +44,11 @@ export const DRAWER_NAV_ITEMS = [
   { id: 'settings', icon: Settings, label: 'Settings' },
 ] as const;
 
+/**
+ * SECTION: Routing Helpers
+ * Logic: Resolves the initial app view based on the URL search parameters 
+ * (e.g., ?view=chat). Provides fallback to 'feed' if invalid.
+ */
 export const resolveInitialTab = (search: string, allowedTabs: ReadonlySet<string>) => {
   const view = new URLSearchParams(search).get('view') || '';
   if (view === 'home') {

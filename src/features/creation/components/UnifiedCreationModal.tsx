@@ -1,4 +1,20 @@
-﻿import React from 'react';
+/**
+ * ============================================================================
+ * UNIFIED CREATION MODAL — Studio Entry Point
+ * ============================================================================
+ * 
+ * This component acts as the high-fidelity gateway for all user-generated 
+ * content flows. It allows users to choose between manual 'Snaps' or 
+ * AI-assisted 'Bites' and 'Trims' studios.
+ * 
+ * Core Capabilities:
+ * 1. Studio Selection: Visual cards for navigating into different creation modes.
+ * 2. Visual Polish: Uses Framer Motion for cinematic backdrop blurs and entry 
+ *    animations.
+ * 3. Branding: Displays the "Powered by Gemini" neural intelligence layer.
+ */
+
+import React from 'react';
 import { 
   Camera, ChefHat, PlayCircle, X, 
   Sparkles, Zap, ArrowRight 
@@ -12,6 +28,10 @@ interface UnifiedCreationModalProps {
 }
 
 export const UnifiedCreationModal = ({ isOpen, onClose, onSelectOption }: UnifiedCreationModalProps) => {
+  /**
+   * SECTION: Studio Registry
+   * Definition of the available creation 'transmissions'.
+   */
   const options = [
     {
       id: 'snap',
@@ -45,6 +65,7 @@ export const UnifiedCreationModal = ({ isOpen, onClose, onSelectOption }: Unifie
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center p-6">
+          {/* SECTION: Backdrop Layer */}
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -53,6 +74,7 @@ export const UnifiedCreationModal = ({ isOpen, onClose, onSelectOption }: Unifie
             className="absolute inset-0 bg-stone-950/80 backdrop-blur-xl"
           />
 
+          {/* SECTION: Modal Container */}
           <motion.div 
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -73,6 +95,7 @@ export const UnifiedCreationModal = ({ isOpen, onClose, onSelectOption }: Unifie
                 </button>
               </div>
 
+              {/* SECTION: Feature Grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {options.map((option) => (
                   <button
@@ -110,6 +133,7 @@ export const UnifiedCreationModal = ({ isOpen, onClose, onSelectOption }: Unifie
               </div>
             </div>
 
+            {/* SECTION: Branding & Footer */}
             <div className="p-8 bg-stone-50 border-t border-stone-100 flex items-center justify-center gap-6">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center text-yellow-500 shadow-sm border border-stone-100">

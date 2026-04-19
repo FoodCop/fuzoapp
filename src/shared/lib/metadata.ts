@@ -1,3 +1,18 @@
+/**
+ * ============================================================================
+ * METADATA EXTRACTION HELPERS — Content Normalization
+ * ============================================================================
+ * 
+ * This module provides a set of defensive utility functions for extracting 
+ * structured data from heterogeneous AI responses and loose object records. 
+ * It ensures that the UI receives clean, type-safe values regardless of 
+ * the source metadata's volatility.
+ */
+
+/**
+ * SECTION: Extraction Logic
+ * Defensive wrappers for various data types found in UGC or AI metadata.
+ */
 export const getMetadataRecord = (value: unknown): Record<string, unknown> | undefined => {
   return value && typeof value === 'object' ? (value as Record<string, unknown>) : undefined;
 };
@@ -36,6 +51,10 @@ export const getMetadataNumber = (metadata: Record<string, unknown> | undefined,
   return undefined;
 };
 
+/**
+ * SECTION: Specialized Parsers
+ * Logic for extracting domain-specific entities (e.g., Calories, Macronutrients).
+ */
 export const getNutritionRecord = (...sources: Array<Record<string, unknown> | undefined>) => {
   for (const source of sources) {
     if (!source) {

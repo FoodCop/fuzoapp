@@ -1,7 +1,24 @@
+/**
+ * ============================================================================
+ * SCOUT PERSISTENCE SERVICE — Geospatial Knowledge Synchronization
+ * ============================================================================
+ * 
+ * This service manages the lifecycle of a 'Scout Discovery' (Map Pin). 
+ * It ensures that a single user action (creating a pin) is broadcasted 
+ * across the platform's social and knowledge layers.
+ * 
+ * Core Capabilities:
+ * 1. Social Broadcast: Creates a public discovery post (`posts` table).
+ * 2. Map Dataset Update: populates the collaborative `fuzo_locations` table.
+ * 3. Personal Sync: Saves the discovery to the user's private Plate collection.
+ */
+
 import { supabase, hasSupabaseConfig } from '../../../services/supabaseClient';
 import { PlateService } from '../../../services/plateService';
-import { ScoutPlace } from '../types/scoutUi';
 
+/**
+ * SECTION: Domain Data Structures
+ */
 export interface ScoutFindData {
   name: string;
   category: string;
@@ -15,6 +32,10 @@ export interface ScoutFindData {
   rating?: number;
 }
 
+/**
+ * SECTION: Multi-Channel Record Orchestrator
+ * The primary entry point for saving a new location discovery from the Scout Map.
+ */
 export const ScoutPersistence = {
   async saveScoutFind(userId: string, find: ScoutFindData) {
     if (!hasSupabaseConfig || !supabase) {
@@ -22,7 +43,8 @@ export const ScoutPersistence = {
     }
 
     try {
-      // 1. Create a Post for the Feed
+      // 1. CHANNEL A: Public Feed Post
+      // Logic: Creates a social engagement point so other users can see the discovery.
       const contentParts = [`New Discovery: ${find.name}`, find.category];
       if (find.notes) contentParts.push(find.notes);
       
@@ -41,7 +63,8 @@ export const ScoutPersistence = {
         console.warn('Scout find post persistence skipped:', postError.message);
       }
 
-      // 2. Add to Fuzo Map Dataset (Global)
+      // 2. CHANNEL B: Fuzo Map Dataset (Global Knowledge Base)
+      // Logic: Powers the interactive map for all users (geospatial search).
       const { error: datasetError } = await supabase.from('fuzo_locations').insert({
         user_id: userId,
         source_post_id: createdPost?.id || null,
@@ -62,7 +85,8 @@ export const ScoutPersistence = {
         console.warn('Scout find global dataset persistence failed:', datasetError.message);
       }
 
-      // 3. Save to personal Plate (Collection)
+      // 3. CHANNEL C: Personal Plate Sync (Private Collection)
+      // Logic: Adds the location to the user's private "Saved" plate list.
       const metadata = {
         name: find.name,
         cat: find.category,
@@ -78,7 +102,7 @@ export const ScoutPersistence = {
 
       const plateResult = await PlateService.saveToPlate({
         itemId: `pin-${Date.now()}`,
-        itemType: 'restaurant', // Using restaurant as primary place type
+        itemType: 'restaurant', 
         metadata,
       });
 

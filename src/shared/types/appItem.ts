@@ -1,3 +1,23 @@
+/**
+ * ============================================================================
+ * SHARED DOMAIN ENTITY MODEL — The "God Interface"
+ * ============================================================================
+ * 
+ * This model defines the universal data structure for all content within 
+ * FUZO V2. It is designed to be polymorphic, supporting manual Snaps, 
+ * AI-generated Recipes, and Google Places data.
+ * 
+ * Core Design Pattern:
+ * 1. Flattened Properties: Many fields are aliased (e.g., 'title' vs 'name') 
+ *     to support diverse upstream API formats (Gemini, Spoonacular, Maps).
+ * 2. Polymorphic Identity: The 'itemType' determines which UI card 
+ *     implementation is used for rendering.
+ */
+
+/**
+ * SECTION: Specialized Sub-models
+ * Granular structures for complex culinary metadata.
+ */
 type AppItemNutrition = {
 	calories?: number;
 	protein?: number;
@@ -18,18 +38,26 @@ type AppItemUserReview = {
 	text: string;
 };
 
+/**
+ * SECTION: Primary AppItem Interface
+ */
 export interface AppItem {
+	// --- Identity & Type ---
 	id?: string;
-	itemType?: string;
+	itemType?: string; // e.g., 'recipe', 'spot', 'hack'
 	itemId?: string;
 	type?: string;
+
+	// --- Visuals & Branding ---
 	name?: string;
 	title?: string;
-	cat?: string;
+	cat?: string; // Category/Cuisine
 	img?: string;
 	image?: string;
 	imageUrl?: string;
 	thumbnailUrl?: string;
+
+	// --- Authorship & Social ---
 	author?: string;
 	authorAvatar?: string;
 	authorUserId?: string;
@@ -40,6 +68,8 @@ export interface AppItem {
 	brandName?: string;
 	headline?: string;
 	question?: string;
+
+	// --- Geospatial & Location Context ---
 	placeId?: string;
 	lat?: number;
 	lng?: number;
@@ -50,9 +80,13 @@ export interface AppItem {
 	website?: string;
 	vibe?: string[];
 	photos?: string[];
+
+	// --- Deep Culinary Context ---
 	timings?: AppItemTimingMap;
 	menu?: AppItemMenuSection[];
 	userReviews?: AppItemUserReview[];
 	nutrition?: AppItemNutrition;
+
+	// --- Raw Pipeline Metadata ---
 	metadata?: Record<string, unknown>;
 }

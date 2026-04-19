@@ -1,8 +1,23 @@
 /**
- * Global Taxonomy for FUZO V2
- * Ensures database alignment and clean cataloging of UGC.
+ * ============================================================================
+ * SHARED CULINARY ONTOLOGY — Global Taxonomy
+ * ============================================================================
+ * 
+ * This module defines the strict hierarchical tagging system used across 
+ * FUZO V2. It ensures that user-generated content (UGC), AI-generated 
+ * recipes, and Google Places data are all mapped to a unified set of 
+ * Cuisines, Diets, and Vibes.
+ * 
+ * Core Responsibilities:
+ * 1. Schema Definition: Hard-coded constants for database-aligned tags.
+ * 2. Normalization: Logic to strip suffixes and map synonyms (e.g., 'Tacos' -> 'Mexican').
+ * 3. AI Bridge: Keyword mapping to help Gemini map free-text to taxonomy.
  */
 
+/**
+ * SECTION: Domain Categories & Enumerations
+ * Strict constants representing the platform's primary filterable entities.
+ */
 export const UGC_CUISINES = [
   'Italian', 'Mexican', 'Chinese', 'Japanese', 'Indian', 
   'Thai', 'French', 'Greek', 'Mediterranean', 'American', 
@@ -43,8 +58,9 @@ export type UgcPriceRange = typeof UGC_PRICE_RANGES[number];
 export type UgcCategory = typeof UGC_CATEGORIES[number];
 
 /**
- * Keyword Mapping for Hybrid Tagging
- * Maps common description keywords to strict taxonomy tags.
+ * SECTION: Hybrid Tagging Mapping
+ * Logic: Maps common descriptive keywords (often found in AI descriptions 
+ * or Place reviews) to strict taxonomy tags.
  */
 export const TAXONOMY_KEYWORD_MAP: Record<string, string> = {
   'vegan': 'Vegan',
@@ -76,15 +92,18 @@ export const TAXONOMY_KEYWORD_MAP: Record<string, string> = {
 };
 
 /**
- * Normalization Engine
- * Strips redundant suffixes and maps synonyms to core taxonomy.
+ * SECTION: Normalization Engine
+ * Logic: 
+ * 1. Strips redundant suffixes (e.g., "Italian Cuisine" -> "Italian").
+ * 2. Maps synonyms and specific dishes to parent categories.
+ * 3. Enforces Title Case for consistency.
  */
 export const normalizeTag = (tag: string): string => {
   if (!tag) return '';
   
   let normalized = tag.trim();
   
-  // 1. Remove common suffixes like "Cuisine", "Food", "Cooking", "Style"
+  // 1. Remove common suffixes
   const suffixes = [/ cuisine$/i, / food$/i, / cooking$/i, / style$/i, / dishes$/i];
   suffixes.forEach(pattern => {
     normalized = normalized.replace(pattern, '');
@@ -95,7 +114,7 @@ export const normalizeTag = (tag: string): string => {
     normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase();
   }
 
-  // 3. Synonym Mapping
+  // 3. Synonym/Heuristic Mapping
   const synonymMap: Record<string, string> = {
     'Chinatown': 'Chinese',
     'Cantonese': 'Chinese',

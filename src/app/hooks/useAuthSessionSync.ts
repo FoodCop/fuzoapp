@@ -1,7 +1,28 @@
+/**
+ * ============================================================================
+ * AUTH SESSION ORCHESTRATION HOOK — Identity Management
+ * ============================================================================
+ * 
+ * This hook acts as the primary bridge between the Supabase Authentication 
+ * engine and the React UI state. It ensures that the user's session is 
+ * synchronized across tabs and browser refreshes.
+ * 
+ * Core Capabilities:
+ * 1. Session Bootstrapping: Checks for existing local storage sessions on mount.
+ * 2. Real-time Sync: Subscribes to auth state changes (SignIn, SignOut, Refresh).
+ * 3. Onboarding Guard: Derives the user's onboarding completion status 
+ *    directly from OAuth metadata.
+ */
+
 import { useEffect } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import type { AuthUser } from '../../features/auth/types/auth';
 
+/**
+ * SECTION: Identity Normalization
+ * Logic: Checks if the user has finalized their culinary profile.
+ * Supports legacy and V2 metadata keys for maximum compatibility.
+ */
 const isOnboardingCompleted = (user: AuthUser | null | undefined): boolean => {
   const metadata = user?.user_metadata;
   if (!metadata || typeof metadata !== 'object') {
@@ -14,6 +35,10 @@ const isOnboardingCompleted = (user: AuthUser | null | undefined): boolean => {
   );
 };
 
+/**
+ * SECTION: Synchronization Logic
+ * Orchestrates the auth sequence: Bootstrap -> Subscription -> Cleanup.
+ */
 export const useAuthSessionSync = ({
   setAuthBooting,
   setIsAuthenticated,
@@ -35,6 +60,7 @@ export const useAuthSessionSync = ({
 
     let active = true;
 
+    // 1. Bootstrap: Fetch the current session from local storage asynchronously
     supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
       const hasSession = !!data.session;
@@ -46,6 +72,7 @@ export const useAuthSessionSync = ({
       setAuthBooting(false);
     });
 
+    // 2. Real-time Subscription: Listen for changes across other tabs or auth actions
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -57,6 +84,7 @@ export const useAuthSessionSync = ({
       setShowAuth(hasSession && !completedOnboarding);
     });
 
+    // 3. Cleanup: Unsubscribe to prevent memory leaks and redundant state updates
     return () => {
       active = false;
       subscription.unsubscribe();

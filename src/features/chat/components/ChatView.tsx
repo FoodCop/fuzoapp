@@ -7,7 +7,7 @@
  * 1. ChatService Integration: Real-time Supabase synchronization.
  * 2. Inbox Orchestrator: Dynamic filtering and status management.
  * 3. Messaging Engine: Supports text and rich Studio item shares.
- * 4. Group Logic: Dynamic group creation and member synchronization.
+ * 4. Group Logic: Dynamic group creation and member synchronization (Realtime).
  */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';

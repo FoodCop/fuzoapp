@@ -1,5 +1,24 @@
+/**
+ * ============================================================================
+ * EXTERNAL RECIPE SERVICE — Spoonacular Proxy Orchestration
+ * ============================================================================
+ * 
+ * This service provides a typed interface to the Spoonacular API, routed 
+ * through a localized Supabase Edge Function (`make-server-...`) to keep 
+ * API keys secure.
+ * 
+ * Core Capabilities:
+ * 1. Semantic Search: Complex filtering by diet, cuisine, and ready time.
+ * 2. Recipe Intel: Fetches detailed macros, ingredients, and instructions.
+ * 3. Discovery AI: Generates similar and random recipes to populate the 
+ *    Discovery Feed when local content is low.
+ */
+
 import axios from 'axios';
 
+/**
+ * SECTION: Environment Sanitization Utilities
+ */
 const cleanEnv = (value: string | undefined) => {
   if (!value) {
     return '';
@@ -13,9 +32,12 @@ const cleanEnv = (value: string | undefined) => {
 const SUPABASE_URL = cleanEnv(import.meta.env.VITE_SUPABASE_URL);
 const SUPABASE_ANON_KEY = cleanEnv(import.meta.env.VITE_SUPABASE_ANON_KEY);
 
-// Match main app endpoint strategy
+// Match main app endpoint strategy (Proxied through Edge Function)
 const SPOONACULAR_PROXY_URL = `${SUPABASE_URL}/functions/v1/make-server-5976446e`;
 
+/**
+ * SECTION: Domain Parameter Types
+ */
 interface SearchRecipesParams {
   query?: string;
   diet?: string;
@@ -27,6 +49,10 @@ interface SearchRecipesParams {
 }
 
 export const SpoonacularService = {
+  /**
+   * SECTION: Recipe Discovery Methods
+   * Core methods for populating the Feed and Search results.
+   */
   async searchRecipes(params: SearchRecipesParams) {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       return { success: false, error: 'Supabase env vars missing: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY' };
@@ -67,6 +93,10 @@ export const SpoonacularService = {
     }
   },
 
+  /**
+   * SECTION: Recipe Metadata Retrieval
+   * Fetches the granular details (Nutrition, Ingredients) for a specific recipe.
+   */
   async getRecipeInformation(id: number, includeNutrition = true) {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       return { success: false, error: 'Supabase env vars missing: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY' };

@@ -1,5 +1,26 @@
+/**
+ * ============================================================================
+ * NEURAL SYNTHESIS SERVICE — Gemini AI Orchestration
+ * ============================================================================
+ * 
+ * This service acts as the primary gateway to the Google Gemini Pro Vision 
+ * and Gemini Flash models. It orchestrates complex multimodal prompts 
+ * (Image + Text) for the Snap, Bite, and Trim studios.
+ * 
+ * Core Capabilities:
+ * 1. Hybrid Proxying: Attempts local Vite-based proxying first, falling back 
+ *    to Supabase Edge Functions for production availability.
+ * 2. Vision Intelligence: Specialized methods for analyzing culinary snaps 
+ *    and video trimming.
+ * 3. Robust Extraction: Advanced regex and recursive parsing to handle 
+ *    malformed AI JSON structures.
+ */
+
 import { hasSupabaseConfig, supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from './supabaseClient';
 
+/**
+ * SECTION: Global Constants & Proxies
+ */
 const LOCAL_PROXY_URL = '/api/local-gemini';
 const EDGE_PROXY_URL = SUPABASE_URL ? `${SUPABASE_URL}/functions/v1/gemini-proxy` : '';
 
@@ -34,6 +55,9 @@ export interface GeminiGenerateRequest {
   config?: GeminiGenerationConfig;
 }
 
+/**
+ * SECTION: Domain Entities & Config Types
+ */
 interface GeminiServiceResult {
   success: boolean;
   data?: {
@@ -43,6 +67,11 @@ interface GeminiServiceResult {
   error?: string;
 }
 
+/**
+ * SECTION: Response Extraction & Normalization
+ * Logic for extracting the valid 'text' completion from the deeply nested 
+ * Gemini response payload. Handles multiple vendor response formats.
+ */
 const normalizeContents = (contents: GeminiGenerateRequest['contents']) => {
   if (typeof contents === 'string') {
     return [{ role: 'user', parts: [{ text: contents }] }];
@@ -97,6 +126,13 @@ const extractGeminiText = (payload: unknown): string => {
   return '';
 };
 
+/**
+ * SECTION: Request Orchestration
+ * Manages the HTTP handshake with the Gemini proxy. 
+ * Logic:
+ * - Injects Supabase Auth JWT if using the Edge Function.
+ * - Parses results and handles 404/500 proxy errors gracefully.
+ */
 const requestProxy = async (url: string, body: Record<string, unknown>, useSupabaseAuth: boolean): Promise<GeminiServiceResult> => {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -149,6 +185,10 @@ const requestProxy = async (url: string, body: Record<string, unknown>, useSupab
 };
 
 export const GeminiService = {
+  /**
+   * SUB-SECTION: Core Generate Method
+   * The underlying driver for all AI requests. Implements local -> edge fallback.
+   */
   async generateContent(request: GeminiGenerateRequest): Promise<GeminiServiceResult> {
     const payload = {
       model: request.model || 'gemini-flash-latest',
@@ -183,6 +223,10 @@ export const GeminiService = {
     }
   },
 
+  /**
+   * SECTION: Task-Specific Neural Methods
+   * Custom prompts and constraints for different App features.
+   */
   async analyzeSnap(imageUrl: string, userDescription?: string): Promise<string> {
     const prompt = `
       Analyze this culinary snap. 
@@ -301,6 +345,9 @@ export const GeminiService = {
     return result.data?.text || '{}';
   },
 
+  /**
+   * SECTION: Service Health Monitoring
+   */
   async health() {
     const healthUrls = [LOCAL_PROXY_URL, `${LOCAL_PROXY_URL}/health`];
 

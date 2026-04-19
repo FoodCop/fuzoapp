@@ -1,6 +1,26 @@
+/**
+ * ============================================================================
+ * PERSONAL PLATE SERVICE — Collection Synchronization
+ * ============================================================================
+ * 
+ * This service manages the user's private 'Plate' (Personal Collection).
+ * It enables users to save recipes, snaps, and restaurant pins into a 
+ * synchronized, cross-device personal list.
+ * 
+ * Core Capabilities:
+ * 1. Unified Persistence: Saves diverse item types (Recipe, Photo, Restaurant) 
+ *    under a single schema.
+ * 2. Idempotent Writes: Uses the IdempotencyService to prevent duplicate 
+ *    entries during network retries.
+ * 3. Tenant Isolation: Multi-tenant safety using `tenant_id` scoping.
+ */
+
 import { supabase } from './supabaseClient';
 import { IdempotencyService } from './idempotencyService';
 
+/**
+ * SECTION: Domain Entities & Types
+ */
 const APP_TENANT_ID = '00000000-0000-4000-8000-000000000001';
 
 export type PlateItemType = 'restaurant' | 'recipe' | 'photo' | 'video' | 'other';
@@ -34,6 +54,10 @@ interface PlateServiceResult<T> {
 }
 
 export const PlateService = {
+  /**
+   * SECTION: Data Retrieval Logic
+   * Fetches the user's personal collection from the `saved_items` table.
+   */
   async listSavedItems(): Promise<PlateServiceResult<SavedPlateItem[]>> {
     const client = supabase;
     if (!client) {
@@ -89,6 +113,13 @@ export const PlateService = {
     };
   },
 
+  /**
+   * SECTION: Persistence Orchestrator
+   * Saves an item to the plate with strict idempotency checks.
+   * Logic:
+   * - Uses `IdempotencyService` to track and lock the write operation.
+   * - Performs a Postgres `upsert` on the unique conflict of (tenant, user, type, id).
+   */
   async saveToPlate(params: SavePlateParams): Promise<PlateServiceResult<SavedPlateItem>> {
     const client = supabase;
     if (!client) {
@@ -146,6 +177,10 @@ export const PlateService = {
     }
   },
 
+  /**
+   * SECTION: Cleanup Logic
+   * Removes a specific item from the user's personal collection.
+   */
   async removeFromPlate(params: RemovePlateParams): Promise<PlateServiceResult<null>> {
     const client = supabase;
     if (!client) {

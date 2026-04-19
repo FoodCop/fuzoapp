@@ -1,5 +1,24 @@
+/**
+ * ============================================================================
+ * GAMIFICATION & POINTS SERVICE — Platform Incentives
+ * ============================================================================
+ * 
+ * This service manages the user incentive layer, rewarding culinary social 
+ * actions (posting, saving, sharing) with points and experience levels. 
+ * It also orchestrates the global and friend-based leaderboards.
+ * 
+ * Core Design Pattern:
+ * 1. Double-Entry Safety: Points are awarded via Supabase RPC functions 
+ *    to ensure atomic updates and prevent client-side manipulation.
+ * 2. Multi-channel Leaderboards: Supports Global, Regional (City), and 
+ *    Social (Friends) ranking views.
+ */
+
 import { supabase } from '../../../services/supabaseClient';
 
+/**
+ * SECTION: Domain Entities & Types
+ */
 export type PointsActionType = 'save_item' | 'share_item' | 'snap_post';
 
 export interface LeaderboardEntry {
@@ -10,7 +29,6 @@ export interface LeaderboardEntry {
   pointsLevel: number;
   avatarUrl: string | null;
 }
-
 
 interface PointsSummary {
   total: number;
@@ -36,6 +54,11 @@ type AwardRpcRow = {
 };
 
 export const PointsService = {
+  /**
+   * SECTION: Leaderboard Orchestration
+   * Logic: Fetches users ranked by points. Supports diverse filtering 
+   * (Global vs. Friends vs. Regional).
+   */
   async getLeaderboard(limit = 50): Promise<PointsServiceResult<LeaderboardEntry[]>> {
     if (!supabase) {
       return { success: false, error: 'Supabase is not configured' };
@@ -44,7 +67,6 @@ export const PointsService = {
     const { data, error } = await supabase
       .from('users')
       .select('id, display_name, username, points_total, points_level, avatar_url')
-
       .order('points_total', { ascending: false })
       .order('points_level', { ascending: false })
       .limit(limit);
@@ -73,7 +95,6 @@ export const PointsService = {
         avatarUrl: row.avatar_url,
       })),
     };
-
   },
 
   async getFilteredLeaderboard(params: {
@@ -91,7 +112,6 @@ export const PointsService = {
     let query = supabase
       .from('users')
       .select('id, display_name, username, points_total, points_level, avatar_url')
-
       .order('points_total', { ascending: false })
       .order('points_level', { ascending: false })
       .limit(limit);
@@ -101,7 +121,6 @@ export const PointsService = {
     } else if (filter === 'local' && city) {
       query = query.ilike('location_city', `%${city}%`);
     } else if (filter === 'friends' && (!userIds || userIds.length === 0)) {
-      // Return empty if no friends passed for friend filter
       return { success: true, data: [] };
     }
 
@@ -131,9 +150,12 @@ export const PointsService = {
         avatarUrl: row.avatar_url,
       })),
     };
-
   },
 
+  /**
+   * SECTION: Identity Points Retrieval
+   * Fetches the specific points/level for a given authenticated user.
+   */
   async getCurrentUserPoints(): Promise<PointsServiceResult<PointsSummary>> {
     if (!supabase) {
       return { success: false, error: 'Supabase is not configured' };
@@ -168,6 +190,12 @@ export const PointsService = {
     };
   },
 
+  /**
+   * SECTION: Point Awarding Logic (RPC)
+   * Broadcasts a social action to the Supabase backend for point calculation.
+   * Logic: Relies on the database 'award_user_points' function to handle 
+   * duplicate prevention and leveling up thresholds.
+   */
   async awardActionPoints(params: {
     actionType: PointsActionType;
     sourceEntityType?: string;
@@ -205,12 +233,14 @@ export const PointsService = {
     };
   },
 
+  /**
+   * SECTION: Ranking & Competitive Analytics
+   */
   async getUserRank(userId: string): Promise<PointsServiceResult<number>> {
     if (!supabase) {
       return { success: false, error: 'Supabase is not configured' };
     }
 
-    // 1. Get user's current points
     const { data: userStats, error: statsError } = await supabase
       .from('users')
       .select('points_total')
@@ -223,7 +253,6 @@ export const PointsService = {
 
     const currentPoints = userStats?.points_total ?? 0;
 
-    // 2. Count users with more points
     const { count, error: countError } = await supabase
       .from('users')
       .select('*', { count: 'exact', head: true })

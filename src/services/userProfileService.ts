@@ -1,5 +1,23 @@
+/**
+ * ============================================================================
+ * USER PROFILE SERVICE — Identity Synchronization
+ * ============================================================================
+ * 
+ * This service ensures that user metadata from the Supabase Auth layer is 
+ * mirrored and normalized into the public `users` database table.
+ * 
+ * Core Capabilities:
+ * 1. Metadata Normalization: Maps fragmented OAuth metadata (Google, etc.) 
+ *    into a unified structure.
+ * 2. Identity Derivation: Generates fallback usernames from emails if missing.
+ * 3. Atomic Upserts: Idempotent synchronization of the user profile record.
+ */
+
 import { supabase } from './supabaseClient';
 
+/**
+ * SECTION: Domain Types & Interfaces
+ */
 type AuthLikeUser = {
   id?: string;
   email?: string;
@@ -11,6 +29,11 @@ interface UserProfileServiceResult {
   error?: string;
 }
 
+/**
+ * SECTION: Identity Derivation Utilities
+ * Provides sanitization for display names and handles the logic for 
+ * generating predictable, searchable usernames from email strings.
+ */
 const toSafeString = (value: unknown): string | null => {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
@@ -24,6 +47,11 @@ const deriveUsername = (email: string | undefined): string | null => {
   return cleaned.length > 0 ? cleaned.slice(0, 32) : null;
 };
 
+/**
+ * SECTION: Profile Upsert Orchestrator
+ * The primary entry point for ensuring a record exists in the public schema 
+ * after a successful login or metabolic change.
+ */
 export const UserProfileService = {
   async ensureCurrentUserProfile(authUser: AuthLikeUser | null): Promise<UserProfileServiceResult> {
     if (!authUser?.id) {
@@ -34,6 +62,7 @@ export const UserProfileService = {
       return { success: false, error: 'Supabase is not configured' };
     }
 
+    // 1. Map prioritized metadata fields
     const metadata = authUser.user_metadata || {};
     const displayName =
       toSafeString(metadata.full_name)
@@ -43,6 +72,7 @@ export const UserProfileService = {
 
     const username = toSafeString(metadata.username) || deriveUsername(authUser.email);
 
+    // 2. Perform Idempotent Upsert
     const { error } = await supabase
       .from('users')
       .upsert({

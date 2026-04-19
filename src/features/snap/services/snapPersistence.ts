@@ -1,7 +1,29 @@
+/**
+ * ============================================================================
+ * SNAP PERSISTENCE SERVICE — Immersive Content Synchronization
+ * ============================================================================
+ * 
+ * This service manages the lifecycle of a 'Snap' (Culinary Capture) after it 
+ * completes the AI Studio wizard.
+ * 
+ * Core Capabilities:
+ * 1. Image Conversion: Handles Base64 -> Blob transformation for high-fidelity uploads.
+ * 2. Storage Orchestration: Manages uploads to the Supabase 'snaps' bucket.
+ * 3. Multi-Channel Persistence:
+ *    - Creates a Public Feed post (`posts` table).
+ *    - Populates the Collaborative Knowledge Base (`fuzo_locations` table).
+ *    - Synchronizes to the User's Personal Plate (via PlateService).
+ */
+
 import { PlateService } from '../../../services/plateService';
 import { hasSupabaseConfig, supabase } from '../../../services/supabaseClient';
 import { normalizeTag } from '../../../shared/utils/taxonomy';
 
+/**
+ * SECTION: Media Conversion Utilities
+ * Converts raw browser 'dataUrl' strings (captured from the Studio) into
+ * binary Blobs required for Supabase Storage uploads.
+ */
 const snapDataUrlToBlob = (dataUrl: string | undefined | null): Blob => {
   if (!dataUrl || typeof dataUrl !== 'string') {
     return new Blob([], { type: 'image/jpeg' });
@@ -20,6 +42,11 @@ const snapDataUrlToBlob = (dataUrl: string | undefined | null): Blob => {
   }
 };
 
+/**
+ * SECTION: Storage Orchestration
+ * Uploads processed media to the 'snaps' bucket and returns a persistent Public URL.
+ * Handles fallbacks to the local dataUrl if the network or storage bucket is disconnected.
+ */
 const uploadSnapImage = async (imageData: string): Promise<string> => {
   if (!hasSupabaseConfig || !supabase || !imageData || imageData.startsWith('http')) {
     return imageData;
@@ -52,8 +79,13 @@ const uploadSnapImage = async (imageData: string): Promise<string> => {
   }
 };
 
+/**
+ * SECTION: Unified Persistence Orchestrator
+ * The primary entry point called at the final step of the Snap Studio.
+ * It transforms raw AI Studio metadata into structured, searchable records across the platform.
+ */
 export const persistSnapData = async (item: any) => {
-  // Extract data from the Unified AppItem structure
+  // 1. Data Destructuring & Sanitization
   const snapId = item.itemId || item.id;
   const imageData = item.img || '';
   const snapData = item.metadata || {};
@@ -67,8 +99,10 @@ export const persistSnapData = async (item: any) => {
   const tags = snapData.tags || [];
   const location = snapData.location || null;
 
+  // 2. Asset Finalization
   const imageUrl = await uploadSnapImage(imageData);
 
+  // 3. Metadata Normalization (FUZO Standard Type)
   const metadata = {
     title: restaurant,
     name: restaurant,
@@ -87,6 +121,10 @@ export const persistSnapData = async (item: any) => {
     source: 'snap_feature',
   };
 
+  /**
+   * SUB-SECTION: External Database Sync
+   * Performs async writes to the public ecosystem if Supabase is connected.
+   */
   if (hasSupabaseConfig && supabase) {
     try {
       const { data: authData } = await supabase.auth.getUser();
@@ -94,7 +132,7 @@ export const persistSnapData = async (item: any) => {
       let sourcePostId: string | null = null;
 
       if (userId) {
-        // 1. Create a Public Feed Post
+        // A. Create a Public Feed Post (Atomic engagement point)
         const contentParts = [`${metadata.title} - ${metadata.cat}`];
         if (description) contentParts.push(description);
         if (rating > 0) contentParts.push(`Rating: ${'★'.repeat(rating)}${'☆'.repeat(5 - rating)}`);
@@ -106,7 +144,7 @@ export const persistSnapData = async (item: any) => {
           latitude: location?.lat ?? null,
           longitude: location?.lng ?? null,
           created_at: new Date().toISOString(),
-          metadata: metadata // Store full rich metadata in post
+          metadata: metadata 
         }).select('id').single();
 
         if (postInsertError) {
@@ -115,7 +153,7 @@ export const persistSnapData = async (item: any) => {
           sourcePostId = createdPost?.id || null;
         }
 
-        // 2. Add to FUZO Locations (Collaborative Knowledge Base)
+        // B. Update the Collaborative Knowledge Base (Geospatial lookup)
         const { error: datasetInsertError } = await supabase.from('fuzo_locations').insert({
           user_id: userId,
           source_snap_id: snapId,
@@ -139,7 +177,7 @@ export const persistSnapData = async (item: any) => {
       console.warn('SNAP posts persistence skipped:', error);
     }
 
-    // 3. Save to User's Personal Plate
+    // C. Plate Synchronization (Private User Collection)
     const plateResult = await PlateService.saveToPlate({
       itemId: snapId,
       itemType: 'photo',
@@ -151,6 +189,7 @@ export const persistSnapData = async (item: any) => {
     }
   }
 
+  // 4. Return Final Resolved Entity for UI State Update
   return {
     success: true,
     id: `post-${snapId}`,

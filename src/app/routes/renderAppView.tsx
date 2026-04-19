@@ -1,9 +1,31 @@
+/**
+ * ============================================================================
+ * VIEW ROUTING ENGINE — UI Orchestration
+ * ============================================================================
+ * 
+ * This module acts as the layout's dynamic 'switchboard'. It receives the 
+ * current active tab and injects the necessary global state (Auth, Points, 
+ * Nav, Saved Items) into the respective feature view.
+ * 
+ * Core Responsibilities:
+ * 1. View Selection: Maps TAB_IDS to their respective component implementations.
+ * 2. Prop Delegation: Normalizes diverse callback patterns (Save, Share, 
+ *    Identify) into a consistent interface for sub-components.
+ * 3. Default Fallback: Ensures the user always sees the 'Feed' if a view 
+ *    fails to resolve.
+ */
+
 import React from 'react';
 import type { AuthUser } from '../../features/auth/types/auth';
 import type { ChatFriend, ChatInboxItem } from '../../features/chat/types/chatUi';
 import type { LeaderboardEntry } from '../../features/points/services/pointsService';
 import type { AppItem } from '../../shared/types/appItem';
 
+/**
+ * SECTION: Component Registry Types
+ * Defines the contract that each top-level feature view must satisfy to 
+ * be rendered by the orchestrator.
+ */
 interface RenderComponents {
   FeedView: React.ComponentType<{ onSave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void; onOpenUserProfile: (userId: string) => void }>;
   BitesView: React.ComponentType<{ onSave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void }>;
@@ -36,6 +58,10 @@ interface RenderComponents {
   SettingsView: React.ComponentType<{ onSignOut: () => Promise<void>; authUser: AuthUser | null }>;
 }
 
+/**
+ * SECTION: View Selection Logic
+ * The main orchestrator function called from index.tsx.
+ */
 export const renderAppView = ({
   tab,
   setTab,
@@ -97,6 +123,7 @@ export const renderAppView = ({
     SettingsView,
   } = components;
 
+  // Logic: Map the ID from 'navItems.ts' to the physical component instance.
   switch (tab) {
     case 'feed':
       return <FeedView onSave={handleSave} onShareRequest={setActiveShareItem} onOpenUserProfile={handleOpenUserProfile} />;

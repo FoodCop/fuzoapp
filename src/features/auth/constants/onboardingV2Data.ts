@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * ONBOARDING V2 DATA SCHEMA & REGISTRY
+ * ============================================================================
+ * 
+ * This file defines the structural taxonomy for the multi-path onboarding system.
+ * It uses a 'Step' based architecture to allow for dynamic branching depending 
+ * on the user's selected identity (Individual vs. Professional).
+ */
+
+/**
+ * SECTION: Types & Definitions
+ * Base schemas for onboarding interaction steps (Choice, MultiChoice, Phone, etc.).
+ */
 export type OnboardingV2BaseStep = {
   id: string;
   title: string;
@@ -57,6 +71,10 @@ export type OnboardingV2Step =
   | OnboardingV2FormStep
   | OnboardingV2MediaStep;
 
+/**
+ * SECTION: Identity Registry
+ * The entry point for the branching logic.
+ */
 export const ONBOARDING_USER_TYPES = [
   { id: 'individual', label: 'Individual', icon: 'Utensils', desc: 'Personal food exploration & reviews' },
   { id: 'chef', label: 'Chef', icon: 'ChefHat', desc: 'Professional chefs & culinary artists' },
@@ -64,6 +82,10 @@ export const ONBOARDING_USER_TYPES = [
   { id: 'culinary_team', label: 'Culinary Team', icon: 'Users', desc: 'Cloud kitchens & home businesses' },
 ];
 
+/**
+ * SECTION: Individual Path (Visual Heritage)
+ * Consumer-focused questions for personal preference mapping.
+ */
 export const INDIVIDUAL_PATH: OnboardingV2Step[] = [
   {
     id: 'individual_role',
@@ -77,7 +99,7 @@ export const INDIVIDUAL_PATH: OnboardingV2Step[] = [
     type: 'multichoice',
     title: 'Flavor Profile',
     desc: 'What excites your palate? (Select all that apply)',
-    options: ['Sweet 🍬', 'Spicy 🌶', 'Tangy 🍋', 'Salty 🧂', 'Bitter 🍫', 'Umami 🍄'],
+    options: ['Sweet 🍬', 'Spicy 🌶', 'Tangy 🍋', 'Salty 🧂', 'Bitter 巧克力', 'Umami 🍄'],
   },
   {
     id: 'cuisines',
@@ -95,6 +117,10 @@ export const INDIVIDUAL_PATH: OnboardingV2Step[] = [
   },
 ];
 
+/**
+ * SECTION: Culinary DNA Quiz
+ * A personality-based mapping engine to assign user archetypes.
+ */
 export const FOOD_PERSONALITY_QUIZ: OnboardingV2QuizStep = {
   id: 'personality_quiz',
   type: 'quiz',
@@ -154,6 +180,10 @@ export const FOOD_PERSONALITY_QUIZ: OnboardingV2QuizStep = {
   ]
 };
 
+/**
+ * SECTION: Chef Path
+ * Professional identity and specialty mapping for culinary experts.
+ */
 export const CHEF_PATH: OnboardingV2Step[] = [
   {
     id: 'chef_type',
@@ -195,6 +225,10 @@ export const CHEF_PATH: OnboardingV2Step[] = [
   },
 ];
 
+/**
+ * SECTION: Restaurant Path
+ * Business identification and venue characterization.
+ */
 export const RESTAURANT_PATH: OnboardingV2Step[] = [
   {
     id: 'restaurant_identity',
@@ -230,6 +264,10 @@ export const RESTAURANT_PATH: OnboardingV2Step[] = [
   },
 ];
 
+/**
+ * SECTION: Culinary Team Path (Cloud Kitchens)
+ * B2B and logistics-focused onboarding for delivery-centric units.
+ */
 export const TEAM_PATH: OnboardingV2Step[] = [
   {
     id: 'team_type',
@@ -286,6 +324,10 @@ export const TEAM_PATH: OnboardingV2Step[] = [
   },
 ];
 
+/**
+ * SECTION: Master Registry
+ * Unified export for type-safe step validation.
+ */
 export const AUTH_ONBOARDING_V2_DATA: OnboardingV2Step[] = [
   ...INDIVIDUAL_PATH,
   ...CHEF_PATH,

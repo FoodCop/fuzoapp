@@ -4,6 +4,58 @@ This guide details the high-level orchestration, state management, and design sy
 
 ---
 
+## 🗺️ Macro Orchestration
+The FUZO V2 ecosystem follows a synchronized 4-layer stack designed for rapid ingestion and intelligent discovery.
+
+```mermaid
+graph LR
+    subgraph "Ingestion (Studios)"
+        A[Camera/Voice/YouTube] --> B{AI Studio}
+    end
+
+    subgraph "Neural Synthesis (Gemini)"
+        B --> C[Visual Vibe Extraction]
+        B --> D[Recipe Parsing]
+        B --> E[Utility Hacks Extraction]
+    end
+
+    subgraph "Persistence (Supabase)"
+        C & D & E --> F[Postgres / Metadata]
+        F --> G[Real-time Presence]
+    end
+
+    subgraph "Discovery (Feed)"
+        G --> H{Scoring Engine}
+        H --> I[Personalized Discovery Feed]
+    end
+
+    style A fill:#FACC15,stroke:#000,stroke-width:2px
+    style B fill:#000,color:#fff,stroke:#FACC15,stroke-width:2px
+    style I fill:#FACC15,stroke:#000,stroke-width:2px
+```
+
+## 🧪 Service Integrity: The Neural Lifecycle
+Every user-generated action travels through an idempotent neural pipeline to ensure data fidelity.
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant S as Studio wizard
+    participant G as Gemini AI
+    participant DB as Supabase DB
+    participant F as Discovery Feed
+
+    U->>S: Captures Media (Photo/Voice)
+    S->>G: Sends Payload (Base64/Prompt)
+    Note over G: High-fidelity reasoning...
+    G-->>S: Returns Structured JSON
+    S->>DB: Persists Item (Idempotent Guard)
+    DB-->>F: Broadcast via Realtime
+    F-->>U: Content appears in Feed (Low Latency)
+```
+
+---
+
 ## 🏗️ Root Orchestration
 The application is bootstraped via `index.tsx`, which serves as the central hub for state and routing.
 

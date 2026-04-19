@@ -1,6 +1,25 @@
+/**
+ * ============================================================================
+ * CHAT & REAL-TIME SERVICE — Social Connectivity Engine
+ * ============================================================================
+ * 
+ * This service orchestrates the multi-modal messaging system, supporting direct 
+ * messages, group chats, and real-time interactive presence.
+ * 
+ * Core Capabilities:
+ * 1. Real-time Messaging: Supabase Broadcast and Postgres Changes for sub-50ms latency.
+ * 2. Unified Content Sharing: Capability to share 'AppItems' (Recipes, Snaps) within chat.
+ * 3. Group Orchestration: Role-based group management and atomic message ordering.
+ * 4. Interactive Presence: Real-time 'Typing' status indicators.
+ */
+
 import { supabase } from '../../../services/supabaseClient';
 import type { AppItem } from '../../../shared/types/appItem';
 
+/**
+ * SECTION: Domain Entities & Interfaces
+ * Definitions for the core social primitives.
+ */
 type ChatSharedItem = AppItem;
 
 export interface ChatContact {
@@ -54,6 +73,10 @@ type SupabaseRealtimePayload = {
   new?: unknown;
 };
 
+/**
+ * SECTION: Row Mappers & Normalization
+ * Translates raw Postgres rows into typed, high-fidelity TypeScript objects.
+ */
 const asRecord = (value: unknown): Record<string, unknown> => {
   return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
 };
@@ -106,6 +129,10 @@ const toChatContact = (value: unknown): ChatContact => {
 };
 
 export const ChatService = {
+  /**
+   * SECTION: Contact Management
+   * Fetches the social graph excluding the current user and master bots.
+   */
   async listContacts(currentUserId: string): Promise<ChatResult<ChatContact[]>> {
     const client = supabase;
     if (!client) return { success: false, error: 'Supabase is not configured' };
@@ -144,6 +171,10 @@ export const ChatService = {
     return { success: true, data: contacts };
   },
 
+  /**
+   * SECTION: Direct Messaging Logic
+   * Manages DM 1:1 conversations and message persistence.
+   */
   async getOrCreateConversation(currentUserId: string, otherUserId: string): Promise<ChatResult<{ id: string }>> {
     const client = supabase;
     if (!client) return { success: false, error: 'Supabase is not configured' };
@@ -284,6 +315,10 @@ export const ChatService = {
     };
   },
 
+  /**
+   * SECTION: Real-time Subscription Engine
+   * Handles low-latency Postgres change notifications for incoming messages.
+   */
   subscribeToConversationMessages(conversationId: string, onMessage: (message: ChatMessage) => void) {
     const client = supabase;
     if (!client) {
@@ -354,6 +389,10 @@ export const ChatService = {
     };
   },
 
+  /**
+   * SECTION: Group Management Logic
+   * Orchestrates multi-participant groups, membership, and mass messaging.
+   */
   async listGroups(userId: string): Promise<ChatResult<ChatGroup[]>> {
     const client = supabase;
     if (!client) return { success: false, error: 'Supabase is not configured' };
@@ -529,6 +568,10 @@ export const ChatService = {
     };
   },
 
+  /**
+   * SECTION: Interactive Presence
+   * Broadcasts low-fidelity typing indicators and status updates.
+   */
   async sendTypingStatus(conversationId: string, userId: string, isTyping: boolean, isGroup = false) {
     const client = supabase;
     if (!client) return;

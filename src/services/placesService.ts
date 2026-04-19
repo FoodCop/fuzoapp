@@ -1,3 +1,22 @@
+/**
+ * ============================================================================
+ * GEOSPATIAL PLACES SERVICE — Map Intelligence & Discovery
+ * ============================================================================
+ * 
+ * This service provides a typed interface to Google Places and Directions APIs, 
+ * routed through a secure Supabase Edge Function to protect API credentials.
+ * 
+ * Core Capabilities:
+ * 1. Nearby Discovery: Fetches restaurants and culinary sites based on geolocation.
+ * 2. Semantic Search: Allows text-based location lookups with spatial constraints.
+ * 3. Routing Intelligence: Computes directions and searches for pins along a 
+ *    travel polyline.
+ * 4. Rich Meta Extraction: Fetches ratings, photos, and hours for map markers.
+ */
+
+/**
+ * SECTION: Configuration & Sanitization
+ */
 const cleanEnv = (value: string | undefined) => {
   if (!value) {
     return '';
@@ -12,6 +31,9 @@ const SUPABASE_URL = cleanEnv(import.meta.env.VITE_SUPABASE_URL);
 const SUPABASE_ANON_KEY = cleanEnv(import.meta.env.VITE_SUPABASE_ANON_KEY);
 const EDGE_URL = `${SUPABASE_URL}/functions/v1/make-server-5976446e`;
 
+/**
+ * SECTION: Domain Entities & Scout Types
+ */
 interface ServiceResult<T> {
   success: boolean;
   data?: T;
@@ -52,6 +74,10 @@ export interface ScoutPlace {
   };
 }
 
+/**
+ * SECTION: Request Orchestrator
+ * Performs the low-level HTTP handshake with the Edge Function proxy.
+ */
 async function makeRequest<T>(path: string, payload: unknown): Promise<ServiceResult<T>> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     return {
@@ -90,6 +116,10 @@ async function makeRequest<T>(path: string, payload: unknown): Promise<ServiceRe
 }
 
 export const PlacesService = {
+  /**
+   * SECTION: Local Discovery Methods
+   * Logic for finding culinary sites relative to the user's current or target map view.
+   */
   async searchNearby(latitude: number, longitude: number, radius = 5000): Promise<ServiceResult<{ results: ScoutPlace[]; status?: string; error_message?: string }>> {
     return makeRequest<{ results: ScoutPlace[]; status?: string; error_message?: string }>('/places/nearby', {
       latitude,
@@ -116,6 +146,10 @@ export const PlacesService = {
     });
   },
 
+  /**
+   * SECTION: Navigation & Intelligence
+   * Fetches pathing data and deep location metadata for UI overlays.
+   */
   async getDirections(origin: string, destination: string): Promise<ServiceResult<{ routes: any[]; status: string }>> {
     // Note: origin/destination can be place_id:ID or address string
     const payload = {

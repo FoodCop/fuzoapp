@@ -1,9 +1,33 @@
+/**
+ * ============================================================================
+ * AUTHENTICATION SERVICE — Supabase Bridge
+ * ============================================================================
+ * 
+ * This service orchestrates user identification via Supabase Auth.
+ * Core Responsibilities:
+ * 1. Social OAuth lifecycle (Google, Apple, Facebook).
+ * 2. Redirection and state logging for debugging deep-link auth flows.
+ * 3. Session cleanup (Sign out).
+ */
+
 import { supabase } from '../../../services/supabaseClient';
 import { getOAuthRedirectUrl, authDebugLog } from '../lib/oauthRedirect';
 
+/**
+ * AUTH ENTITIES
+ * Supported social identity providers.
+ */
 export type AuthProvider = 'google' | 'apple' | 'facebook';
 
 export const AuthService = {
+  /**
+   * SECTION: OAuth Lifecycle
+   * Initiates the handshake with third-party providers.
+   * Logic:
+   * - Resolves the dynamic redirect URL (Local vs Prod).
+   * - Injects 'offline' access for Google to support persistence.
+   * - Logs events for audit trails.
+   */
   async signInWithOAuth(provider: AuthProvider) {
     if (!supabase) {
       throw new Error('Supabase is not configured');
@@ -34,6 +58,10 @@ export const AuthService = {
     }
   },
 
+  /**
+   * SECTION: Session Management
+   * Terminates the active Supabase session and clears persistence keys.
+   */
   async signOut() {
     if (!supabase) return;
     const { error } = await supabase.auth.signOut();
