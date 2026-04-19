@@ -40,12 +40,14 @@ export const FeedService = {
         console.warn('[FeedService] No authenticated user found, attempting anonymous post');
       }
 
-      // Flatten metadata to prevent double-nesting in the database
-      const { metadata: nestedMetadata, ...topLevelFields } = item as any;
+      // Robust metadata flattening to ensure high-fidelity JSONB storage
+      const { metadata: existingMetadata, ...topLevelFields } = item as any;
       const cleanMetadata = {
         ...topLevelFields,
-        ...(typeof nestedMetadata === 'object' ? nestedMetadata : {})
+        ...(typeof existingMetadata === 'object' ? existingMetadata : {})
       };
+
+      console.log('[FeedService] Insertion payload:', { type: item.itemType || item.type || 'recipe', user_id: userId });
 
       const { data, error } = await supabase.from('fuzo_feed').insert({
         type: item.itemType || item.type || 'recipe',
@@ -58,7 +60,7 @@ export const FeedService = {
         throw error;
       }
       
-      console.log('[FeedService] Successfully published to feed:', data);
+      console.log('[FeedService] Successfully published to feed. Record ID:', data?.[0]?.id);
       return { success: true, data };
     } catch (error: any) {
       console.error('[FeedService] publishToFeed failed:', error);
@@ -91,6 +93,7 @@ export const FeedService = {
 
     try {
       // 1. Relational Fetch
+      console.log('[FeedService] Fetching feed content from Supabase...');
       const { data, error } = await supabase
         .from('fuzo_feed')
         .select(`
@@ -105,7 +108,12 @@ export const FeedService = {
         .order('created_at', { ascending: false })
         .limit(params.pageSize || 12);
 
-      if (error) throw error;
+      if (error) {
+        console.error('[FeedService] DB Query Error:', error);
+        throw error;
+      }
+
+      console.log(`[FeedService] Raw DB response: ${data?.length || 0} rows fetched.`);
 
       // 2. Score Calculation (Neural Pass)
       const items = (data || []).map(row => {

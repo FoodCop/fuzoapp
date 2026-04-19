@@ -80,10 +80,16 @@ export const normalizeDealerContentToCards = (dealerCards: DealerContent[]): Fee
     .map((entry) => {
       const record = asRecord(entry);
       const sourceType = String(record.type || '').toLowerCase();
-      if (!TARGET_FEED_TYPES.has(sourceType as FeedUiItemType)) return null;
+      if (!TARGET_FEED_TYPES.has(sourceType as FeedUiItemType)) {
+        console.warn(`[FeedNormalization] Filtering out unknown type: "${sourceType}"`, record);
+        return null;
+      }
 
       const rawId = String(record.id || '').trim();
-      if (!rawId) return null;
+      if (!rawId) {
+        console.warn(`[FeedNormalization] Filtering out record missing ID`, record);
+        return null;
+      }
 
       const itemType = sourceType as FeedUiItemType;
       const itemId = rawId.replace(new RegExp(`^${itemType}-`), '') || rawId;
@@ -101,7 +107,10 @@ export const normalizeDealerContentToCards = (dealerCards: DealerContent[]): Fee
       const authorAvatar = record.authorAvatar as string | undefined;
       const address = getOptionalString(record, ['address', 'location_name', 'vicinity']);
 
-      if (!name || !img) return null;
+      if (!name || !img) {
+        console.warn(`[FeedNormalization] Filtering out "${itemType}" item due to missing fields:`, { name, img: !!img });
+        return null;
+      }
 
       return {
         id,
@@ -129,6 +138,7 @@ export const normalizeDealerContentToCards = (dealerCards: DealerContent[]): Fee
       };
     })
     .filter(Boolean) as FeedUiItem[];
+
 
   const uniqueById = new Map<string, FeedUiItem>();
   normalized.forEach((item) => {
