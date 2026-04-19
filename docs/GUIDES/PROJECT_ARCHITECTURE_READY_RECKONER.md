@@ -54,11 +54,38 @@ FUZO follows a premium, high-fidelity design language characterized by high cont
 
 ---
 
-## 🧪 Shared Libraries & Helpers
-Major features reuse common utility layers:
-- **AI Synthesis**: `src/shared/lib/studioHelpers.ts` (Parsing, Image reading).
-- **Taxonomy**: `src/shared/utils/taxonomy.ts` (Cuisine/Diet/Vibe standards).
-- **Metadata**: `src/shared/lib/metadata.ts` (Robust type-safe property extraction).
+## 🧭 Developer Onboarding Path
+To get up to speed with the FUZO V2 engine, follow this reading sequence:
+1.  **Project Architecture** (This guide) — Understand the root orchestration.
+2.  **Auth & Onboarding** — Learn how users enter the high-fidelity ecosystem.
+3.  **AI Studio Core** — Understand the shared wizard and neural synthesis logic.
+4.  **Feature Reckoners** — Deep dive into specific modules (Feed, Snap, Scout, etc.).
+
+---
+
+## 📚 Technical Ready Reckoner Index
+Below is the complete roadmap of architectural deep-dives for every feature:
+
+### Core Ecosystem
+- [Project Architecture](file:///k:/H/DRIVE/Quantum/Climb/APPS/FUZO_V2/docs/GUIDES/PROJECT_ARCHITECTURE_READY_RECKONER.md)
+- [Auth System](file:///k:/H/DRIVE/Quantum/Climb/APPS/FUZO_V2/docs/GUIDES/AUTH_READY_RECKONER.md)
+- [Multi-Path Onboarding](file:///k:/H/DRIVE/Quantum/Climb/APPS/FUZO_V2/docs/GUIDES/ONBOARDING_READY_RECKONER.md)
+- [Settings & Profile Sync](file:///k:/H/DRIVE/Quantum/Climb/APPS/FUZO_V2/docs/GUIDES/SETTINGS_READY_RECKONER.md)
+
+### Immersive AI Studios
+- [AI Studio Core](file:///k:/H/DRIVE/Quantum/Climb/APPS/FUZO_V2/docs/GUIDES/AI_STUDIO_CORE_READY_RECKONER.md) (Shared Syntax)
+- [Snap Studio](file:///k:/H/DRIVE/Quantum/Climb/APPS/FUZO_V2/docs/GUIDES/SNAP_STUDIO_READY_RECKONER.md) (Photo/Maps)
+- [Bites Studio](file:///k:/H/DRIVE/Quantum/Climb/APPS/FUZO_V2/docs/GUIDES/BITES_STUDIO_READY_RECKONER.md) (Voice/Recipe)
+- [Trims Studio](file:///k:/H/DRIVE/Quantum/Climb/APPS/FUZO_V2/docs/GUIDES/TRIMS_STUDIO_READY_RECKONER.md) (Video/YouTube)
+
+### Engagement & Discovery
+- [Discovery Feed](file:///k:/H/DRIVE/Quantum/Climb/APPS/FUZO_V2/docs/GUIDES/FEED_READY_RECKONER.md) (Algorithm & Idempotency)
+- [Scout (Map Vision)](file:///k:/H/DRIVE/Quantum/Climb/APPS/FUZO_V2/docs/GUIDES/SCOUT_TECHNICAL_READY_RECKONER.md)
+- [Chef AI](file:///k:/H/DRIVE/Quantum/Climb/APPS/FUZO_V2/docs/GUIDES/CHEF_READY_RECKONER.md)
+- [Chat & Crew](file:///k:/H/DRIVE/Quantum/Climb/APPS/FUZO_V2/docs/GUIDES/CHAT_READY_RECKONER.md)
+- [Points & Ranking](file:///k:/H/DRIVE/Quantum/Climb/APPS/FUZO_V2/docs/GUIDES/POINTS_SYSTEM_READY_RECKONER.md)
+- [Rewards Portfolio](file:///k:/H/DRIVE/Quantum/Climb/APPS/FUZO_V2/docs/GUIDES/REWARDS_READY_RECKONER.md)
+- [Notifications Drawer](file:///k:/H/DRIVE/Quantum/Climb/APPS/FUZO_V2/docs/GUIDES/NOTIFICATIONS_READY_RECKONER.md)
 
 ---
 

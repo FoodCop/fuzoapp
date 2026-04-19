@@ -75,5 +75,27 @@ The feed range is determined by the `getUserFeedLocation` helper. Edit the defau
 
 ---
 
+## 🚀 Future Roadmap: The "Hotness" Algorithm
+To handle high-volume content while maintaining quality, the following Time-Decay sorting system is planned for implementation in `FeedService.generateFeed()`.
+
+### Objective
+Balance chronological freshness with AI-based relevance to prevent "Relevance Stagnation" (where old highly-relevant posts bury new content).
+
+### Proposed Scalar: HackerNews Style Gravity
+```typescript
+// Proposed formula for local sorting
+const gravity = 1.5;
+const ageInHours = Math.max(0, (now - itemDate) / (1000 * 60 * 60));
+const baseScore = 1000 + AI_RELEVANCE_MODIFIER; // e.g., +200 for cuisine match
+const hotnessScore = baseScore / Math.pow(ageInHours + 2, gravity);
+```
+
+### Implementation Logic
+1.  **Query Expansion**: Increase Supabase `.limit()` by a factor of 5 to create a larger "Candidate Pool".
+2.  **Local Decay**: Apply the `hotnessScore` formula to the candidates in the frontend service.
+3.  **Slicing**: Return only the top `pageSize` items to the UI.
+
+---
+
 > [!IMPORTANT]
 > **Relational Integrity**: Always ensure that every record in `fuzo_feed` has a valid `user_id` pointing to an existing record in the `users` table, otherwise the Relational Join will result in a UI failure.
