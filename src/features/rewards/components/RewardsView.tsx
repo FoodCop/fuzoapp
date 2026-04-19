@@ -1,14 +1,26 @@
+/**
+ * ============================================================================
+ * REWARDS MODULE — Gamification & Redemption
+ * ============================================================================
+ * 
+ * Component Architecture:
+ * 1. Rewards State: Static list of unlockable platform tiers/badges.
+ * 2. Theme Engine: Color-coded UI classes for different reward types.
+ * 3. Redemption logic: Handling point-based unlocking (placeholder).
+ */
+
 import React from 'react';
 import { Gift, Star, Sparkles, Bot, MapPin } from 'lucide-react';
 import type { IconComponent } from '../../../shared/types/ui';
 
 /**
- * RewardsView - Component for viewing and redeeming culinary points.
- * Extracted from index.tsx as part of the modularization effort.
+ * COMPONENT: RewardsView
+ * Interface for viewing and redeeming culinary points for Studio upgrades.
  */
 export const RewardsView = () => {
   type RewardColor = 'yellow' | 'indigo' | 'emerald' | 'blue';
   
+  // SECTION: Theme Definition
   const REWARD_COLOR_CLASSES: Record<RewardColor, string> = {
     yellow: 'bg-yellow-100 text-yellow-600',
     indigo: 'bg-indigo-100 text-indigo-600',
@@ -16,6 +28,7 @@ export const RewardsView = () => {
     blue: 'bg-blue-100 text-blue-600',
   };
 
+  // SECTION: Rewards Registry
   const rewards = [
     { id: 1, title: "Studio Pro Badge", desc: "Unlock exclusive profile flair", cost: 5000, icon: Star, color: "yellow" },
     { id: 2, title: "Neural Filter Pack", desc: "New AI styles for your snaps", cost: 12000, icon: Sparkles, color: "indigo" },

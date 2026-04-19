@@ -1,3 +1,15 @@
+/**
+ * ============================================================================
+ * PROFILE MODULE — The Plate (User Discovery Hub)
+ * ============================================================================
+ * 
+ * Component Architecture:
+ * 1. Profile Orchestrator: Merges Auth metadata with persisted SettingsProfile.
+ * 2. Stat Engine: Real-time point/rank synchronization (PointsService).
+ * 3. Feature Widgets: Integration of spatial (MiniMap) and social (Leaderboard) tools.
+ * 4. Content Grid: Tab-based filtering for cross-feature saved artifacts.
+ */
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   MapPin, ChefHat, PlayCircle, User, LayoutGrid, Music2, Pin, Youtube 
@@ -18,10 +30,14 @@ import type { PrimaryProfileType, ChefSubtype } from '../types/profile';
 import { PointsService } from '../../points/services/pointsService';
 import { Avatar } from '../../../shared/ui/Avatar';
 
-
-
-
-
+/**
+ * COMPONENT: ProfileView
+ * Master orchestrator for the 'Plate' (User Profile).
+ * logic:
+ * - Aggregates all saved items (Places, Recipes, Videos).
+ * - Manages user rank and social links.
+ * - Hosts the leaderboard and discovery heatmap.
+ */
 export const ProfileView = ({ 
   savedItems, 
   authUser, 
@@ -47,10 +63,13 @@ export const ProfileView = ({
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [userRank, setUserRank] = useState<number | null>(null);
 
+  // SECTION: Helpers
 
   const hasIdPrefix = useCallback((item: AppItem, prefix: string) => {
     return typeof item.id === 'string' && item.id.startsWith(prefix);
   }, []);
+
+  // SECTION: Data Fetching (Profile & Rank)
 
   const profileDisplay = useMemo(() => {
     const metadata = (authUser?.user_metadata || {}) as Record<string, string | undefined>;
@@ -102,6 +121,8 @@ export const ProfileView = ({
     };
   }, [authUser]);
 
+  // SECTION: Social & Tab Config
+
   const socialLinks = useMemo(() => {
     const metadata = (authUser?.user_metadata || {}) as Record<string, string | undefined>;
     const persisted = persistedProfile;
@@ -136,6 +157,7 @@ export const ProfileView = ({
 
   return (
     <div className="max-w-2xl mx-auto space-y-10 animate-in fade-in pb-20">
+      {/* Header Cluster */}
       <div className="relative h-64 bg-stone-900 rounded-[4rem] overflow-hidden shadow-2xl">
         <img src={profileDisplay.cover} alt="Profile cover" className="w-full h-full object-cover opacity-60" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent" />
@@ -197,7 +219,7 @@ export const ProfileView = ({
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* SECTION: Tabbed Discovery */}
       <div className="px-8">
         <div className="flex bg-stone-100 p-2 rounded-[2.5rem] gap-1">
           {tabs.map(t => (
@@ -282,6 +304,7 @@ export const ProfileView = ({
         )}
       </div>
 
+      {/* SECTION: Overlay Modals */}
       {selectedSavedItem && (
         <SavedItemDetailModal item={selectedSavedItem} onClose={() => setSelectedSavedItem(null)} onSave={onSave} onUnsave={onUnsave} onShareRequest={onShareRequest} savedItems={savedItems} />
       )}

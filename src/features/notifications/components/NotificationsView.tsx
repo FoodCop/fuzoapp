@@ -1,3 +1,15 @@
+/**
+ * ============================================================================
+ * NOTIFICATIONS MODULE — Real-time Alerting & Navigation
+ * ============================================================================
+ * 
+ * Component Architecture:
+ * 1. Notification Derivation: Computed state merging chat unreads and crew requests.
+ * 2. Motion Orchestration: Framer-motion based full-screen drawer logic.
+ * 3. Deep Linking: Navigation logic to switch active tabs and open specific chats.
+ * 4. Priority Styling: Color-coded badge system for different notification intent.
+ */
+
 import React, { useMemo } from 'react';
 import { 
   Bell, X, MessageSquare, UserPlus, Trophy, 
@@ -24,9 +36,19 @@ interface NotificationsViewProps {
   onOpenChat: (id: string, type: 'dm' | 'group') => void;
 }
 
+/**
+ * COMPONENT: NotificationsView
+ * Master orchestrator for the global notifications drawer.
+ * logic:
+ * - Aggregates pending actions into a unified feed.
+ * - Handles 'Mark as Read' persistence (via friends state sync).
+ * - Triggers immersive chat transitions.
+ */
 export const NotificationsView = ({ isOpen, onClose, friends, onOpenChat }: NotificationsViewProps) => {
   const containerRef = useFocusTrap(isOpen);
 
+  // SECTION: logic — Notification Derivation
+  // Notifications are derived from the 'friends' state to ensure real-time sync with Supabase.
   const notifications = useMemo<AppNotification[]>(() => {
     return friends
       .filter(f => (f.unreadCount ?? 0) > 0 || (f.type === 'dm' && 'requestStatus' in f && f.requestStatus === 'pending'))
@@ -50,7 +72,7 @@ export const NotificationsView = ({ isOpen, onClose, friends, onOpenChat }: Noti
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop Layer */}
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -59,7 +81,7 @@ export const NotificationsView = ({ isOpen, onClose, friends, onOpenChat }: Noti
             className="fixed inset-0 bg-stone-900/40 backdrop-blur-md z-[300]" aria-hidden="true"
           />
 
-          {/* Sidebar/Drawer */}
+          {/* SECTION: Drawer UI */}
           <motion.div 
             ref={containerRef as any}
             initial={{ x: '100%' }}
@@ -101,6 +123,7 @@ export const NotificationsView = ({ isOpen, onClose, friends, onOpenChat }: Noti
                     className={`p-6 rounded-[2.5rem] border transition-all cursor-pointer group active:scale-[0.98] ${notif.unread ? 'bg-stone-50 border-stone-100 shadow-sm' : 'bg-white border-transparent hover:bg-stone-50'}`}
                   >
                     <div className="flex gap-4">
+                      {/* Icon Rendering Engine */}
                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
                         notif.type === 'message' ? 'bg-blue-100 text-blue-600' :
                         notif.type === 'friend_request' ? 'bg-emerald-100 text-emerald-600' :
@@ -138,6 +161,7 @@ export const NotificationsView = ({ isOpen, onClose, friends, onOpenChat }: Noti
               )}
             </div>
 
+            {/* Footer Actions */}
             {notifications.length > 0 && (
               <footer className="p-8 border-t border-stone-100 bg-stone-50/50 pb-[calc(2rem+env(safe-area-inset-bottom))]">
                 <button 

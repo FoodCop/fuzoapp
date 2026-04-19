@@ -1,3 +1,19 @@
+/**
+ * ============================================================================
+ * FEED VIEW — AI Discovery Engine
+ * ============================================================================
+ * 
+ * Architecture:
+ * - Local-First Discovery: Attempts to fetch real-time personalized content 
+ *   via FeedService, but falls back to 'LOCAL_CURATED_FEED_ITEMS' if offline 
+ *   or service is disabled.
+ * - Multi-Persona Personalization: Fetches user metadata from Supabase 
+ *   (Cuisine DNA) to tailor the feed.
+ * - Dual Experience Engine:
+ *   1. Desktop: "The Dealer" — Batch-based card dealing.
+ *   2. Mobile: "The Shuffler" — Stacked swipe interaction.
+ */
+
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, RefreshCw, X, Heart, Share2, Bookmark } from 'lucide-react';
@@ -28,20 +44,24 @@ export const FeedView = ({
   onShareRequest: (item: AppItem) => void, 
   onOpenUserProfile: (userId: string) => void 
 }) => {
+  // --- STATE: Discovery Logic ---
   const [items, setItems] = useState<FeedUiItem[]>([]);
   const [feedSource, setFeedSource] = useState<'local' | 'feedService'>('feedService');
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedError, setFeedError] = useState<string>('');
 
-  const [batchIndex, setBatchIndex] = useState(0);
+  // --- STATE: UI Orchestration ---
+  const [batchIndex, setBatchIndex] = useState(0); // For desktop dealing
   const [batchVisible, setBatchVisible] = useState(false);
   const [selectedItemForDetail, setSelectedItemForDetail] = useState<AppItem | null>(null);
+  const [userPreferences, setUserPreferences] = useState<{ cuisines?: string[], dietary?: string[], profileType?: string } | null>(null);
+
+  // --- REFS: Performance & Safety ---
   const isDesktop = useIsDesktop();
   const feedRequestSeqRef = useRef(0);
   const feedRetryDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const feedMountedRef = useRef(true);
   const missingAuthorTelemetryRef = useRef<Set<string>>(new Set());
-  const [userPreferences, setUserPreferences] = useState<{ cuisines?: string[], dietary?: string[], profileType?: string } | null>(null);
 
   useEffect(() => {
     return () => {
@@ -52,8 +72,14 @@ export const FeedView = ({
     };
   }, []);
 
+  /**
+   * SECTION: Feed Generation Engine
+   * Orchestrates location, user persona, and remote service calls.
+   * 
+   * @param isRetry - Force a remote fetch even if local fallback was previously used.
+   */
   const fetchFromFeedService = async (isRetry = false) => {
-    // 0. Fallback Logic: If service is disabled and not retrying, show curated items immediately
+    // 0. Fallback Strategy: Immediate resolution for development/fallback modes
     if (!FEED_USE_SERVICE && !isRetry) {
       console.log('🍽️ [FeedView] Service disabled, loading local curated items');
       setItems(LOCAL_CURATED_FEED_ITEMS);
@@ -68,10 +94,10 @@ export const FeedView = ({
     const requestSeq = ++feedRequestSeqRef.current;
 
     try {
-      // 1. Get Location
+      // 1. Contextual Signals: Geolocation for proximity-based food.
       const userLocation = await getUserFeedLocation();
       
-      // 2. Resolve Preferences
+      // 2. Persona Resolution: Only hydyrate preferences once per session for performance.
       let prefs = userPreferences;
       if (!prefs && !isRetry) {
         try {
@@ -93,21 +119,19 @@ export const FeedView = ({
             }
           }
         } catch (e) {
-          console.warn('[FeedView] Failed to fetch user preferences for personalization', e);
+          console.warn('[FeedView] Preference resolution failed; proceed with generic feed', e);
         }
       }
 
-      // 3. Fetch Feed
+      // 3. Synthesis: Call the edge function / service for personalized cards.
       const feedCards = await FeedService.generateFeed({
         userLocation,
         preferences: prefs || undefined,
         pageSize: 12
       });
 
-      console.log('🍽️ [FeedView] Raw FeedService cards:', feedCards);
+      // 4. Normalization: Streamline raw AI output into FUZO-standard Card models.
       const adaptedCards = normalizeFeedServiceToCards(feedCards);
-      console.log('🍽️ [FeedView] Normalized cards:', adaptedCards);
-
       const isLatestRequest = shouldApplyLatestRequest(feedMountedRef, requestSeq, feedRequestSeqRef);
 
       if (isLatestRequest) {
@@ -117,7 +141,7 @@ export const FeedView = ({
           setFeedSource('feedService');
           setFeedError('');
         } else {
-          // If service returns nothing, fallback to local items if enabled
+          // Empty result handling
           if (!isRetry) {
             setItems(LOCAL_CURATED_FEED_ITEMS);
             setFeedSource('local');
@@ -131,6 +155,7 @@ export const FeedView = ({
         }
       }
     } catch (error) {
+      // Error Recovery: Pivot to curated data instantly to maintain UI engagement.
       console.error('FeedService fetch failed:', error);
       const isLatestRequest = shouldApplyLatestRequest(feedMountedRef, requestSeq, feedRequestSeqRef);
       if (isLatestRequest) {
@@ -166,6 +191,7 @@ export const FeedView = ({
     fetchFromFeedService();
   }, []);
 
+  // Visual Animation Sync
   useEffect(() => {
     setBatchVisible(false);
     const frameId = requestAnimationFrame(() => setBatchVisible(true));
@@ -174,6 +200,10 @@ export const FeedView = ({
 
   const BATCH_SIZE = 3;
 
+  /**
+   * SECTION: Identity Logic
+   * Resolves the Supabase User ID from various metadata schemas used by different item types.
+   */
   const resolveItemUserId = useCallback((item: AppItem) => {
     const directAuthorUserId = typeof (item as { authorUserId?: unknown }).authorUserId === 'string'
       ? ((item as { authorUserId?: string }).authorUserId || '').trim()
@@ -194,27 +224,16 @@ export const FeedView = ({
     return typeof value === 'string' ? value.trim() : '';
   }, []);
 
+  // Profile Handoff: Triggers transition to an author's profile view.
   const handleOpenFeedAuthor = useCallback((item: AppItem) => {
     const authorId = resolveItemUserId(item);
     if (!authorId) {
-      const telemetryId = String(item.id || item.itemId || item.name || 'unknown-feed-item');
-      if (!missingAuthorTelemetryRef.current.has(telemetryId)) {
-        missingAuthorTelemetryRef.current.add(telemetryId);
-        console.info('[FeedAuthorProfile] Missing author user id; skipping profile navigation', {
-          telemetryId,
-          itemType: item.itemType,
-          itemId: item.itemId,
-          author: item.author,
-          metadataKeys: item.metadata && typeof item.metadata === 'object'
-            ? Object.keys(item.metadata)
-            : [],
-        });
-      }
-      return;
+      return; // Silently skip if no ID (bot/generic content)
     }
     onOpenUserProfile(authorId);
   }, [onOpenUserProfile, resolveItemUserId]);
 
+  // Desktop Batch Logic
   const currentBatch = useMemo(() => {
     if (items.length === 0) return [];
     const size = Math.min(BATCH_SIZE, items.length);
@@ -222,18 +241,18 @@ export const FeedView = ({
   }, [items, batchIndex]);
 
   const handleAction = (action: string, item: AppItem) => {
-    if (item?.itemType === 'ad' || item?.itemType === 'trivia') {
-      return;
-    }
+    if (item?.itemType === 'ad' || item?.itemType === 'trivia') return;
 
     if (action === 'save') onSave(item);
     if (action === 'share') onShareRequest(item);
     if (action === 'expand') setSelectedItemForDetail(item);
-    if (action === 'like' || action === 'pass') {
-      // For now, just a visual feedback or move to next
-    }
   };
 
+  /**
+   * SECTION: Interaction Engines
+   */
+
+  // Mobile Swipe Logic: Pops items off the stack.
   const handleSwipe = (dir: string) => {
     if (items.length === 0) return;
     const currentItem = items[0];
@@ -249,6 +268,7 @@ export const FeedView = ({
     setItems(prev => prev.slice(1));
   };
 
+  // Desktop Dealing Logic: Cycles through batches.
   const dealNext = () => {
     if (items.length === 0) return;
     setBatchIndex(prev => (prev + BATCH_SIZE) % items.length);
@@ -339,7 +359,7 @@ export const FeedView = ({
                   <>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent" />
                     
-                    {/* Top Profile Header (Mirrored from Desktop) */}
+                    {/* Floating Profile Context */}
                     <div className="absolute top-6 left-6 flex items-center gap-3 text-white z-20">
                       <div className="w-12 h-12 rounded-full border-2 border-white/50 overflow-hidden bg-stone-800 shadow-xl flex-shrink-0">
                         <img 
@@ -370,14 +390,14 @@ export const FeedView = ({
     );
   };
 
+  /**
+   * SECTION: Final Render (Responsive Split)
+   */
+
   if (isDesktop) {
     return (
       <div className="flex flex-col items-center gap-12 animate-in fade-in py-10 w-full max-w-6xl mx-auto">
-        {/* Desktop Header removed as requested */}
-
         {renderDesktopFeedContent()}
-
-        {/* Indicators removed as requested */}
         
         <button 
           onClick={dealNext}

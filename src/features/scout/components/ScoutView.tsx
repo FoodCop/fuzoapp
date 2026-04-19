@@ -1,5 +1,23 @@
+/**
+ * ============================================================================
+ * SCOUT VIEW — Full-Bleed Spatial Intelligence
+ * ============================================================================
+ * 
+ * Architecture:
+ * - Full-screen interactive map (Google Maps JS API)
+ * - Tri-Source Data Sync:
+ *   1. Proximity: Real-time Google Places API results.
+ *   2. Community: Global FUZO Snap discoveries from Supabase.
+ *   3. Private: User's personal 'Saved' collection (Plate).
+ * 
+ * Sub-Features:
+ * - Route Planner: Finds culinary spots specifically along a travel corridor.
+ * - Discovery Panel: Dynamic bottom sheet for list-based scouting.
+ * - Snap Bridge: Seamless handoff to Snap Studio for new discoveries.
+ */
+
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Search, X, RefreshCw, Navigation, Locate, ChefHat, Menu, Bell } from 'lucide-react';
+import { Search, X, RefreshCw, Navigation, Locate, ChefHat, Menu, Bell, Plus } from 'lucide-react';
 import { API_KEYS } from '../../../shared/constants/apiKeys';
 import { hasSupabaseConfig, supabase } from '../../../services/supabaseClient';
 import { PlacesService } from '../../../services/placesService';
@@ -27,7 +45,6 @@ import { ScoutDiscoveryPanel } from './ScoutDiscoveryPanel';
 import { ScoutPlaceModal } from './ScoutPlaceModal';
 import { ScoutRoutePlanner } from './ScoutRoutePlanner';
 import { ScoutAddPinModal } from './ScoutAddPinModal';
-import { Plus } from 'lucide-react';
 
 interface ScoutViewProps {
   mapsApiKey?: string;
@@ -44,7 +61,9 @@ export const ScoutView = ({
   onAction,
   authUser
 }: ScoutViewProps) => {
-  // --- State ---
+  
+  // --- SECTION: State Management ---
+  // Coordinates data from three distinct sources (Google, Community, Personal)
   const [mainMapPlaces, setMainMapPlaces] = useState<ScoutPlace[]>([]);
   const [communitySnapPlaces, setCommunitySnapPlaces] = useState<ScoutPlace[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,16 +71,19 @@ export const ScoutView = ({
   const [modalTab, setModalTab] = useState('overview');
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
+
+  // Flow State: Routing & Creation
   const [isRoutePlannerOpen, setIsRoutePlannerOpen] = useState(false);
   const [isAddPinModalOpen, setIsAddPinModalOpen] = useState(false);
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
   const [currentRoute, setCurrentRoute] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Snap Studio Bridge
+  // Snap Studio Integration
   const [showSnapStudio, setShowSnapStudio] = useState(false);
   const [snapStudioData, setSnapStudioData] = useState<any>(null);
 
+  // Filters: UI constraints for the discovery panel
   const [filter, setFilter] = useState<ScoutFilter>({
     type: 'all',
     rating: 0,
@@ -72,7 +94,7 @@ export const ScoutView = ({
   const [pinnedPlace, setPinnedPlace] = useState<ScoutPlace | null>(null);
   const [isPinning, setIsPinning] = useState(false);
 
-  // Refs
+  // --- REFS: Performance & Resource Locking ---
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<MapLike | null>(null);
   const directionsRendererRef = useRef<any>(null);
@@ -85,8 +107,11 @@ export const ScoutView = ({
     return () => { mounted.current = false; };
   }, []);
 
-  // --- Data Fetching ---
-
+  /**
+   * SECTION: Data Fetching — Source A (Nearby Google Places)
+   * Triggered on map movement or search. 
+   * Uses a 'sequence lock' to avoid state flicker from delayed async results.
+   */
   const fetchPlaces = useCallback(async (map: MapLike, query?: string) => {
     setIsLoading(true);
     const seq = ++requestSeq.current;
@@ -122,7 +147,10 @@ export const ScoutView = ({
     }
   }, [mapsApiKey]);
 
-  // Load FUZO community data
+  /**
+   * SECTION: Data Fetching — Source B (Community FUZO Snaps)
+   * Hydrates the map with global discoveries persisted to the 'fuzo_locations' table.
+   */
   useEffect(() => {
     if (!hasSupabaseConfig || !supabase) return;
     const loadFuzo = async () => {
@@ -152,14 +180,21 @@ export const ScoutView = ({
     loadFuzo();
   }, []);
 
-  // Transform saved items to ScoutPlace
+  /**
+   * SECTION: Data Fetching — Source C (Personal Saved Items)
+   * Local transform of the 'savedItems' prop (from Plate feature) into map-ready ScoutPlaces.
+   */
   const myMapPlaces = useMemo(() => {
     return savedItems
       .filter(item => Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lng)))
       .map((item, i) => toSavedScoutPlace(item, i));
   }, [savedItems]);
 
-  // --- UNIFIED data: merge all three sources ---
+  /**
+   * LOGIC: Unified Tri-Source Aggregator
+   * Merges all three discovery streams, removes duplicates by PlaceID/ID, 
+   * and calculates the Neural Match percentage for personalized sorting.
+   */
   const activePlaces = useMemo(() => {
     const seen = new Set<string>();
     const merged: ScoutPlace[] = [];
@@ -181,8 +216,13 @@ export const ScoutView = ({
     return sortPlaces(filterPlaces(merged, filter), filter.sortBy);
   }, [mainMapPlaces, communitySnapPlaces, myMapPlaces, filter]);
 
-  // --- Callbacks ---
 
+  /**
+   * SECTION: Spatial Callbacks
+   * Logic for geocoding, route planning, and hardware interaction.
+   */
+
+  // Reverse Geocoding: Converts a map click (lat/lng) into a readable "New Find" pin.
   const reverseGeocode = useCallback(async (lat: number, lng: number) => {
     const google = getGoogleMaps();
     if (!google) return;
@@ -235,6 +275,11 @@ export const ScoutView = ({
     setShowSnapStudio(true);
   }, []);
 
+  /**
+   * LOGIC: handleCalculateRoute
+   * Advanced Routing: Finds a travel corridor between two points and triggers 
+   * 'searchAlongRoute' to populate the map only with spots adjacent to the path.
+   */
   const handleCalculateRoute = async (origin: string, destination: string) => {
     setIsCalculatingRoute(true);
     try {
@@ -247,6 +292,7 @@ export const ScoutView = ({
         if (google && mapInstanceRef.current && directionsRendererRef.current) {
           directionsRendererRef.current.setDirections(result.data);
           
+          // Corridor analysis: only show points within 0.005 tolerance of the polyline
           const polyline = (google as any).geometry.encoding.decodePath(route.polyline.encodedPolyline);
           const path = new (google as any).Polyline({ path: polyline });
           
@@ -325,8 +371,7 @@ export const ScoutView = ({
     }
   };
 
-  // --- Map Initialization ---
-
+  // --- SECTION: Map Instance Lifecycle ---
   useEffect(() => {
     if (!mapRef.current || !mapsApiKey) return;
 
@@ -335,7 +380,7 @@ export const ScoutView = ({
       if (!google) return;
 
       const map = new google.Map(mapRef.current!, {
-        center: { lat: 40.7128, lng: -74.0060 },
+        center: { lat: 40.7128, lng: -74.0060 }, // NYC Primary Grid
         zoom: 13,
         disableDefaultUI: true,
         styles: [
@@ -365,7 +410,7 @@ export const ScoutView = ({
       fetchPlaces(map);
       map.addListener('click', handleMapClick);
 
-      // Attempt geolocation
+      // Attempt immediate geolocation for 'My Hub' centering
       navigator.geolocation.getCurrentPosition((p) => {
         const pos = { lat: p.coords.latitude, lng: p.coords.longitude };
         map.setCenter(pos);
@@ -374,14 +419,13 @@ export const ScoutView = ({
     };
 
     initMap();
-  }, [mapsApiKey, fetchPlaces, googleMapsReady, handleMapClick]);
+  }, [mapsApiKey, googleMapsReady]);
 
-  // --- Marker Rendering ---
-
+  // --- SECTION: Spatial Overlay (Markers & Clusters) ---
   const MARKER_COLORS: Record<string, string> = {
-    google: '#3b82f6',  // Blue
-    fuzo: '#facc15',     // Yellow
-    saved: '#10b981',    // Green
+    google: '#3b82f6',  // Standard Discovery (Blue)
+    fuzo: '#facc15',     // Community Snap (Yellow)
+    saved: '#10b981',    // Personal Saved (Emerald)
   };
 
   useEffect(() => {
@@ -416,7 +460,7 @@ export const ScoutView = ({
       markers
     });
 
-    // Add pinned marker if exists
+    // Sub-Logic: New Discovery "Dropped Pin"
     if (pinnedPlace) {
       const pinnedMarker = new google.Marker({
         position: { lat: pinnedPlace.lat, lng: pinnedPlace.lng },
@@ -424,7 +468,7 @@ export const ScoutView = ({
         icon: {
           path: google.SymbolPath.BACKWARD_CLOSED_ARROW,
           scale: 8,
-          fillColor: '#a855f7',
+          fillColor: '#a855f7', // Creative Pin (Purple)
           fillOpacity: 1,
           strokeColor: '#ffffff',
           strokeWeight: 2,
@@ -437,8 +481,11 @@ export const ScoutView = ({
 
   }, [isMapReady, activePlaces, pinnedPlace]);
 
-  // --- Auto-fetch details ---
-
+  /**
+   * SECTION: Deep Detail Fetching
+   * On selecting a place, fetch full Google metadata (phone, website, reviews) 
+   * to populate the ScoutPlaceModal without bloating the initial map search results.
+   */
   useEffect(() => {
     if (!selectedPlace || selectedPlace.isNewFind) return;
     if (selectedPlace.phone || (selectedPlace.userReviews && selectedPlace.userReviews.length > 0)) return;
@@ -465,7 +512,7 @@ export const ScoutView = ({
     }
   }, [selectedPlace?.id, mapsApiKey]);
 
-  // --- Count by source for legend ---
+  // UI HELPER: Calculate legend counts
   const sourceCounts = useMemo(() => {
     const counts = { google: 0, fuzo: 0, saved: 0 };
     activePlaces.forEach(p => {
@@ -475,17 +522,15 @@ export const ScoutView = ({
     return counts;
   }, [activePlaces]);
 
-  // --- RENDER ---
-
   return (
     <div className="relative w-full h-full">
       {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* FULL-BLEED MAP                                                */}
+      {/* FULL-BLEED MAP ENGINE                                         */}
       {/* ═══════════════════════════════════════════════════════════════ */}
       <div ref={mapRef} className="absolute inset-0 z-0" id="scout-map" />
 
       {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* FLOATING SEARCH BAR                                           */}
+      {/* FLOATING SEARCH & LEGEND                                      */}
       {/* ═══════════════════════════════════════════════════════════════ */}
       <div className="absolute top-4 left-4 right-20 md:left-6 md:right-auto md:w-[400px] z-10 space-y-2.5">
         <form onSubmit={handleSearch} className="relative group">
@@ -517,7 +562,6 @@ export const ScoutView = ({
           )}
         </form>
 
-        {/* Legend Pill */}
         <div className="bg-white/95 backdrop-blur-md rounded-full shadow-md px-4 py-2 inline-flex border border-stone-100/60">
           <div className="flex items-center gap-4 text-[11px] font-bold text-stone-500">
             <div className="flex items-center gap-1.5">
@@ -537,42 +581,39 @@ export const ScoutView = ({
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* FLOATING MAP CONTROLS (right side)                            */}
+      {/* FLOATING ACTION CLUSTER (Primary Operations)                  */}
       {/* ═══════════════════════════════════════════════════════════════ */}
       <div className="absolute top-4 right-4 md:top-6 md:right-6 flex flex-col gap-2.5 z-10">
         <button 
           onClick={() => mapInstanceRef.current && fetchPlaces(mapInstanceRef.current)} 
           className="w-11 h-11 bg-white rounded-full shadow-md flex items-center justify-center hover:bg-stone-50 transition-colors border border-stone-100/60"
-          aria-label="Refresh nearby places"
         >
           <RefreshCw size={18} className={isLoading ? 'animate-spin text-blue-500' : 'text-stone-600'} />
         </button>
         <button 
           onClick={() => setIsRoutePlannerOpen(true)} 
           className={`w-11 h-11 rounded-full shadow-md flex items-center justify-center transition-all border ${currentRoute ? 'bg-blue-500 text-white border-blue-400' : 'bg-white text-stone-600 border-stone-100/60 hover:bg-stone-50'}`}
-          aria-label="Route planner"
         >
           <Navigation size={18} />
         </button>
         <button 
           onClick={handleRecenterMap}
           className="w-11 h-11 bg-white rounded-full shadow-md flex items-center justify-center hover:bg-stone-50 transition-colors border border-stone-100/60"
-          aria-label="My location"
         >
           <Locate size={18} className="text-stone-600" />
         </button>
         <button 
           onClick={() => setIsAddPinModalOpen(true)}
           className="w-11 h-11 bg-stone-900 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-2 border-white/20"
-          aria-label="Add new discovery"
         >
           <Plus size={20} strokeWidth={3} />
         </button>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* ROUTE PLANNER OVERLAY                                         */}
+      {/* OVERLAY LAYERS (Modals & Logic Panels)                        */}
       {/* ═══════════════════════════════════════════════════════════════ */}
+
       <ScoutRoutePlanner 
         isVisible={isRoutePlannerOpen}
         onClose={() => setIsRoutePlannerOpen(false)}
@@ -581,9 +622,6 @@ export const ScoutView = ({
         isCalculating={isCalculatingRoute}
       />
 
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* DISCOVERY PANEL (bottom sheet on mobile, side panel on desktop)*/}
-      {/* ═══════════════════════════════════════════════════════════════ */}
       <ScoutDiscoveryPanel
         places={activePlaces}
         onPlaceSelect={handlePlaceSelect}
@@ -592,9 +630,6 @@ export const ScoutView = ({
         onClose={() => {}}
       />
 
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* PLACE DETAIL MODAL                                            */}
-      {/* ═══════════════════════════════════════════════════════════════ */}
       {selectedPlace && (
         <ScoutPlaceModal
           place={selectedPlace}
@@ -607,9 +642,6 @@ export const ScoutView = ({
         />
       )}
 
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* ADD PIN MODAL                                                 */}
-      {/* ═══════════════════════════════════════════════════════════════ */}
       {isAddPinModalOpen && (
         <ScoutAddPinModal 
           onClose={() => setIsAddPinModalOpen(false)}
@@ -619,9 +651,7 @@ export const ScoutView = ({
         />
       )}
 
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* SNAP STUDIO BRIDGE                                            */}
-      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* Neural Pass Bridge: Handoff to Snap Studio */}
       {showSnapStudio && (
         <SnapStudio 
           initialData={snapStudioData}

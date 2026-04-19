@@ -7,6 +7,12 @@ import { LandingPage as LandingView } from '../../landing/components/LandingView
 import type { OnboardingV2Payload } from '../types/onboarding';
 import type { AuthUser } from '../types/auth';
 
+/**
+ * SECTION: AuthOrchestrator Component
+ * The central logic hub for managing the transition between Landing, Authentication, and Onboarding.
+ * It ensures that users are correctly gated and that their profile metadata is synchronized across
+ * Supabase Auth and the public 'users' table.
+ */
 interface AuthOrchestratorProps {
   isAuthenticated: boolean;
   hasCompletedOnboarding: boolean;
@@ -40,14 +46,21 @@ export const AuthOrchestrator: React.FC<AuthOrchestratorProps> = ({
   appRoute,
   authCallbackRoute,
 }) => {
+  // STATE: Payload for the Onboarding V2 demo mode
   const [demoPayload, setDemoPayload] = useState<OnboardingV2Payload | null>(null);
   const [isOnboardingDemo, setIsOnboardingDemo] = useState(false);
 
+  // LOGIC: Check if the application is in 'demo' mode via URL parameters
   useEffect(() => {
     const params = new URLSearchParams(globalThis.location?.search);
     setIsOnboardingDemo(params.get('view') === 'onboarding-demo');
   }, []);
 
+  /**
+   * SECTION: handleOnboardingComplete
+   * Finalizes the onboarding process by persisting user preferences to both Supabase Auth 
+   * and the primary database. Synchronizes profiles types (Chef, Individual, etc.).
+   */
   const handleOnboardingComplete = async (payload?: OnboardingV2Payload) => {
     if (supabase) {
       const metadataUpdate: Record<string, unknown> = {
@@ -56,6 +69,7 @@ export const AuthOrchestrator: React.FC<AuthOrchestratorProps> = ({
       };
 
       if (payload) {
+        // Normalizing the UI-friendly type IDs to database-friendly display names
         const typeMap: Record<string, string> = {
           'individual': 'Individual',
           'chef': 'Chef',
@@ -65,6 +79,7 @@ export const AuthOrchestrator: React.FC<AuthOrchestratorProps> = ({
 
         const profileType = typeMap[payload.userType] || 'Individual';
         
+        // Constructing the complex metadata object for AI personalization
         metadataUpdate.onboarding_v2 = true;
         metadataUpdate.profile_type = profileType;
         metadataUpdate.profile_subtype = payload.quizResult || null;
@@ -75,6 +90,9 @@ export const AuthOrchestrator: React.FC<AuthOrchestratorProps> = ({
         metadataUpdate.onboarding_location = payload.location;
 
         try {
+          // SUB-SECTION: Relational Sync
+          // Updates the 'public.users' table to ensure community features (Leaderboard, Chat) 
+          // have access to corrected profile metadata without needing an Auth Admin key.
           const { data: userResponse } = await supabase.auth.getUser();
           const userId = userResponse.user?.id;
 
@@ -102,6 +120,7 @@ export const AuthOrchestrator: React.FC<AuthOrchestratorProps> = ({
         }
       }
 
+      // Final step: Persist to Supabase Auth User Metadata
       const { data, error } = await supabase.auth.updateUser({
         data: metadataUpdate,
       });
@@ -113,6 +132,7 @@ export const AuthOrchestrator: React.FC<AuthOrchestratorProps> = ({
       }
     }
 
+    // SECTION: Post-Onboarding Transition
     setIsAuthenticated(true);
     setHasCompletedOnboarding(true);
     setShowAuth(false);
@@ -120,6 +140,12 @@ export const AuthOrchestrator: React.FC<AuthOrchestratorProps> = ({
     globalThis.history.replaceState(null, '', `${appPath}?view=feed`);
   };
 
+  /**
+   * SECTION: Conditional UI Rendering
+   * Handles various states: Demo Mode, Landing Page, and the Auth/Onboarding Wizard.
+   */
+
+  // 1. Onboarding Demo View (Sanctity testing for the designer)
   if (isOnboardingDemo) {
     return (
       <div className="min-h-screen bg-stone-50">
@@ -163,10 +189,12 @@ export const AuthOrchestrator: React.FC<AuthOrchestratorProps> = ({
     );
   }
 
+  // 2. Landing Mode (Cinematic Intro)
   if (homeRoute && !showAuth) {
     return <LandingView onStart={() => setShowAuth(true)} />;
   }
 
+  // 3. Auth/Onboarding Wizard
   if (showAuth && !hasCompletedOnboarding) {
     return (
       <AuthView
@@ -188,6 +216,5 @@ export const AuthOrchestrator: React.FC<AuthOrchestratorProps> = ({
 
   return null;
 };
-
 
 export default AuthOrchestrator;

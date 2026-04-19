@@ -378,6 +378,13 @@ const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friend
 // --- VIEWS ---
 
 
+// --- SECTION: DATA LOGIC (Hooks) ---
+
+/**
+ * HOOK: useBitesFeed
+ * Manages the data-lifecycle for the 'Discovery' mode.
+ * Integrates Spoonacular for real-time recipes, with curated fallbacks.
+ */
 const useBitesFeed = () => {
   const [recipes, setRecipes] = useState<BiteRecipe[]>([]);
   const [loading, setLoading] = useState(true);
@@ -474,6 +481,8 @@ const useBitesFeed = () => {
   };
 };
 
+// --- SECTION: UI COMPONENTS (Grid & Modals) ---
+
 const BitesGrid = ({
   loading,
   filteredRecipes,
@@ -531,6 +540,11 @@ const BitesGrid = ({
   );
 };
 
+/**
+ * COMPONENT: BitesRecipeModal
+ * Immersive full-screen detail view for a specific recipe.
+ * Logic: Tab-based exploration of ingredients, process, and nutrition.
+ */
 const BitesRecipeModal = ({
   selectedRecipe,
   onClose,
@@ -939,6 +953,16 @@ const BitesReviewStep = ({ image, data, onEdit, onLock, isUploading }: { image: 
   );
 };
 
+/**
+ * COMPONENT: AIRecipeStudio
+ * Fully immersive 7-step wizard for neural recipe creation.
+ * Logic:
+ * 1. Visuals: Capture food image.
+ * 2. Identity: Name the dish/category.
+ * 3. Story: Add context/notes.
+ * 4. Synthesis: Gemini neural assembly.
+ * 5. Review: View generated card.
+ */
 export const AIRecipeStudio = ({
   onSave,
   onShareRequest,
@@ -1104,6 +1128,10 @@ export const AIRecipeStudio = ({
 };
 
 
+/**
+ * COMPONENT: BitesView
+ * Top-level view orchestrator. Swaps between Feed and Studio modes.
+ */
 export const BitesView = ({ onSave, onShareRequest }: { onSave: (item: BiteActionItem) => void, onShareRequest: (item: BiteActionItem) => void }) => {
   const [selectedRecipe, setSelectedRecipe] = useState<BiteRecipe | null>(null);
   const [showFilters, setShowFilters] = useState(false);

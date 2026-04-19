@@ -388,6 +388,16 @@ const TrimsReviewStep = ({ video, data, onEdit, onLock, isUploading }: { video: 
   );
 };
 
+/**
+ * COMPONENT: AITrimStudio
+ * Fully immersive 7-step wizard for neural video synthesis.
+ * Supports: Local Vertical Video upload & YouTube URL extraction.
+ * Logic:
+ * 1. Media: Input source (File/Link).
+ * 2. Identity: Creator/Title context.
+ * 3. Story: Narrative/Vibe configuration.
+ * 4. Synthesis: Gemini neural assembly of the card.
+ */
 export const AITrimStudio = ({
   onSave,
   onShareRequest,
@@ -566,6 +576,14 @@ export const AITrimStudio = ({
   );
 };
 
+/**
+ * COMPONENT: TrimsView
+ * Master orchestrator for the 'Trims' feature.
+ * Features:
+ * - YouTube-based global discovery.
+ * - Local region-aware trending content.
+ * - Seamless transition to AI Studio.
+ */
 export const TrimsView = ({ onSave, onShareRequest, authUser }: { onSave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void; authUser: AuthUser | null; }) => {
   const [activeCuisine, setActiveCuisine] = useState<string | null>(null);
   const [activeVibe, setActiveVibe] = useState<string | null>(null);

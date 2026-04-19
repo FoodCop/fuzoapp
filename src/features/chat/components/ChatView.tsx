@@ -1,3 +1,15 @@
+/**
+ * ============================================================================
+ * CHAT MODULE — Real-time Studio Orchestration
+ * ============================================================================
+ * 
+ * Component Architecture:
+ * 1. ChatService Integration: Real-time Supabase synchronization.
+ * 2. Inbox Orchestrator: Dynamic filtering and status management.
+ * 3. Messaging Engine: Supports text and rich Studio item shares.
+ * 4. Group Logic: Dynamic group creation and member synchronization.
+ */
+
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { 
   ChevronLeft, LayoutGrid, X, Search, ChevronRight, Eye, Bookmark, 
@@ -25,8 +37,12 @@ const requestNotificationPermission = async () => {
 };
 
 /**
- * ChatView - Full-screen inbox and messaging interface.
- * Extracted from index.tsx as part of the modularization effort.
+ * COMPONENT: ChatView
+ * Master orchestrator for the 'Chat' feature.
+ * Coordinates:
+ * - Direct Messaging (Supabase Realtime)
+ * - Group Clusters
+ * - Shared Studio Artifacts (Bites/Trims/Scout)
  */
 export const ChatView = ({
   friends,
@@ -265,6 +281,8 @@ export const ChatView = ({
       }]));
   };
 
+  // --- SECTION: Group Logic ---
+  
   const createGroup = async () => {
     if (!newGroupName.trim() || selectedMemberIds.length === 0 || !authUser?.id) return;
 

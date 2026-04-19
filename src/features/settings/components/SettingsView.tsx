@@ -1,3 +1,16 @@
+/**
+ * ============================================================================
+ * SETTINGS MODULE — Account & Privacy Orchestrator
+ * ============================================================================
+ * 
+ * Component Architecture:
+ * 1. Default Logic: Merges Auth metadata with application defaults.
+ * 2. Settings Service: Bidirectional sync with the 'user_settings' table.
+ * 3. Media Cluster: Handles async uploads for Avatars and Cover photos.
+ * 4. Security Logic: Wraps Supabase Auth for password/reset flows.
+ * 5. Preference Engine: Specialized UI for cuisine/dietary configurations.
+ */
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   User, Bot, MapPin, Mail, Shield, AlertCircle, Phone, 
@@ -14,9 +27,10 @@ import { PrimaryProfileType, ChefSubtype, IndividualSubtype } from '../../profil
 import { ProfileTypeModal } from './ProfileTypeModal';
 import { Avatar } from '../../../shared/ui/Avatar';
 
-
-
-
+/**
+ * COMPONENT: SettingsView
+ * Interface for managing account identity, security, and discovery preferences.
+ */
 export const SettingsView = ({ 
   onSignOut, 
   authUser 
@@ -24,6 +38,7 @@ export const SettingsView = ({
   onSignOut: () => Promise<void>; 
   authUser: AuthUser | null 
 }) => {
+  // SECTION: Default State Construction
   const defaults = useMemo<SettingsProfile>(() => {
     const metadata = (authUser?.user_metadata || {}) as Record<string, string | undefined>;
     const email = authUser?.email || '';
@@ -49,7 +64,6 @@ export const SettingsView = ({
       coverUrl: metadata.cover_photo_url || '',
     };
   }, [authUser]);
-
 
 
   const [profile, setProfile] = useState<SettingsProfile>(defaults);
@@ -80,6 +94,7 @@ export const SettingsView = ({
     setIsDirty(false);
   }, [defaults]);
 
+  // SECTION: Persistence logic
   useEffect(() => {
     let cancelled = false;
 
@@ -156,7 +171,6 @@ export const SettingsView = ({
   const individualSubtypes: IndividualSubtype[] = ['Food Explorer', 'Culinary Enthusiast', 'Taste Maker', 'Home Cook', 'Dine-Out Pro'];
 
 
-
   const handleSaveSettings = async () => {
     if (!authUser?.id || !isDirty || savingSettings) return;
 
@@ -181,6 +195,8 @@ export const SettingsView = ({
     setSavingSettings(false);
     setSettingsMessage('Settings saved.');
   };
+
+  // SECTION: Security Flows
 
   const handleChangePassword = async () => {
     if (!supabase || updatingPassword) {
@@ -247,6 +263,8 @@ export const SettingsView = ({
 
     setSendingResetEmail(false);
   };
+
+  // SECTION: Media Orchestration
 
   const avatarInputRef = React.useRef<HTMLInputElement>(null);
   const coverInputRef = React.useRef<HTMLInputElement>(null);

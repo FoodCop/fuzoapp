@@ -12,6 +12,11 @@
  *   5. Review   — Studio Card preview
  *   6. Finish   — Success + Post to Feed
  * 
+ * Architecture:
+ * - Orchestrator (SnapStudio) manages global step state and data accumulation.
+ * - Sub-steps are functional components presented via a state-driven switch.
+ * - Persistence involves a "Triple Write" to Posts, Locations, and Saved Items.
+ * 
  * @see docs/GUIDES/SNAP_STUDIO_READY_RECKONER.md
  */
 
@@ -31,10 +36,11 @@ import { FeedService } from '../../feed';
 import type { AppItem } from '../../../shared/types/appItem';
 
 
-// ---------------------------------------------------------------------------
-// Hybrid Autotagging — local keyword extraction
-// ---------------------------------------------------------------------------
-
+/**
+ * SECTION: Hybrid Autotagging Utility
+ * Extracts local tags from user descriptions using the taxonomical keyword map.
+ * This runs alongside the AI Pass to ensure consistent categorization.
+ */
 const extractLocalTags = (description: string): string[] => {
   const found: string[] = [];
   const lower = description.toLowerCase();
@@ -47,10 +53,11 @@ const extractLocalTags = (description: string): string[] => {
 };
 
 
-// ---------------------------------------------------------------------------
-// Step 1 — Location Pin (Full-Screen Google Map)
-// ---------------------------------------------------------------------------
-
+/**
+ * SECTION: STEP 1 — Location Pin Component
+ * A full-screen interactive Google Map with a draggable "Fuzo Pin".
+ * Logic: Reverse geocodes the pin location in real-time to provide the user with address feedback.
+ */
 const LocationPinStep = ({ location, onUpdate, onNext }: { location: any, onUpdate: (lat: number, lng: number) => void, onNext: () => void }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [address, setAddress] = useState('Pinpoint your discovery...');
@@ -59,6 +66,7 @@ const LocationPinStep = ({ location, onUpdate, onNext }: { location: any, onUpda
     const google = (window as any).google;
     if (!google || !mapRef.current) return;
 
+    // Center on NYC fallback if no geolocation is available
     const initialPos = location || { lat: 40.7128, lng: -74.0060 };
     const map = new google.maps.Map(mapRef.current, {
       center: initialPos,
@@ -89,6 +97,7 @@ const LocationPinStep = ({ location, onUpdate, onNext }: { location: any, onUpda
       }
     });
 
+    // Sub-Logic: Maps Reverse Geocoding
     const updateAddress = async (lat: number, lng: number) => {
       const geocoder = new google.maps.Geocoder();
       try {
@@ -136,10 +145,10 @@ const LocationPinStep = ({ location, onUpdate, onNext }: { location: any, onUpda
 };
 
 
-// ---------------------------------------------------------------------------
-// Step 2 — Identity (Restaurant Name + Cuisine)
-// ---------------------------------------------------------------------------
-
+/**
+ * SECTION: STEP 2 — Identity Component
+ * Captures the restaurant name and primary cuisine classification.
+ */
 const IdentityStep = ({ restaurant, cuisine, onUpdate, onNext }: { restaurant: string, cuisine: string, onUpdate: (data: any) => void, onNext: () => void }) => {
   return (
     <div className="fixed inset-0 z-[250] bg-stone-950 p-8 flex flex-col justify-center animate-in slide-in-from-right duration-500">
@@ -171,10 +180,11 @@ const IdentityStep = ({ restaurant, cuisine, onUpdate, onNext }: { restaurant: s
 };
 
 
-// ---------------------------------------------------------------------------
-// Step 3 — Experience (Rating + Description)
-// ---------------------------------------------------------------------------
-
+/**
+ * SECTION: STEP 3 — Experience Component
+ * Captures subjective user feedback (Star Rating) and free-text narrative.
+ * Analysis: The description is analyzed by AI in Step 4 to derive secondary tags.
+ */
 const ExperienceStep = ({ rating, description, onUpdate, onNext }: { rating: number, description: string, onUpdate: (data: any) => void, onNext: () => void }) => {
   return (
     <div className="fixed inset-0 z-[250] bg-stone-950 p-8 flex flex-col justify-center animate-in slide-in-from-right duration-500">
@@ -211,10 +221,10 @@ const ExperienceStep = ({ rating, description, onUpdate, onNext }: { rating: num
 import { NeuralReveal } from '../../../shared/ui/NeuralReveal';
 
 
-// ---------------------------------------------------------------------------
-// Step 5 — Review (Studio Card Preview)
-// ---------------------------------------------------------------------------
-
+/**
+ * SECTION: STEP 5 — Review Component
+ * Renders the final Studio Card preview for verification before database persistence.
+ */
 const ReviewStep = ({ image, data, onEdit, onLock, isUploading }: { image: string, data: any, onEdit: () => void, onLock: () => void, isUploading: boolean }) => {
   return (
     <div className="fixed inset-0 z-[250] bg-stone-950 p-8 flex flex-col items-center justify-center space-y-12 animate-in zoom-in-95 duration-500 overflow-y-auto">
@@ -223,6 +233,7 @@ const ReviewStep = ({ image, data, onEdit, onLock, isUploading }: { image: strin
         <h2 className="text-5xl font-black uppercase tracking-tighter italic text-white leading-none">Culinary Snap Card</h2>
       </div>
       <div className="max-w-xl w-full">
+        {/* Immersive Preview Frame */}
         <div className="relative aspect-[9/16] rounded-[2rem] overflow-hidden bg-stone-900 shadow-2xl border-[10px] border-white">
           <img src={image} className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
@@ -238,6 +249,7 @@ const ReviewStep = ({ image, data, onEdit, onLock, isUploading }: { image: strin
             </div>
           </div>
         </div>
+        {/* Action Controls */}
         <div className="flex gap-4 mt-8">
           <button onClick={onEdit} className="px-8 py-5 bg-white/10 text-white rounded-[2rem] font-black uppercase tracking-widest text-xs border border-white/5">Edit</button>
           <button onClick={onLock} disabled={isUploading} className="flex-grow py-5 bg-white text-stone-900 rounded-[2rem] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3">
@@ -251,10 +263,10 @@ const ReviewStep = ({ image, data, onEdit, onLock, isUploading }: { image: strin
 };
 
 
-// ---------------------------------------------------------------------------
-// Step 6 — Success
-// ---------------------------------------------------------------------------
-
+/**
+ * SECTION: STEP 6 — Success Component
+ * Feedback screen with an optional CTA to syndicate the discovery to the global community feed.
+ */
 const SuccessStep = ({ isPosting, postSuccess, onPostToFeed, onClose }: { isPosting: boolean, postSuccess: boolean, onPostToFeed: () => void, onClose: () => void }) => {
   return (
     <div className="fixed inset-0 z-[250] bg-emerald-500 flex flex-col items-center justify-center p-8 text-center space-y-8 animate-in fade-in duration-700">
@@ -274,10 +286,11 @@ const SuccessStep = ({ isPosting, postSuccess, onPostToFeed, onClose }: { isPost
 };
 
 
-// ---------------------------------------------------------------------------
-// Main Orchestrator
-// ---------------------------------------------------------------------------
-
+/**
+ * SECTION: SnapStudio Orchestrator
+ * The core logic engine for the Snap experience. 
+ * Manages camera lifecycles, neural analysis, and multi-table data persistence.
+ */
 export interface SnapStudioProps {
   onPost: (item: AppItem) => void;
   onClose: () => void;
@@ -292,11 +305,15 @@ export interface SnapStudioProps {
 
 export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) => {
   const STUDIO_STEPS = ['Source', 'Location', 'Identity', 'Story', 'Reveal', 'Review', 'Finish'];
+  
+  // --- STATE: Flow & Media ---
   const [currentStep, setCurrentStep] = useState(0);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(
     initialData?.lat && initialData?.lng ? { lat: initialData.lat, lng: initialData.lng } : null
   );
+
+  // --- STATE: Data & Processing ---
   const [isUploading, setIsUploading] = useState(false);
   const [isPostingToFeed, setIsPostingToFeed] = useState(false);
   const [feedPostSuccess, setFeedPostSuccess] = useState(false);
@@ -310,9 +327,11 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [nearbyPlaces, setNearbyPlaces] = useState<any[]>([]);
 
+  // --- REFS: Hardware Access ---
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
+  // LOGIC: Hardware Camera Lifecycle Management
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -330,10 +349,12 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
     streamRef.current = null;
   };
 
+  // EFFECT: Manages camera resources based on active wizard step
   useEffect(() => {
     if (currentStep === 0) {
       startCamera();
       
+      // Auto-Locate user on Step 0 for location pre-population
       if (!initialData?.lat || !initialData?.lng) {
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
@@ -341,6 +362,7 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
             const lng = pos.coords.longitude;
             setLocation({ lat, lng });
             
+            // Sub-Logic: Reverse search nearby spots using Google Places proxy
             try {
               const result = await PlacesService.searchNearby(lat, lng, 100);
               if (result.success && result.data?.results?.length) {
@@ -365,6 +387,7 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
     return () => stopCamera();
   }, [currentStep, initialData]);
 
+  // LOGIC: Image Capture (Viewfinder -> Canvas -> DataURL)
   const handleCapture = () => {
     if (!videoRef.current) return;
     const canvas = document.createElement('canvas');
@@ -385,12 +408,16 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
     }
   };
 
+  /**
+   * LOGIC: handleNeuralAnalysis
+   * Triggers the Gemini 1.5 Flash pass to analyze the image and user description.
+   * Merges AI tags with local keyword extraction results.
+   */
   const handleNeuralAnalysis = async () => {
     if (!capturedImage) return;
     setIsAnalyzing(true);
     try {
-      // Small delay for UX impact
-      await new Promise(r => setTimeout(r, 1500));
+      await new Promise(r => setTimeout(r, 1500)); // UX buffer
       const geminiResult = await GeminiService.analyzeSnap(capturedImage, snapData.description);
       const parsed = parseAiJson(geminiResult) || {};
       
@@ -407,7 +434,6 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
       }));
     } catch (error) {
       console.error('Neural analysis failed:', error);
-      // Fallback: use local tags from description
       const localTags = extractLocalTags(snapData.description);
       setSnapData((prev: any) => ({
         ...prev,
@@ -418,10 +444,15 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
     }
   };
 
+  /**
+   * LOGIC: handleFinish
+   * Executes the persistence flow.
+   * Mode 1 (publish=false): Saves to personal Plate and Locations.
+   * Mode 2 (publish=true): Syndicates the discovery to the global community feed.
+   */
   const handleFinish = async (publish: boolean) => {
     if (!capturedImage || !snapData) return;
     
-    // Unified item structure for both Feed and Persistence
     const item: AppItem = {
       id: `snap-${Date.now()}`,
       itemType: 'photo',
@@ -466,6 +497,7 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
 
   return (
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-[200] bg-black text-white flex flex-col overflow-hidden">
+      {/* SECTION: Global Header & Progress Tracker */}
       <header className="p-8 border-b border-white/5 bg-stone-950/50 backdrop-blur-xl shrink-0 flex items-center justify-between z-30">
         <StudioStepper steps={STUDIO_STEPS} currentStep={currentStep} className="flex-grow max-w-2xl mx-auto" />
         <button onClick={onClose} className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-2xl flex items-center justify-center transition-colors">
@@ -473,6 +505,7 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
         </button>
       </header>
 
+      {/* SECTION: Wizard Body (Step-by-Step UI) */}
       <div className="flex-grow relative overflow-hidden">
         {currentStep === 0 && (
           <div className="h-full flex flex-col relative animate-in fade-in duration-500">
@@ -514,10 +547,10 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
 };
 
 
-// ---------------------------------------------------------------------------
-// Public Export
-// ---------------------------------------------------------------------------
-
+/**
+ * SECTION: Public SnapView Interface
+ * Wraps the SnapStudio in a lightweight container for entry from the Feed or Scout.
+ */
 export const SnapView = ({ onPost, onClose }: { onPost: (item: AppItem) => void, onClose: () => void }) => {
   return <SnapStudio onPost={onPost} onClose={onClose} />;
 };

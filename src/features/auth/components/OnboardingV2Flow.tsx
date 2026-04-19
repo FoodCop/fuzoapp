@@ -15,6 +15,10 @@ import {
 } from '../constants/onboardingV2Data';
 import type { OnboardingLocation, OnboardingV2Payload, UserType } from '../types/onboarding';
 
+/**
+ * SECTION: OnboardingV2 Constants & Initial State
+ * Defines the default location and high-fidelity background imagery for each persona.
+ */
 const defaultLocation: OnboardingLocation = {
   country: '',
   state: '',
@@ -29,6 +33,11 @@ const ONBOARDING_BACKGROUNDS = {
   culinary_team: "https://images.unsplash.com/photo-1466637574441-749b8f19452f?auto=format&fit=crop&w=1200&q=80",
 };
 
+/**
+ * SECTION: OnboardingV2Flow Component
+ * A multi-stage immersive wizard that configures the user's "Culinary DNA".
+ * Handles persona selection, custom questionnaire paths, media uploads, and geolocation.
+ */
 export const OnboardingV2Flow = ({
   onComplete,
   mode = 'live',
@@ -36,18 +45,24 @@ export const OnboardingV2Flow = ({
   onComplete: (payload: OnboardingV2Payload) => void;
   mode?: 'live' | 'demo';
 }) => {
+  // --- STATE: Flow Coordination ---
   const [phase, setPhase] = useState<'type_selection' | 'path' | 'quiz' | 'location'>('type_selection');
   const [userType, setUserType] = useState<UserType | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
+  
+  // --- STATE: Data Collection ---
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [quizIndex, setQuizIndex] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
   const [phone, setPhone] = useState('');
   const [location, setLocation] = useState<OnboardingLocation>(defaultLocation);
+  
+  // --- STATE: Feedback & Animation ---
   const [isDetecting, setIsDetecting] = useState(false);
   const [mediaUploaded, setMediaUploaded] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
+  // LOGIC: Selects the feature path based on user persona (Individual vs Pro)
   const currentPath = useMemo(() => {
     if (!userType) return [];
     if (userType === 'individual') return INDIVIDUAL_PATH;
@@ -58,6 +73,7 @@ export const OnboardingV2Flow = ({
 
   const currentStep = currentPath[stepIndex];
 
+  // LOGIC: Browser Geolocation Integration
   const detectLocation = () => {
     if (!globalThis.navigator?.geolocation) return;
     setIsDetecting(true);
@@ -76,10 +92,15 @@ export const OnboardingV2Flow = ({
     );
   };
 
+  /**
+   * SECTION: finalize Logic
+   * Aggregates all collected data and calculated personality results into a single payload
+   * for the AuthOrchestrator to persist.
+   */
   const finalize = () => {
-    // Determine personality result based on quiz answers
     let quizResult = '';
     if (userType === 'individual') {
+      // Basic frequency logic to determine "Personality" result from the quiz
       const counts: Record<string, number> = {};
       Object.values(quizAnswers).forEach(val => counts[val] = (counts[val] || 0) + 1);
       const top = Object.entries(counts).sort((a,b) => b[1] - a[1])[0]?.[0];
@@ -96,6 +117,10 @@ export const OnboardingV2Flow = ({
     });
   };
 
+  /**
+   * SECTION: Navigation Engine
+   * Manages transitions between the 4 major phases: Selection -> Feature Path -> Quiz -> Location.
+   */
   const handleNext = () => {
     if (phase === 'type_selection') {
       setPhase('path');
@@ -117,6 +142,7 @@ export const OnboardingV2Flow = ({
     }
   };
 
+  // UI HELPER: Mapping icon strings to Lucide components
   const renderIcon = (iconName: string, active: boolean) => {
     const props = { size: 24, className: active ? 'text-yellow-400' : 'text-stone-400' };
     if (iconName === 'ChefHat') return <ChefHat {...props} />;
@@ -127,7 +153,10 @@ export const OnboardingV2Flow = ({
 
   return (
     <div className="min-h-screen bg-stone-950 flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
-      {/* Background Cinematic Backdrop */}
+      
+      {/* SECTION: Dynamic Backdrop 
+          Changes theme based on the selected persona to provide instant visual feedback.
+      */}
       <AnimatePresence mode="wait">
         <motion.div
            key={userType || 'initial'}
@@ -140,7 +169,7 @@ export const OnboardingV2Flow = ({
           <img 
             src={userType ? ONBOARDING_BACKGROUNDS[userType] : "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80"} 
             className="w-full h-full object-cover blur-sm scale-110" 
-            alt="" 
+            alt="Onboarding Background" 
           />
           <div className="absolute inset-0 bg-stone-950/60" />
         </motion.div>
@@ -148,6 +177,8 @@ export const OnboardingV2Flow = ({
 
       <div className="w-full max-w-xl bg-white p-8 sm:p-12 md:p-16 rounded-[3rem] sm:rounded-[4rem] shadow-2xl border-4 border-white space-y-8 relative z-10">
         <AnimatePresence mode="wait">
+          
+          {/* PHASE 1: Persona Selection */}
           {phase === 'type_selection' ? (
             <motion.div key="selection" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
               <div className="space-y-4">
@@ -172,6 +203,8 @@ export const OnboardingV2Flow = ({
                 ))}
               </div>
             </motion.div>
+          
+          /* PHASE 2: Linear Step-by-Step Configuration */
           ) : phase === 'path' ? (
             <motion.div key={`step-${stepIndex}`} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
               <div className="flex justify-between items-center">
@@ -189,6 +222,7 @@ export const OnboardingV2Flow = ({
                 <p className="text-stone-400 font-bold">{currentStep.desc}</p>
               </div>
 
+              {/* Sub-Type: Single-Choice Selection */}
               {currentStep.type === 'choice' && (
                 <div className="grid grid-cols-1 gap-3">
                   {currentStep.options.map((opt) => (
@@ -207,6 +241,7 @@ export const OnboardingV2Flow = ({
                 </div>
               )}
 
+              {/* Sub-Type: Multi-Choice Selection (Array persistence) */}
               {currentStep.type === 'multichoice' && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-2 gap-3">
@@ -237,6 +272,7 @@ export const OnboardingV2Flow = ({
                 </div>
               )}
 
+              {/* Sub-Type: Form Data Collection */}
               {currentStep.type === 'form' && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 gap-5">
@@ -274,12 +310,13 @@ export const OnboardingV2Flow = ({
                 </div>
               )}
 
+              {/* Sub-Type: Media Portfolio / CV Sync */}
               {currentStep.type === 'media' && (
                 <div className="space-y-6">
                   <div 
                     onClick={() => {
                       if (mediaUploaded) return;
-                      // Simulate upload
+                      // Simulation of secure file upload logic
                       setUploadProgress(10);
                       const interval = setInterval(() => {
                         setUploadProgress(prev => {
@@ -343,6 +380,8 @@ export const OnboardingV2Flow = ({
                 </div>
               )}
             </motion.div>
+          
+          /* PHASE 3: Culinary DNA Quiz (Flavor Profile matching) */
           ) : phase === 'quiz' ? (
             <motion.div key={`quiz-${quizIndex}`} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
               <div className="space-y-4">
@@ -368,6 +407,8 @@ export const OnboardingV2Flow = ({
                 ))}
               </div>
             </motion.div>
+          
+          /* PHASE 4: Final Layer - Location & Persistence */
           ) : (
             <motion.div key="location" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
               <div className="space-y-4">

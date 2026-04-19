@@ -1,0 +1,66 @@
+# Developer Guide: Project Architecture Ready Reckoner
+
+This guide details the high-level orchestration, state management, and design system tokens used to power the FUZO V2 application.
+
+---
+
+## 🏗️ Root Orchestration
+The application is bootstraped via `index.tsx`, which serves as the central hub for state and routing.
+
+### 1. Global State Management
+The root `App` component manages several critical state vectors:
+- **Authentication**: `isAuthenticated`, `authUser`, and `authBooting` (handled via `AuthOrchestrator`).
+- **Onboarding**: `hasCompletedOnboarding` determines if the user sees the landing experience or the active app.
+- **Navigation**: `tab` state controls the active view based on `TAB_IDS`.
+- **Modals**: Global boolean states for ephemeral views (`showSnap`, `showNotifications`, `showUnifiedCreation`, etc.).
+
+### 2. View Rendering logic
+The `App` component uses `renderAppView` (from `src/app/routes/renderAppView.tsx`) to switch between features based on the `tab` state.
+
+---
+
+## 🧭 Navigation Architecture
+Navigation is split into two primary layers defined in `src/app/layout/navItems.ts`:
+
+- **Active Hub (Bottom Nav)**: The high-frequency discovery tools (Feed, Bites, Snap, Trims, Scout).
+- **Control Cluster (Drawer)**: Personal and social management (Profile, Leaderboard, Rewards, Chat, Notifications, Chef, Settings).
+
+### Deep Linking
+The app supports `?view=ID` query parameters. The `useTabUrlSync` hook ensures the browser URL stays in sync with the internal `tab` state for sharing and back-button support.
+
+---
+
+## 🎨 The "Masterclass" Design System
+FUZO follows a premium, high-fidelity design language characterized by high contrast and extreme geometry.
+
+### 1. Color Palette (Tailwind Tokens)
+- **Primary Yellow**: `#FACC15` (Yellow-400) - Highlights, status badges, and "Neural" glows.
+- **Foundation White**: `#FFFFFF` - Surface and card backgrounds.
+- **Canvas Stone**: `#FAF9F6` (Stone-50) - Page background for light mode.
+- **Pitch Black**: `#000000` - High-contrast text, iconography, and dark-mode frames.
+
+### 2. Typography
+- **Core Font**: Inter (System Sans-Serif).
+- **Heading Style**: `font-black` (900 weight) + `uppercase`.
+- **Badges**: Tracking is often set to `tracking-widest` (0.1em to 0.4em) for a high-end editorial feel.
+
+### 3. Geometry & Effects
+- **Global Radius**: Multi-scale approach.
+    - Standard Card: `rounded-[2rem]`
+    - Feature Modals: `rounded-[3rem]`
+    - Mobile Pill Nav: `rounded-full`
+- **Glassmorphism**: Combine `bg-white/80` or `bg-stone-900/60` with `backdrop-blur-xl`.
+- **Borders**: Subtle `border-stone-100` for grouping; thick `border-white/ border-4` for "Stacked" UI effects.
+
+---
+
+## 🧪 Shared Libraries & Helpers
+Major features reuse common utility layers:
+- **AI Synthesis**: `src/shared/lib/studioHelpers.ts` (Parsing, Image reading).
+- **Taxonomy**: `src/shared/utils/taxonomy.ts` (Cuisine/Diet/Vibe standards).
+- **Metadata**: `src/shared/lib/metadata.ts` (Robust type-safe property extraction).
+
+---
+
+> [!TIP]
+> **Orchestration**: Most features are passed `onSave` or `onShareRequest` callbacks from the root `index.tsx` to handle cross-feature persistence and communication while maintaining modularity.
