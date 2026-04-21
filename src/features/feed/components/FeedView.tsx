@@ -81,7 +81,7 @@ export const FeedView = ({
   const fetchFromFeedService = async (isRetry = false) => {
     // 0. Fallback Strategy: Immediate resolution for development/fallback modes
     if (!FEED_USE_SERVICE && !isRetry) {
-      console.log('🍽️ [FeedView] Service disabled, loading local curated items');
+      console.log('🍽️ [FeedView] Service disabled by config, loading local curated items');
       setItems(LOCAL_CURATED_FEED_ITEMS);
       setFeedSource('local');
       setFeedLoading(false);
@@ -90,8 +90,8 @@ export const FeedView = ({
 
     setFeedLoading(true);
     setFeedError('');
-
     const requestSeq = ++feedRequestSeqRef.current;
+    console.log(`🍽️ [FeedView] Request #${requestSeq} started (isRetry: ${isRetry})`);
 
     try {
       // 1. Contextual Signals: Geolocation for proximity-based food.
@@ -130,8 +130,11 @@ export const FeedView = ({
         pageSize: 12
       });
 
+      console.log(`🍽️ [FeedView] Service returned ${feedCards.length} candidates.`);
       // 4. Normalization: Streamline raw AI output into FUZO-standard Card models.
       const adaptedCards = normalizeFeedServiceToCards(feedCards);
+      console.log(`🍽️ [FeedView] Normalization Result: ${adaptedCards.length} UI cards.`);
+
       const isLatestRequest = shouldApplyLatestRequest(feedMountedRef, requestSeq, feedRequestSeqRef);
 
       if (isLatestRequest) {
@@ -143,6 +146,7 @@ export const FeedView = ({
         } else {
           // Empty result handling
           if (!isRetry) {
+            console.log('🍽️ [FeedView] No results from normalization, using local fallback');
             setItems(LOCAL_CURATED_FEED_ITEMS);
             setFeedSource('local');
             setFeedError('');
