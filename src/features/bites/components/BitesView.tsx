@@ -1078,7 +1078,7 @@ export const AIRecipeStudio = ({
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-[200] bg-black text-white flex flex-col overflow-hidden">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-[200] text-white flex flex-col overflow-hidden">
       <header className="p-8 border-b border-white/5 bg-stone-950/50 backdrop-blur-xl shrink-0 flex items-center justify-between z-30">
         <StudioStepper steps={STUDIO_STEPS} currentStep={currentStep} className="flex-grow max-w-2xl mx-auto" />
         <button onClick={onClose} className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-2xl flex items-center justify-center transition-colors">
@@ -1161,9 +1161,9 @@ export const BitesView = ({ onSave, onShareRequest }: { onSave: (item: BiteActio
   const { handleSaveRecipe, handleShareRecipe } = createBiteRecipeActions(onSave, onShareRequest);
 
   return (
-    <div className="min-h-screen bg-stone-950 text-white p-8 md:p-12 pb-32">
+    <div className="min-h-screen text-white p-8 md:p-12 pb-32">
       <header className="mb-12 space-y-4">
-        <h2 className="text-5xl font-black uppercase tracking-tighter italic">Bites Gallery</h2>
+        <h2 className="text-5xl font-black uppercase tracking-tighter italic text-black">Bites Gallery</h2>
         <div className="flex items-center gap-4">
           <Badge color="yellow">Neural Recipes</Badge>
           <div className="h-0.5 flex-grow bg-white/5" />
@@ -1202,11 +1202,11 @@ export const BitesView = ({ onSave, onShareRequest }: { onSave: (item: BiteActio
             >
               <div className="relative aspect-[4/5] rounded-[1.75rem] border-4 border-white shadow-xl overflow-hidden group-hover:scale-[1.02] transition-transform duration-500">
                 <img src={recipe.image} alt={recipe.title || 'Recipe'} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent" />
-                <div className="absolute bottom-10 left-10 right-10 text-white">
-                  <h3 className="text-2xl font-black uppercase tracking-tighter mb-2 leading-none">{recipe.title}</h3>
-                  <div className="flex gap-2 items-center text-[12px] font-bold uppercase tracking-widest opacity-80">
-                    <Clock size={14} /> {recipe.readyInMinutes} Min
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                <div className="absolute bottom-6 md:bottom-10 left-4 md:left-10 right-4 md:right-10 text-white">
+                  <h3 className="text-sm md:text-2xl font-black uppercase tracking-tighter mb-1 md:mb-2 leading-tight md:leading-none line-clamp-2">{recipe.title}</h3>
+                  <div className="flex gap-2 items-center text-[10px] md:text-[12px] font-bold uppercase tracking-widest opacity-80">
+                    <Clock size={12} className="md:size-[14px]" /> {recipe.readyInMinutes} Min
                   </div>
                 </div>
               </div>
