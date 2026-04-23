@@ -592,12 +592,12 @@ const BitesRecipeModal = ({
         </div>
 
         {/* Right Side: Content */}
-        <div className="w-full md:w-1/2 flex flex-col h-full bg-white relative">
+        <div className="w-full md:w-1/2 flex flex-col h-full bg-white relative overflow-hidden">
           {/* Header (Desktop) */}
-          <div className="hidden md:block p-10 pb-0 space-y-4">
+          <div className="hidden md:block p-10 pb-0 space-y-4 shrink-0">
             <Badge color="yellow">Studio Pack #{selectedRecipe.id}</Badge>
             <h2 className="text-4xl font-black uppercase tracking-tighter leading-none text-stone-900">{selectedRecipe.title}</h2>
-            <div className="flex gap-6">
+            <div className="flex flex-wrap gap-4">
               <div className="flex items-center gap-2 text-[12px] font-black uppercase tracking-widest text-stone-400">
                 <Clock size={16} /> {selectedRecipe.readyInMinutes} Mins
               </div>
@@ -608,7 +608,7 @@ const BitesRecipeModal = ({
           </div>
 
           {/* Stats (Mobile) */}
-          <div className="flex md:hidden px-8 py-6 gap-6 border-b border-stone-50">
+          <div className="flex md:hidden px-8 py-6 gap-4 border-b border-stone-50 shrink-0">
               <div className="flex items-center gap-2 text-[12px] font-black uppercase tracking-widest text-stone-400">
                 <Clock size={16} /> {selectedRecipe.readyInMinutes} Mins
               </div>
@@ -618,7 +618,7 @@ const BitesRecipeModal = ({
           </div>
 
           {/* Tab Bar */}
-          <div className="px-8 mt-6">
+          <div className="px-8 mt-6 shrink-0">
             <div className="flex bg-stone-50 p-1.5 rounded-2xl gap-1">
               {tabs.map((t) => (
                 <button
@@ -666,10 +666,34 @@ const BitesRecipeModal = ({
                       <ChefHat size={20} />
                       <h4 className="font-black uppercase text-xs tracking-widest">Chef Instructions</h4>
                     </div>
-                    <div 
-                      className="text-sm font-medium text-stone-500 leading-relaxed whitespace-pre-wrap studio-instructions prose prose-stone max-w-none" 
-                      dangerouslySetInnerHTML={{ __html: selectedRecipe.instructions || 'Consult Chef FUZO for detailed steps.' }} 
-                    />
+                    <div className="space-y-3">
+                      {selectedRecipe.analyzedInstructions && selectedRecipe.analyzedInstructions.length > 0
+                        ? selectedRecipe.analyzedInstructions.map((step: any) => (
+                            <div key={`analyzed-${step.number}`} className="flex gap-4 p-4 bg-stone-50 rounded-2xl border border-stone-100/50 hover:bg-white hover:border-yellow-200 transition-all">
+                              <div className="flex items-center justify-center w-8 h-8 bg-yellow-400 text-stone-900 rounded-full font-black text-xs shrink-0">
+                                {step.number}
+                              </div>
+                              <p className="text-sm font-bold text-stone-600 leading-relaxed pt-0.5">{step.step}</p>
+                            </div>
+                          ))
+                        : selectedRecipe.instructions
+                        ? (() => {
+                            const steps = selectedRecipe.instructions
+                              .split(/\n+|\.\s+(?=[A-Z])|(?:^\d+\.|^-|^\*)\s+/m)
+                              .filter((line: string) => line.trim().length > 0);
+                            return steps.map((step: string, idx: number) => (
+                              <div key={`step-${idx}-${step.substring(0, 20)}`} className="flex gap-4 p-4 bg-stone-50 rounded-2xl border border-stone-100/50 hover:bg-white hover:border-yellow-200 transition-all">
+                                <div className="flex items-center justify-center w-8 h-8 bg-yellow-400 text-stone-900 rounded-full font-black text-xs shrink-0">
+                                  {idx + 1}
+                                </div>
+                                <p className="text-sm font-bold text-stone-600 leading-relaxed pt-0.5">{step.trim()}</p>
+                              </div>
+                            ));
+                          })()
+                        : (
+                            <div className="p-4 text-stone-500 text-sm font-bold text-center">Consult Chef FUZO for detailed steps.</div>
+                          )}
+                    </div>
                   </div>
                 )}
 
@@ -696,19 +720,19 @@ const BitesRecipeModal = ({
           </div>
 
           {/* Sticky Footer */}
-          <footer className="p-8 md:p-10 pt-4 bg-white/90 backdrop-blur-md border-t border-stone-50 flex gap-4 shrink-0 transition-all">
+          <footer className="p-8 md:p-10 pt-4 bg-white/90 backdrop-blur-md border-t border-stone-50 flex gap-3 shrink-0 transition-all">
             <button
               onClick={() => onSaveRecipe(selectedRecipe)}
-              className="flex-grow py-5 bg-stone-900 text-white rounded-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all shadow-xl group"
+              className="flex-1 py-4 md:py-5 bg-stone-900 text-white rounded-[1.5rem] md:rounded-2xl flex items-center justify-center gap-2 md:gap-3 hover:scale-[1.02] active:scale-95 transition-all shadow-xl group"
             >
-              <Bookmark size={22} className="group-hover:fill-white transition-all" />
-              <span className="text-[12px] font-black uppercase tracking-widest">Save to Plate</span>
+              <Bookmark size={18} className="md:size-[22px] group-hover:fill-white transition-all" />
+              <span className="text-[11px] md:text-[12px] font-black uppercase tracking-widest">Save to Plate</span>
             </button>
             <button
               onClick={() => onShareRecipe(selectedRecipe)}
-              className="py-5 px-10 bg-yellow-400 text-stone-900 rounded-2xl flex items-center justify-center hover:scale-[1.02] active:scale-95 transition-all shadow-xl"
+              className="py-4 md:py-5 px-6 md:px-10 bg-yellow-400 text-stone-900 rounded-[1.5rem] md:rounded-2xl flex items-center justify-center hover:scale-[1.02] active:scale-95 transition-all shadow-xl"
             >
-              <Share2 size={22} strokeWidth={3} />
+              <Share2 size={18} className="md:size-[22px]" strokeWidth={3} />
             </button>
           </footer>
         </div>
