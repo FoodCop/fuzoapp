@@ -266,7 +266,7 @@ const App = () => {
   const notificationPromptedRef = useRef(false);
   const pathname = globalThis.location.pathname;
   const viewParam = new URLSearchParams(globalThis.location.search).get('view');
-  const homeRoute = (pathname === '/' || pathname === APP_PATH) && (viewParam === null || viewParam === 'home');
+  const homeRoute = (pathname === '/' || pathname === APP_PATH) && (viewParam === null || viewParam === 'home') && !isAuthenticated;
   const isOnboardingDemoView = viewParam === 'onboarding-demo';
   const appRoute = isAppPath(pathname);
   const authCallbackRoute = isAuthCallbackPath(pathname);
@@ -428,12 +428,12 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated || !appRoute || showAuth || homeRoute) {
+    if (authBooting || isAuthenticated || !appRoute || showAuth || homeRoute) {
       return;
     }
 
     setShowAuth(true);
-  }, [appRoute, homeRoute, isAuthenticated, showAuth]);
+  }, [appRoute, authBooting, homeRoute, isAuthenticated, showAuth]);
 
   useEffect(() => {
     if (authBooting || !authCallbackRoute) {

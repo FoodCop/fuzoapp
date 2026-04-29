@@ -75,7 +75,9 @@ export const useAuthSessionSync = ({
     // 2. Real-time Subscription: Listen for changes across other tabs or auth actions
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'INITIAL_SESSION') return;
+      
       const hasSession = !!session;
       const completedOnboarding = isOnboardingCompleted(session?.user);
       setIsAuthenticated(hasSession);
