@@ -8,13 +8,13 @@
  * between the Mobile 'Bottom Nav' and the Sidebar 'Drawer Nav'.
  */
 
-import { Bell, Bot, Camera, ChefHat, Gift, LayoutGrid, MapPin, MessageSquare, PlayCircle, Settings, Trophy, User } from 'lucide-react';
+import { Bell, Bot, Camera, ChefHat, Gift, Home, LayoutGrid, MapPin, MessageSquare, PlayCircle, Settings, Trophy, User } from 'lucide-react';
 
 /**
  * SECTION: Global Tab Definitions
  * The definitive list of all top-level entry points for the React orchestrator.
  */
-export const TAB_IDS = ['feed', 'bites', 'trims', 'chef', 'chat', 'scout', 'profile', 'user-profile', 'leaderboard', 'rewards', 'settings', 'notifications'] as const;
+export const TAB_IDS = ['dashboard', 'feed', 'bites', 'trims', 'chef', 'chat', 'scout', 'profile', 'user-profile', 'leaderboard', 'rewards', 'settings', 'notifications'] as const;
 
 /**
  * SECTION: Primary Bottom Navigation
@@ -22,7 +22,7 @@ export const TAB_IDS = ['feed', 'bites', 'trims', 'chef', 'chat', 'scout', 'prof
  * are accessible from any screen via the primary navigation bar.
  */
 export const BOTTOM_NAV_ITEMS = [
-  { id: 'feed', icon: LayoutGrid, label: 'Feed' },
+  { id: 'dashboard', icon: Home, label: 'Home' },
   { id: 'bites', icon: ChefHat, label: 'Bites' },
   { id: 'snap', icon: Camera, label: 'Snap' },
   { id: 'trims', icon: PlayCircle, label: 'Trims' },
@@ -47,12 +47,12 @@ export const DRAWER_NAV_ITEMS = [
 /**
  * SECTION: Routing Helpers
  * Logic: Resolves the initial app view based on the URL search parameters 
- * (e.g., ?view=chat). Provides fallback to 'feed' if invalid.
+ * (e.g., ?view=chat). Provides fallback to 'dashboard' if invalid.
  */
 export const resolveInitialTab = (search: string, allowedTabs: ReadonlySet<string>) => {
   const view = new URLSearchParams(search).get('view') || '';
   if (view === 'home') {
-    return 'feed';
+    return 'dashboard';
   }
-  return allowedTabs.has(view) ? view : 'feed';
+  return allowedTabs.has(view) ? view : 'dashboard';
 };

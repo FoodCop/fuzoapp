@@ -27,6 +27,7 @@ import type { AppItem } from '../../shared/types/appItem';
  * be rendered by the orchestrator.
  */
 interface RenderComponents {
+  DashboardView: React.ComponentType<{ setTab: (tab: string) => void }>;
   FeedView: React.ComponentType<{ onSave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void; onOpenUserProfile: (userId: string) => void }>;
   BitesView: React.ComponentType<{ onSave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void }>;
   TrimsView: React.ComponentType<{ onSave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void; authUser: AuthUser | null }>;
@@ -110,6 +111,7 @@ export const renderAppView = ({
   components: RenderComponents;
 }) => {
   const {
+    DashboardView,
     FeedView,
     BitesView,
     TrimsView,
@@ -125,6 +127,8 @@ export const renderAppView = ({
 
   // Logic: Map the ID from 'navItems.ts' to the physical component instance.
   switch (tab) {
+    case 'dashboard':
+      return <DashboardView setTab={setTab} />;
     case 'feed':
       return <FeedView onSave={handleSave} onShareRequest={setActiveShareItem} onOpenUserProfile={handleOpenUserProfile} />;
     case 'bites':
@@ -171,6 +175,6 @@ export const renderAppView = ({
     case 'settings':
       return <SettingsView onSignOut={handleSignOut} authUser={authUser} />;
     default:
-      return <FeedView onSave={handleSave} onShareRequest={setActiveShareItem} onOpenUserProfile={handleOpenUserProfile} />;
+      return <DashboardView setTab={setTab} />;
   }
 };

@@ -29,11 +29,17 @@ const userNeedsOnboarding = (user: AuthUser): boolean => {
 ```
 
 ### 2. Entry Flow Pipeline
-1. **Landing Check**: If no session, show `LandingView`.
-2. **Auth Challenge**: User interacts with email/social login.
-3. **Session Created**: `AuthOrchestrator` captures the event.
-4. **Metadata Audit**: Logic checks for `onboarding_completed`.
-5. **Resolution**: Redirect to `Feed` or `OnboardingV2Flow`.
+1. **Bootstrap**: Wait for `authBooting` to finish (Supabase `getSession` resolution).
+2. **Landing Check**: If no session, show `LandingView`.
+3. **Auth Challenge**: User interacts with email/social login.
+4. **Session Created**: `AuthOrchestrator` captures the event (ignoring `INITIAL_SESSION` redundant event).
+5. **Metadata Audit**: Logic checks for `onboarding_completed`.
+6. **Resolution**: Redirect to `Feed` or `OnboardingV2Flow`.
+
+### 3. Stability Guardrails
+- **authBooting Guard**: Prevent auth redirects until the session state is finalized.
+- **INITIAL_SESSION Filter**: Filter out the duplicate session event from Supabase `onAuthStateChange` to prevent race conditions during boot.
+- **Home Route Invalidation**: Authenticated users are structurally prevented from matching the "home" path, skipping the cinematic intro on refresh.
 
 ---
 

@@ -10,7 +10,7 @@ import {
   Info, List, PieChart, CheckCircle2, SlidersHorizontal, Music2, Eye,
   Mail, Phone, Bell, Shield, LogOut, Trophy, Gift, Image as ImageIcon, CheckCheck, AlertCircle,
   Plus,
-  ArrowRight,
+  ArrowRight, Home,
   Pin, Youtube, ExternalLink, Award, Facebook, Instagram, Play, Twitter, Utensils, CreditCard
 } from 'lucide-react';
 import { UGC_CATEGORIES, UGC_CUISINES, UGC_DIETS, UGC_VIBES, normalizeTag, TAXONOMY_KEYWORD_MAP } from './src/shared/utils/taxonomy';
@@ -59,6 +59,7 @@ import { FALLBACK_SAVED_ITEMS } from './src/features/plate/constants/fallbackSav
 import { inferItemTypeFromId, normalizeItemForPlateSave, normalizeSavedItemForUI } from './src/features/plate/lib/savedItems';
 import { PointsService } from './src/features/points/services/pointsService';
 import type { LeaderboardEntry } from './src/features/points/services/pointsService';
+import { DashboardView } from './src/features/dashboard/components/DashboardView';
 import { ScoutView } from './src/features/scout';
 import { SnapView } from './src/features/snap';
 import { BitesView, AIRecipeStudio } from './src/features/bites';
@@ -933,7 +934,13 @@ const App = () => {
   const renderApp = (tabId: string) => {
     const commonProps = {
       tab: tabId,
-      setTab: setTab as (t: string) => void,
+      setTab: ((t: string) => {
+        if (t === 'snap') {
+          setShowSnap(true);
+        } else {
+          setTab(t as any);
+        }
+      }) as (t: string) => void,
       handleSave: (item: AppItem) => {
         handleSave(item).catch((error) => {
           console.warn('Save failed:', error);
@@ -965,6 +972,7 @@ const App = () => {
         setChatActiveType(null);
       },
       components: {
+        DashboardView,
         FeedView,
         BitesView,
         TrimsView,
@@ -1180,7 +1188,7 @@ const App = () => {
           </main>
 
           <nav aria-label="Main tabs" role="tablist" className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-2xl border-t border-stone-100 px-8 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex justify-between items-center md:hidden z-[60] shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-            <NavIcon icon={LayoutGrid} active={tab === 'feed'} onClick={() => setTab('feed')} label="Feed" />
+            <NavIcon icon={Home} active={tab === 'dashboard'} onClick={() => setTab('dashboard')} label="Home" />
             <NavIcon icon={ChefHat} active={tab === 'bites'} onClick={() => setTab('bites')} label="Bites" />
             
             <button 
