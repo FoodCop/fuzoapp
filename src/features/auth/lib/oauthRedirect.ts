@@ -3,6 +3,42 @@ const AUTH_CALLBACK_PATH = '/auth/callback';
 export const APP_PATH = '/app';
 export const HOME_ENTRY_URL = '/?view=home';
 
+// Domain constants
+export const LANDING_DOMAIN = 'fuzo.app';
+export const CORE_APP_SUBDOMAIN = 'app.fuzo.app';
+
+/**
+ * Detects if the current environment is strictly the Landing Page (fuzo.app).
+ * Supports local testing via ?mode=landing
+ */
+export const isLandingDomain = () => {
+  const { hostname, search } = globalThis.location;
+  
+  // Local testing override
+  const mode = new URLSearchParams(search).get('mode');
+  if (mode === 'landing') return true;
+  if (mode === 'app') return false;
+
+  // Production check
+  return hostname === LANDING_DOMAIN;
+};
+
+/**
+ * Detects if the current environment is the Core App (app.fuzo.app).
+ * Supports local testing via ?mode=app
+ */
+export const isCoreAppDomain = () => {
+  const { hostname, search } = globalThis.location;
+
+  // Local testing override
+  const mode = new URLSearchParams(search).get('mode');
+  if (mode === 'app') return true;
+  if (mode === 'landing') return false;
+
+  // Production check (or fallback for localhost if not specified)
+  return hostname === CORE_APP_SUBDOMAIN || hostname === 'localhost' || hostname === '127.0.0.1';
+};
+
 const isDebugFlagTrue = (value: string | undefined) => value === '1' || value === 'true';
 
 export const isAuthDebugEnabled = () => {
@@ -50,23 +86,15 @@ export const getOAuthRedirectUrl = () => {
   const { origin, hostname } = globalThis.location;
   const isLocalDevHost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0';
 
-  if (isLocalDevHost) {
-    const localUrl = `${origin}${AUTH_CALLBACK_PATH}`;
-    authDebugLog('oauth_redirect_url_local', { localUrl, origin, hostname });
-    return localUrl;
+  // In production, we ALWAYS want auth to redirect to the app subdomain
+  if (!isLocalDevHost) {
+    const configuredAppUrl = normalizeAppUrl(import.meta.env.VITE_CORE_APP_URL)
+      || normalizeAppUrl(import.meta.env.VITE_AUTH_REDIRECT_URL)
+      || `https://${CORE_APP_SUBDOMAIN}`;
+    
+    return `${configuredAppUrl}${AUTH_CALLBACK_PATH}`;
   }
 
-  const configuredAppUrl = normalizeAppUrl(import.meta.env.VITE_AUTH_REDIRECT_URL)
-    || normalizeAppUrl(import.meta.env.VITE_APP_URL);
-
-  const redirectUrl = configuredAppUrl ? `${configuredAppUrl}${AUTH_CALLBACK_PATH}` : `${origin}${AUTH_CALLBACK_PATH}`;
-  authDebugLog('oauth_redirect_url_resolved', {
-    redirectUrl,
-    configuredAppUrl,
-    origin,
-    hostname,
-    hasViteAuthRedirectUrl: Boolean(import.meta.env.VITE_AUTH_REDIRECT_URL),
-    hasViteAppUrl: Boolean(import.meta.env.VITE_APP_URL),
-  });
-  return redirectUrl;
+  // Local dev
+  return `${origin}${AUTH_CALLBACK_PATH}`;
 };

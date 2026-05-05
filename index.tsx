@@ -49,7 +49,7 @@ import { shouldApplyLatestRequest } from './src/shared/utils/async';
 import { FeedView, FeedService, getUserFeedLocation } from './src/features/feed';
 import AuthOrchestrator from './src/features/auth/components/AuthOrchestrator';
 import { LandingPage as LandingView } from './src/features/landing/components/LandingView';
-import { APP_PATH, HOME_ENTRY_URL, authDebugLog, getOAuthRedirectUrl, isAppPath, isAuthCallbackPath } from './src/features/auth/lib/oauthRedirect';
+import { APP_PATH, HOME_ENTRY_URL, authDebugLog, getOAuthRedirectUrl, isAppPath, isAuthCallbackPath, isLandingDomain, isCoreAppDomain } from './src/features/auth/lib/oauthRedirect';
 import type { AuthUser } from './src/features/auth/types/auth';
 // Feature constants/types moved to modules
 import { DEFAULT_FRIENDS } from './src/features/chat/constants/chatSeeds';
@@ -231,6 +231,8 @@ const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friend
 // --- MAIN APP ---
 
 const App = () => {
+  const isLanding = useMemo(() => isLandingDomain(), []);
+  const isApp = useMemo(() => isCoreAppDomain(), []);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
@@ -269,7 +271,7 @@ const App = () => {
   const notificationPromptedRef = useRef(false);
   const pathname = globalThis.location.pathname;
   const viewParam = new URLSearchParams(globalThis.location.search).get('view');
-  const homeRoute = (pathname === '/' || pathname === APP_PATH) && (viewParam === null || viewParam === 'home') && !isAuthenticated;
+  const homeRoute = !isApp && (pathname === '/' || pathname === APP_PATH) && (viewParam === null || viewParam === 'home') && !isAuthenticated;
   const isOnboardingDemoView = viewParam === 'onboarding-demo';
   const appRoute = isAppPath(pathname);
   const authCallbackRoute = isAuthCallbackPath(pathname);
@@ -431,12 +433,14 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    if (authBooting || isAuthenticated || !appRoute || showAuth || homeRoute) {
+    if (authBooting || isAuthenticated || showAuth) {
       return;
     }
 
-    setShowAuth(true);
-  }, [appRoute, authBooting, homeRoute, isAuthenticated, showAuth]);
+    if (appRoute || isApp) {
+      setShowAuth(true);
+    }
+  }, [appRoute, authBooting, isAuthenticated, showAuth, isApp]);
 
   useEffect(() => {
     if (authBooting || !authCallbackRoute) {
@@ -1025,6 +1029,16 @@ const App = () => {
       authCallbackRoute={authCallbackRoute}
     />
   );
+
+  // Domain-aware rendering for strictly Landing Page environment
+  if (isLanding) {
+    return (
+      <LandingView onStart={() => {
+        const appUrl = import.meta.env.VITE_CORE_APP_URL || `https://${CORE_APP_SUBDOMAIN}`;
+        globalThis.location.href = appUrl;
+      }} />
+    );
+  }
 
   return (
     <AnimatePresence mode="wait">
