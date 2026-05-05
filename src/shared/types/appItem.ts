@@ -87,6 +87,12 @@ export interface AppItem {
 	userReviews?: AppItemUserReview[];
 	nutrition?: AppItemNutrition;
 
+	// --- Event Context ---
+	eventDate?: string;
+	eventTime?: string;
+	eventLocation?: string;
+	rsvpCount?: number;
+
 	// --- Raw Pipeline Metadata ---
 	metadata?: Record<string, unknown>;
 }

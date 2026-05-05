@@ -12,8 +12,10 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
-  MapPin, ChefHat, PlayCircle, User, LayoutGrid, Music2, Pin, Youtube 
+  MapPin, ChefHat, PlayCircle, User, LayoutGrid, Music2, Pin, Youtube, Instagram 
 } from 'lucide-react';
+import { SocialGrid } from './SocialGrid';
+import { MetaService, type InstagramMedia } from '../../../services/metaService';
 import type { AppItem } from '../../../shared/types/appItem';
 import type { AuthUser } from '../../auth/types/auth';
 import type { ChatFriend, ChatInboxItem } from '../../chat/types/chatUi';
@@ -62,6 +64,9 @@ export const ProfileView = ({
   const [selectedSavedItem, setSelectedSavedItem] = useState<AppItem | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [userRank, setUserRank] = useState<number | null>(null);
+  const [userLevel, setUserLevel] = useState<number | null>(null);
+  const [instagramMedia, setInstagramMedia] = useState<InstagramMedia[]>([]);
+  const [isSocialLoading, setIsSocialLoading] = useState(false);
 
   // SECTION: Helpers
 
@@ -108,13 +113,27 @@ export const ProfileView = ({
         setPersistedProfile(settingsResult.data);
       }
       
-      if (rankResult.success && rankResult.data !== undefined) {
-        setUserRank(rankResult.data);
+      if (rankResult.success && rankResult.data && !cancelled) {
+        setUserRank(rankResult.data.rank);
+        setUserLevel(rankResult.data.level);
       }
     };
 
 
     loadPersistedProfile();
+
+    // Mock social media sync for demo purposes
+    if (authUser?.id) {
+      setIsSocialLoading(true);
+      setTimeout(() => {
+        setInstagramMedia([
+          { id: '1', media_type: 'IMAGE', media_url: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80', permalink: '#', timestamp: '', caption: 'Elite Discoveries' },
+          { id: '2', media_type: 'IMAGE', media_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80', permalink: '#', timestamp: '', caption: 'Healthy Greens' },
+          { id: '3', media_type: 'VIDEO', media_url: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=400&q=80', thumbnail_url: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=400&q=80', permalink: '#', timestamp: '', caption: 'Pizza Night' }
+        ]);
+        setIsSocialLoading(false);
+      }, 1000);
+    }
 
     return () => {
       cancelled = true;
@@ -141,6 +160,7 @@ export const ProfileView = ({
     { id: 'map', label: 'Food Map', icon: Pin },
     { id: 'recipes', label: 'Recipes', icon: ChefHat },
     { id: 'videos', label: 'Videos', icon: PlayCircle },
+    { id: 'instagram', label: 'Instagram', icon: Instagram },
     { id: 'crew', label: 'Crew', icon: User },
     { id: 'posts', label: 'Posts', icon: LayoutGrid },
   ];
@@ -161,13 +181,21 @@ export const ProfileView = ({
       <div className="relative h-64 bg-stone-900 rounded-[4rem] overflow-hidden shadow-2xl">
         <img src={profileDisplay.cover} alt="Profile cover" className="w-full h-full object-cover opacity-60" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent" />
-        <div className="absolute -bottom-2 right-12">
+        <div className="absolute -bottom-2 right-12 flex flex-col items-center">
           <Avatar 
             src={profileDisplay.avatar} 
             name={profileDisplay.name} 
             size="lg" 
             className="w-28 h-28 border-8 border-white bg-white shadow-2xl rounded-[2.5rem]"
           />
+          {userRank !== null && (
+            <div 
+              onClick={() => setShowLeaderboard(true)}
+              className="absolute -bottom-4 bg-yellow-400 text-stone-900 px-4 py-1.5 rounded-full font-black text-[10px] uppercase tracking-widest shadow-lg border-2 border-white cursor-pointer hover:scale-105 active:scale-95 transition-all"
+            >
+              #{userRank} Global
+            </div>
+          )}
         </div>
       </div>
 
@@ -189,33 +217,50 @@ export const ProfileView = ({
           </div>
         </div>
         <p className="text-stone-500 font-bold max-w-md">{profileDisplay.bio}</p>
-        <div className="flex items-center gap-4 pt-4">
-          <div className="text-center group cursor-pointer" onClick={() => setShowLeaderboard(true)}>
-            <p className="text-2xl font-black group-hover:text-yellow-500 transition-colors">
+        <div className="grid grid-cols-3 gap-4 pt-4">
+          <button 
+            onClick={() => setShowLeaderboard(true)}
+            className="p-6 bg-stone-900 text-white rounded-[2rem] shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all group flex flex-col items-center justify-center gap-2"
+          >
+            <p className="text-3xl font-black italic tracking-tighter text-yellow-400">
               #{userRank ?? '—'}
             </p>
-            <p className="text-[12px] font-black uppercase tracking-widest text-stone-400 group-hover:text-stone-900">Rank</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 group-hover:text-white transition-colors">Global Rank</p>
+          </button>
+
+          <div className="p-6 bg-white border border-stone-100 rounded-[2rem] flex flex-col items-center justify-center gap-2">
+            <p className="text-2xl font-black text-stone-900">{userLevel ?? '1'}</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Current Level</p>
           </div>
 
-          <div className="w-px h-10 bg-stone-100" />
-          <div className="text-center"><p className="text-2xl font-black">{savedItems.length}</p><p className="text-[12px] font-black uppercase tracking-widest text-stone-400">Saves</p></div>
-          <div className="w-px h-10 bg-stone-100" />
-          <div className="text-center"><p className="text-2xl font-black">42</p><p className="text-[12px] font-black uppercase tracking-widest text-stone-400">Reviews</p></div>
-          <div className="w-px h-10 bg-stone-100" />
-          <div className="flex items-center gap-2">
+          <div className="p-6 bg-white border border-stone-100 rounded-[2rem] flex flex-col items-center justify-center gap-2">
+            <p className="text-2xl font-black text-stone-900">{savedItems.length}</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Total Saves</p>
+          </div>
+        </div>
+
+        {/* Social Links Sub-Row */}
+        <div className="flex items-center gap-2 pt-2">
+          {socialLinks.instagram && !socialLinks.instagram.endsWith('instagram.com') && (
             <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="Instagram profile">
               <InstagramMark size={18} />
             </a>
+          )}
+          {socialLinks.facebook && !socialLinks.facebook.endsWith('facebook.com') && (
             <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="Facebook profile">
               <FacebookMark size={18} />
             </a>
+          )}
+          {socialLinks.tiktok && !socialLinks.tiktok.endsWith('tiktok.com') && (
             <a href={socialLinks.tiktok} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="TikTok profile">
               <Music2 size={18} />
             </a>
+          )}
+          {socialLinks.youtube && !socialLinks.youtube.endsWith('youtube.com') && (
             <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="YouTube profile">
               <Youtube size={18} />
             </a>
-          </div>
+          )}
         </div>
       </div>
 
@@ -278,6 +323,8 @@ export const ProfileView = ({
               ))
             )}
           </div>
+        ) : activeTab === 'instagram' ? (
+          <SocialGrid media={instagramMedia} isLoading={isSocialLoading} />
         ) : (
           <div className="grid grid-cols-2 gap-6">
             {filteredItems.length === 0 ? (

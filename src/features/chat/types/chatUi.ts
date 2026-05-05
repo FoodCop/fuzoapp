@@ -35,7 +35,7 @@ export interface ChatUiMessage {
   role: 'user' | 'ai';
   senderId?: string;
   senderName?: string;
-  type: 'text' | 'share';
+  type: 'text' | 'share' | 'event';
   text: string;
   item?: AppItem | null;
   status?: ChatMessageStatus;

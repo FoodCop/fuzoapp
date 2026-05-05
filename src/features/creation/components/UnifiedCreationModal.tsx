@@ -17,7 +17,7 @@
 import React from 'react';
 import { 
   Camera, ChefHat, PlayCircle, X, 
-  Sparkles, Zap, ArrowRight 
+  Sparkles, Zap, ArrowRight, Image as ImageIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -56,6 +56,15 @@ export const UnifiedCreationModal = ({ isOpen, onClose, onSelectOption }: Unifie
       description: 'Auto-crop and edit your food videos in seconds.',
       icon: PlayCircle,
       color: 'bg-stone-900',
+      tag: 'AI Powered',
+      isAi: true
+    },
+    {
+      id: 'import-ai',
+      title: 'AI Photo Import',
+      description: 'Import from Pinterest or Gallery and auto-create a feed card.',
+      icon: ImageIcon,
+      color: 'bg-purple-500',
       tag: 'AI Powered',
       isAi: true
     }

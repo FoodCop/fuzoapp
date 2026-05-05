@@ -5,6 +5,7 @@ import {
   ONBOARDING_USER_TYPES, 
   INDIVIDUAL_PATH, 
   CHEF_PATH, 
+  PRIVATE_CHEF_PATH,
   RESTAURANT_PATH, 
   TEAM_PATH,
   FOOD_PERSONALITY_QUIZ,
@@ -13,6 +14,7 @@ import {
   type OnboardingV2FormStep,
   type OnboardingV2MediaStep
 } from '../constants/onboardingV2Data';
+import { AuthService } from '../services/authService';
 import type { OnboardingLocation, OnboardingV2Payload, UserType } from '../types/onboarding';
 
 /**
@@ -29,6 +31,7 @@ const defaultLocation: OnboardingLocation = {
 const ONBOARDING_BACKGROUNDS = {
   individual: "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1200&q=80",
   chef: "https://images.unsplash.com/photo-1550317138-10000687ad32?auto=format&fit=crop&w=1200&q=80",
+  private_chef: "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1200&q=80",
   restaurant: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=1200&q=80",
   culinary_team: "https://images.unsplash.com/photo-1466637574441-749b8f19452f?auto=format&fit=crop&w=1200&q=80",
 };
@@ -67,6 +70,7 @@ export const OnboardingV2Flow = ({
     if (!userType) return [];
     if (userType === 'individual') return INDIVIDUAL_PATH;
     if (userType === 'chef') return CHEF_PATH;
+    if (userType === 'private_chef') return PRIVATE_CHEF_PATH;
     if (userType === 'restaurant') return RESTAURANT_PATH;
     return TEAM_PATH;
   }, [userType]);
@@ -376,6 +380,66 @@ export const OnboardingV2Flow = ({
                   >
                     <span>Sync Portfolio</span>
                     <ArrowRight size={16} />
+                  </button>
+                </div>
+              )}
+
+              {/* Sub-Type: Social Sync (Meta API) */}
+              {currentStep.type === 'social' && (
+                <div className="space-y-8">
+                  <div className="grid grid-cols-1 gap-4">
+                    {currentStep.providers.includes('instagram') && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            // Instagram is often handled via Facebook Login for Business or Basic Display
+                            // Here we use the Facebook provider which usually includes Instagram permissions
+                            await AuthService.signInWithOAuth('facebook');
+                          } catch (err) {
+                            console.error('Social sync error:', err);
+                          }
+                        }}
+                        className="p-8 bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] text-white rounded-[2.5rem] shadow-xl hover:scale-[1.02] transition-all flex items-center gap-6 group"
+                      >
+                        <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
+                          <InstagramMark className="w-8 h-8 fill-white" />
+                        </div>
+                        <div className="text-left">
+                          <p className="font-black uppercase tracking-widest text-sm">Sync with Instagram</p>
+                          <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest mt-1 italic">Pull bio, avatar & name</p>
+                        </div>
+                        <ArrowRight size={20} className="ml-auto opacity-40 group-hover:opacity-100 transition-opacity" />
+                      </button>
+                    )}
+
+                    {currentStep.providers.includes('facebook') && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await AuthService.signInWithOAuth('facebook');
+                          } catch (err) {
+                            console.error('Social sync error:', err);
+                          }
+                        }}
+                        className="p-8 bg-[#1877F2] text-white rounded-[2.5rem] shadow-xl hover:scale-[1.02] transition-all flex items-center gap-6 group"
+                      >
+                        <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
+                          <FacebookMark className="w-8 h-8 fill-white" />
+                        </div>
+                        <div className="text-left">
+                          <p className="font-black uppercase tracking-widest text-sm">Connect Facebook</p>
+                          <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest mt-1 italic">Enrich profile data</p>
+                        </div>
+                        <ArrowRight size={20} className="ml-auto opacity-40 group-hover:opacity-100 transition-opacity" />
+                      </button>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={handleNext}
+                    className="w-full py-4 text-stone-400 font-black uppercase tracking-widest text-[10px] hover:text-stone-900 transition-colors"
+                  >
+                    Skip for now
                   </button>
                 </div>
               )}

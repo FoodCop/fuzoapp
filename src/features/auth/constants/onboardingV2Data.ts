@@ -62,6 +62,11 @@ export type OnboardingV2MediaStep = OnboardingV2BaseStep & {
   accept: 'image' | 'pdf' | 'all';
 };
 
+export type OnboardingV2SocialStep = OnboardingV2BaseStep & {
+  type: 'social';
+  providers: ('instagram' | 'facebook' | 'tiktok')[];
+};
+
 export type OnboardingV2Step = 
   | OnboardingV2ChoiceStep 
   | OnboardingV2MultiChoiceStep 
@@ -69,15 +74,17 @@ export type OnboardingV2Step =
   | OnboardingV2LocationStep 
   | OnboardingV2QuizStep
   | OnboardingV2FormStep
-  | OnboardingV2MediaStep;
+  | OnboardingV2MediaStep
+  | OnboardingV2SocialStep;
 
 /**
  * SECTION: Identity Registry
  * The entry point for the branching logic.
  */
 export const ONBOARDING_USER_TYPES = [
-  { id: 'individual', label: 'Individual', icon: 'Utensils', desc: 'Personal food exploration & reviews' },
+  { id: 'individual', label: 'Individuals (Food Explorer)', icon: 'Utensils', desc: 'Personal food exploration, levels & reviews' },
   { id: 'chef', label: 'Chef', icon: 'ChefHat', desc: 'Professional chefs & culinary artists' },
+  { id: 'private_chef', label: 'Private Chef', icon: 'ChefHat', desc: 'Personal chefs for exclusive dining' },
   { id: 'restaurant', label: 'Restaurant', icon: 'Utensils', desc: 'Physical dining establishments' },
   { id: 'culinary_team', label: 'Culinary Team', icon: 'Users', desc: 'Cloud kitchens & home businesses' },
 ];
@@ -114,6 +121,13 @@ export const INDIVIDUAL_PATH: OnboardingV2Step[] = [
     title: 'Dietary Mapping',
     desc: 'Any specific requirements?',
     options: ['None', 'Vegetarian', 'Vegan', 'Non-veg', 'Eggetarian'],
+  },
+  {
+    id: 'social_sync',
+    type: 'social',
+    title: 'Social Sync',
+    desc: 'Automatically enrich your profile from Instagram or Facebook.',
+    providers: ['instagram', 'facebook'],
   },
 ];
 
@@ -226,6 +240,37 @@ export const CHEF_PATH: OnboardingV2Step[] = [
 ];
 
 /**
+ * SECTION: Private Chef Path
+ * Focuses on exclusive home dining and luxury experiences.
+ */
+export const PRIVATE_CHEF_PATH: OnboardingV2Step[] = [
+  {
+    id: 'private_chef_specialty',
+    type: 'choice',
+    title: 'Specialty',
+    desc: 'What is your primary culinary focus?',
+    options: ['Luxury Fine Dining', 'Healthy Meal Prep', 'Celebration Events', 'Family Style'],
+  },
+  {
+    id: 'private_chef_profile',
+    type: 'form',
+    title: 'Service Profile',
+    desc: 'Details for your private service.',
+    fields: [
+      { id: 'experience', label: 'Years of Experience', placeholder: 'e.g. 10 years', type: 'text' },
+      { id: 'rate_range', label: 'Typical Rate Range', placeholder: 'e.g. $100-$300/person', type: 'text' },
+    ]
+  },
+  {
+    id: 'private_chef_portfolio',
+    type: 'media',
+    title: 'Visual Portfolio',
+    desc: 'Upload photos of your best table setups and plated dishes.',
+    accept: 'all',
+  },
+];
+
+/**
  * SECTION: Restaurant Path
  * Business identification and venue characterization.
  */
@@ -331,6 +376,7 @@ export const TEAM_PATH: OnboardingV2Step[] = [
 export const AUTH_ONBOARDING_V2_DATA: OnboardingV2Step[] = [
   ...INDIVIDUAL_PATH,
   ...CHEF_PATH,
+  ...PRIVATE_CHEF_PATH,
   ...RESTAURANT_PATH,
   ...TEAM_PATH
 ];

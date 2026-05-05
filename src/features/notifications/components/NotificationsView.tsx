@@ -34,6 +34,7 @@ interface NotificationsViewProps {
   onClose: () => void;
   friends: ChatInboxItem[];
   onOpenChat: (id: string, type: 'dm' | 'group') => void;
+  onMarkAllRead: () => void;
 }
 
 /**
@@ -44,7 +45,7 @@ interface NotificationsViewProps {
  * - Handles 'Mark as Read' persistence (via friends state sync).
  * - Triggers immersive chat transitions.
  */
-export const NotificationsView = ({ isOpen, onClose, friends, onOpenChat }: NotificationsViewProps) => {
+export const NotificationsView = ({ isOpen, onClose, friends, onOpenChat, onMarkAllRead }: NotificationsViewProps) => {
   const containerRef = useFocusTrap(isOpen);
 
   // SECTION: logic — Notification Derivation
@@ -113,14 +114,23 @@ export const NotificationsView = ({ isOpen, onClose, friends, onOpenChat }: Noti
             <div className="flex-grow overflow-y-auto p-6 space-y-4 hide-scrollbar">
               {notifications.length > 0 ? (
                 notifications.map((notif) => (
-                  <div 
+                  <button 
                     key={notif.id}
                     onClick={() => {
                       if (notif.type === 'message' || notif.type === 'friend_request') {
                         onOpenChat(notif.id, notif.originalType || 'dm');
                       }
                     }}
-                    className={`p-6 rounded-[2.5rem] border transition-all cursor-pointer group active:scale-[0.98] ${notif.unread ? 'bg-stone-50 border-stone-100 shadow-sm' : 'bg-white border-transparent hover:bg-stone-50'}`}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        if (notif.type === 'message' || notif.type === 'friend_request') {
+                          onOpenChat(notif.id, notif.originalType || 'dm');
+                        }
+                      }
+                    }}
+                    aria-label={`${notif.title}: ${notif.description}`}
+                    className={`w-full text-left p-6 rounded-[2.5rem] border transition-all group active:scale-[0.98] ${notif.unread ? 'bg-stone-50 border-stone-100 shadow-sm' : 'bg-white border-transparent hover:bg-stone-50'}`}
                   >
                     <div className="flex gap-4">
                       {/* Icon Rendering Engine */}
@@ -139,7 +149,7 @@ export const NotificationsView = ({ isOpen, onClose, friends, onOpenChat }: Noti
                       <div className="space-y-1 flex-grow">
                         <div className="flex items-center justify-between">
                           <h4 className="font-black uppercase text-xs tracking-widest text-stone-900">{notif.title}</h4>
-                          {notif.unread && <div className="w-2 h-2 bg-red-500 rounded-full" />}
+                          {notif.unread && <div className="w-2 h-2 bg-red-500 rounded-full" aria-hidden="true" />}
                         </div>
                         <p className="text-xs font-bold text-stone-500 leading-relaxed pr-8">{notif.description}</p>
                         <div className="flex items-center gap-2 pt-1">
@@ -148,7 +158,7 @@ export const NotificationsView = ({ isOpen, onClose, friends, onOpenChat }: Noti
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
@@ -165,6 +175,7 @@ export const NotificationsView = ({ isOpen, onClose, friends, onOpenChat }: Noti
             {notifications.length > 0 && (
               <footer className="p-8 border-t border-stone-100 bg-stone-50/50 pb-[calc(2rem+env(safe-area-inset-bottom))]">
                 <button 
+                  onClick={onMarkAllRead}
                   aria-label="Mark all notifications as read"
                   className="w-full min-h-[56px] bg-stone-900 text-white rounded-[2rem] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
                 >

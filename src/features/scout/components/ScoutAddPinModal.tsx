@@ -9,22 +9,24 @@ import { Badge } from '../../../shared/ui/Badge';
 import { StudioStepper } from '../../../shared/ui/StudioStepper';
 import { loadUploadedImage } from '../../../shared/lib/studioHelpers';
 import { ScoutPersistence } from '../services/scoutPersistence';
+import { supabase } from '../../../services/supabaseClient';
 
 interface ScoutAddPinModalProps {
   onClose: () => void;
   onSuccess: () => void;
+  initialCoordinates?: { lat: number; lng: number };
 }
 
 const STEPS = ['Region', 'Pin', 'Identity', 'Photos', 'Details', 'Done'];
 
-export const ScoutAddPinModal = ({ onClose, onSuccess }: ScoutAddPinModalProps) => {
-  const [currentStep, setCurrentStep] = useState(0);
+export const ScoutAddPinModal = ({ onClose, onSuccess, initialCoordinates }: ScoutAddPinModalProps) => {
+  const [currentStep, setCurrentStep] = useState(initialCoordinates ? 2 : 0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Form State
   const [region, setRegion] = useState({ country: '', state: '' });
-  const [coordinates, setCoordinates] = useState({ lat: 40.7128, lng: -74.0060 });
+  const [coordinates, setCoordinates] = useState(initialCoordinates || { lat: 40.7128, lng: -74.0060 });
   const [address, setAddress] = useState('');
   const [identity, setIdentity] = useState({ name: '', cuisine: '' });
   const [photos, setPhotos] = useState<string[]>([]);
@@ -134,14 +136,21 @@ export const ScoutAddPinModal = ({ onClose, onSuccess }: ScoutAddPinModalProps) 
       mapInstanceRef.current = map;
       markerRef.current = marker;
     }
-  }, [currentStep, coordinates]);
+  }, [currentStep]);
+
+  useEffect(() => {
+    if (mapInstanceRef.current && markerRef.current) {
+      mapInstanceRef.current.panTo(coordinates);
+      markerRef.current.setPosition(coordinates);
+    }
+  }, [coordinates]);
 
   // --- Persistence ---
   const handleFinalSubmit = async () => {
     setIsLoading(true);
     try {
-      // Get current user id - assuming window.authUser for now or standard pattern
-      const userId = (window as any).authUser?.id;
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
       if (!userId) throw new Error('You must be logged in to pin a location');
 
       const result = await ScoutPersistence.saveScoutFind(userId, {

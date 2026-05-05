@@ -31,7 +31,7 @@ interface RenderComponents {
   FeedView: React.ComponentType<{ onSave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void; onOpenUserProfile: (userId: string) => void }>;
   BitesView: React.ComponentType<{ onSave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void }>;
   TrimsView: React.ComponentType<{ onSave: (item: AppItem) => void; onShareRequest: (item: AppItem) => void; authUser: AuthUser | null }>;
-  ChefAIView: React.ComponentType;
+  ChefAIView: React.ComponentType<{ onShowNotifications?: () => void }>;
   ChatView: React.ComponentType<{
     friends: ChatInboxItem[];
     authUser: AuthUser | null;
@@ -85,6 +85,7 @@ export const renderAppView = ({
   chatActiveId,
   chatActiveType,
   onClearChatActiveId,
+  onShowNotifications,
   components,
 }: {
   tab: string;
@@ -108,6 +109,7 @@ export const renderAppView = ({
   chatActiveId?: string | null;
   chatActiveType?: 'dm' | 'group' | null;
   onClearChatActiveId?: () => void;
+  onShowNotifications?: () => void;
   components: RenderComponents;
 }) => {
   const {
@@ -136,7 +138,7 @@ export const renderAppView = ({
     case 'trims':
       return <TrimsView onSave={handleSave} onShareRequest={setActiveShareItem} authUser={authUser} />;
     case 'chef':
-      return <ChefAIView />;
+      return <ChefAIView onShowNotifications={onShowNotifications} />;
     case 'chat':
       return <ChatView 
         friends={friends} 

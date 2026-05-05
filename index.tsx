@@ -21,6 +21,7 @@ import { PublicProfileView } from './src/features/profile/components/PublicProfi
 import { SettingsView } from './src/features/settings/components/SettingsView';
 import { NotificationsView } from './src/features/notifications/components/NotificationsView';
 import { UnifiedCreationModal } from './src/features/creation/components/UnifiedCreationModal';
+import { ImportStudio } from './src/features/creation/components/ImportStudio';
 import { 
   getMetadataRecord, 
   getMetadataString, 
@@ -249,6 +250,7 @@ const App = () => {
   const [showUnifiedCreation, setShowUnifiedCreation] = useState(false);
   const [showAIBitesStudio, setShowAIBitesStudio] = useState(false);
   const [showAITrimStudio, setShowAITrimStudio] = useState(false);
+  const [showAIImportStudio, setShowAIImportStudio] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [savedItems, setSavedItems] = useState<AppItem[]>(FALLBACK_SAVED_ITEMS);
   const [activeShareItem, setActiveShareItem] = useState<AppItem | null>(null);
@@ -620,6 +622,10 @@ const App = () => {
     )));
   }, []);
 
+  const handleMarkAllNotificationsAsRead = useCallback(() => {
+    setFriends(prev => prev.map(f => ({ ...f, unreadCount: 0 })));
+  }, []);
+
   useEffect(() => {
     if (!isAuthenticated || !authUser?.id || !hasSupabaseConfig) {
       return;
@@ -971,6 +977,7 @@ const App = () => {
         setChatActiveId(null);
         setChatActiveType(null);
       },
+      onShowNotifications: () => setShowNotifications(true),
       components: {
         DashboardView,
         FeedView,
@@ -1046,6 +1053,7 @@ const App = () => {
             isOpen={showNotifications} 
             onClose={() => setShowNotifications(false)} 
             friends={friends}
+            onMarkAllRead={handleMarkAllNotificationsAsRead}
             onOpenChat={(id, type) => {
               setShowNotifications(false);
               setChatActiveId(id);
@@ -1061,8 +1069,19 @@ const App = () => {
               if (option === 'snap') setShowSnap(true);
               else if (option === 'bites-ai') setShowAIBitesStudio(true);
               else if (option === 'trim-ai') setShowAITrimStudio(true);
+              else if (option === 'import-ai') setShowAIImportStudio(true);
             }}
           />
+          
+          {showAIImportStudio && (
+            <ImportStudio 
+              onClose={() => setShowAIImportStudio(false)} 
+              onPost={(item) => {
+                handleSnap(item);
+                setShowAIImportStudio(false);
+              }} 
+            />
+          )}
           
           {showAIBitesStudio && (
             <AIRecipeStudio 
@@ -1117,10 +1136,17 @@ const App = () => {
               </header>
               
               <nav aria-label="App sections" className="space-y-4 flex-grow w-full">
-                {BOTTOM_NAV_ITEMS.filter(item => item.id !== 'snap').map(item => (
+                {BOTTOM_NAV_ITEMS.map(item => (
                   <button 
                     key={item.id}
-                    onClick={() => { setTab(item.id); setSidebarOpen(false); }}
+                    onClick={() => { 
+                      if (item.id === 'snap') {
+                        setShowUnifiedCreation(true);
+                      } else {
+                        setTab(item.id); 
+                      }
+                      setSidebarOpen(false); 
+                    }}
                     aria-label={item.label}
                     aria-current={tab === item.id ? 'page' : undefined}
                     className={`w-full flex items-center justify-center py-5 rounded-[1.5rem] transition-all min-h-[44px] ${tab === item.id ? 'bg-yellow-400 text-stone-900 shadow-xl' : 'text-stone-300 hover:bg-stone-50'}`}
@@ -1171,6 +1197,13 @@ const App = () => {
             <header className="flex items-center justify-between mb-8 md:hidden px-2">
               <button onClick={() => setSidebarOpen(true)} aria-label="Open menu" className="p-3 bg-stone-900 text-yellow-400 rounded-2xl shadow-lg active:scale-90 transition-transform rotate-3">
                 <ChefHat size={24} strokeWidth={2.5} />
+              </button>
+
+              <button 
+                onClick={() => setShowNotifications(true)}
+                className="font-black text-2xl tracking-tighter uppercase text-stone-900 hover:scale-105 active:scale-95 transition-transform"
+              >
+                FUZO
               </button>
               
               <button 

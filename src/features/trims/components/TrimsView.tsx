@@ -421,6 +421,13 @@ export const AITrimStudio = ({
   const [isPostingToFeed, setIsPostingToFeed] = useState(false);
   const [feedPostSuccess, setFeedPostSuccess] = useState(false);
   const trimDraftIdRef = useRef<string | null>(null);
+  const trimMountedRef = useRef(true);
+  const trimRequestSeqRef = useRef(0);
+
+  useEffect(() => {
+    trimMountedRef.current = true;
+    return () => { trimMountedRef.current = false; };
+  }, []);
 
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -432,12 +439,13 @@ export const AITrimStudio = ({
 
     try {
       const videoData = await readImageFileAsDataUrl(file);
+      if (!trimMountedRef.current) return;
       setVideo(videoData);
       setVideoMimeType(file.type || 'video/mp4');
       setError(null);
       setCurrentStep(1);
     } catch {
-      setError('Failed to read video file.');
+      if (trimMountedRef.current) setError('Failed to read video file.');
     }
   };
 
@@ -446,6 +454,7 @@ export const AITrimStudio = ({
     const hasYoutubeUrl = isYouTubeUrl(effectiveUrl);
     if (!description.trim() && !hasYoutubeUrl) return;
 
+    const requestSeq = ++trimRequestSeqRef.current;
     setCurrentStep(3); // Synthesis Reveal
     setIsGenerating(true);
     setError(null);
@@ -459,6 +468,8 @@ export const AITrimStudio = ({
         taxonomy: { cuisines: UGC_CUISINES, vibes: UGC_VIBES }
       });
 
+      if (!shouldApplyLatestRequest(trimMountedRef, requestSeq, trimRequestSeqRef)) return;
+
       trimDraftIdRef.current = String(Date.now());
       setGeneratedTrim({
         ...generated,
@@ -466,10 +477,14 @@ export const AITrimStudio = ({
         author: generated.author || author
       });
     } catch {
-      setError('Failed to generate trim card.');
-      setCurrentStep(2);
+      if (shouldApplyLatestRequest(trimMountedRef, requestSeq, trimRequestSeqRef)) {
+        setError('Failed to generate trim card.');
+        setCurrentStep(2);
+      }
     } finally {
-      setIsGenerating(false);
+      if (shouldApplyLatestRequest(trimMountedRef, requestSeq, trimRequestSeqRef)) {
+        setIsGenerating(false);
+      }
     }
   };
 
@@ -530,7 +545,7 @@ export const AITrimStudio = ({
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-[200] bg-black text-white flex flex-col overflow-hidden">
       <header className="p-8 border-b border-white/5 bg-stone-950/50 backdrop-blur-xl shrink-0 flex items-center justify-between z-30">
         <StudioStepper steps={STUDIO_STEPS} currentStep={currentStep} className="flex-grow max-w-2xl mx-auto" />
-        <button onClick={onClose} className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-2xl flex items-center justify-center transition-colors shadow-2xl">
+        <button onClick={onClose} aria-label="Close Trim Studio" className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-2xl flex items-center justify-center transition-colors shadow-2xl">
           <X size={24} />
         </button>
       </header>
@@ -776,8 +791,6 @@ export const TrimsView = ({ onSave, onShareRequest, authUser }: { onSave: (item:
           cuisine: profileCuisine,
           diet: profileDiet,
         });
-
-        console.log(`[TrimsView] Fetching localized feed. Anchor: ${locationPayload}, Queries:`, queries);
 
         const response = await YouTubeService.getLocalizedTrimsFeed({
           userHash,

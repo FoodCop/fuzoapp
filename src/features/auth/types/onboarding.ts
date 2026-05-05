@@ -7,7 +7,7 @@ export type OnboardingLocation = {
   lng?: number;
 };
 
-export type UserType = 'individual' | 'chef' | 'restaurant' | 'culinary_team';
+export type UserType = 'individual' | 'chef' | 'private_chef' | 'restaurant' | 'culinary_team';
 
 export type OnboardingV2Payload = {
   userType: UserType;

@@ -12,8 +12,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { 
-  ChevronLeft, LayoutGrid, X, Search, ChevronRight, Eye, Bookmark, 
-  Share2, Send, Check, CheckCheck, AlertCircle, Clock, MessageSquare
+  Share2, Send, Check, CheckCheck, AlertCircle, Clock, MessageSquare, Plus, Calendar as CalendarIcon
 } from 'lucide-react';
 import { ChatService, type ChatMessage } from '../services/chatService';
 import { filterFriendsByQuery } from '../lib/chatHelpers';
@@ -22,6 +21,8 @@ import type { AuthUser } from '../../auth/types/auth';
 import type { AppItem } from '../../../shared/types/appItem';
 import { Badge } from '../../../shared/ui/Badge';
 import { hasSupabaseConfig } from '../../../services/supabaseClient';
+import { EventInviteCard } from './EventInviteCard';
+import { EventCreateModal } from './EventCreateModal';
 
 /**
  * requestNotificationPermission helper (moved from index.tsx or kept here if specific to chat)
@@ -79,6 +80,7 @@ export const ChatView = ({
   const [groupError, setGroupError] = useState<string | null>(null);
   const [newGroupName, setNewGroupName] = useState('');
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
+  const [showEventCreate, setShowEventCreate] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -101,13 +103,20 @@ export const ChatView = ({
   const active = friends.find(f => String(f.id) === activeId);
   const filteredFriends = useMemo(() => filterFriendsByQuery(friends, friendSearch), [friends, friendSearch]);
 
-  const mapMessageToUi = useCallback((message: ChatMessage): ChatUiMessage => ({
-    id: message.id,
-    role: message.senderId === authUser?.id ? 'user' : 'ai',
-    type: message.sharedItem ? 'share' : 'text',
-    text: message.content,
-    item: message.sharedItem,
-  }), [authUser?.id]);
+  const mapMessageToUi = useCallback((message: ChatMessage): ChatUiMessage => {
+    let type: 'text' | 'share' | 'event' = 'text';
+    if (message.sharedItem) {
+      type = message.sharedItem.itemType === 'event' ? 'event' : 'share';
+    }
+    
+    return {
+      id: message.id,
+      role: message.senderId === authUser?.id ? 'user' : 'ai',
+      type,
+      text: message.content,
+      item: message.sharedItem,
+    };
+  }, [authUser?.id]);
 
   useEffect(() => {
     if (!draft.trim() || !activeId || !authUser?.id || !conversationId) return;
@@ -279,6 +288,54 @@ export const ChatView = ({
         status: 'sent', 
         senderName: (authUser.user_metadata?.full_name as string) || (authUser.user_metadata?.name as string) || 'You' 
       }]));
+  };
+
+  const sendEventInvite = async (eventData: {
+    name: string;
+    date: string;
+    time: string;
+    location: string;
+    description: string;
+  }) => {
+    if (!activeId || !authUser?.id) return;
+
+    const eventItem: AppItem = {
+      itemType: 'event',
+      name: eventData.name,
+      caption: eventData.description,
+      eventDate: eventData.date,
+      eventTime: eventData.time,
+      eventLocation: eventData.location,
+      rsvpCount: 0,
+      cat: 'Meetup',
+      img: 'https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=800&q=80',
+    };
+
+    setShowEventCreate(false);
+
+    let sent;
+    if (activeType === 'dm' && conversationId) {
+      sent = await ChatService.sendSharedItemMessage({
+        conversationId,
+        senderId: authUser.id,
+        item: eventItem,
+      });
+    } else if (activeType === 'group') {
+      sent = await ChatService.sendGroupSharedItemMessage({
+        groupId: activeId,
+        senderId: authUser.id,
+        item: eventItem,
+      });
+    }
+
+    if (sent?.success && sent.data) {
+      const sentMessage = sent.data;
+      setMessages(prev => ([...prev, { 
+        ...mapMessageToUi(sentMessage), 
+        status: 'sent', 
+        senderName: (authUser.user_metadata?.full_name as string) || (authUser.user_metadata?.name as string) || 'You' 
+      }]));
+    }
   };
 
   // --- SECTION: Group Logic ---
@@ -604,6 +661,13 @@ export const ChatView = ({
                           </button>
                         </div>
                       </div>
+                    ) : m.type === 'event' && m.item ? (
+                      <EventInviteCard 
+                        messageId={m.id}
+                        userId={authUser?.id}
+                        event={m.item} 
+                        role={m.role} 
+                      />
                     ) : m.text}
                   </div>
                   {m.role === 'user' && (
@@ -623,8 +687,22 @@ export const ChatView = ({
               <div ref={messagesEndRef} className="h-2" />
             </div>
 
+            {showEventCreate && (
+              <EventCreateModal 
+                onClose={() => setShowEventCreate(false)} 
+                onSubmit={sendEventInvite} 
+              />
+            )}
+
             {/* Conversation Composer */}
             <footer className="p-3 md:p-5 border-t flex items-end gap-2 md:gap-3 bg-white z-10 shrink-0 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-5">
+              <button
+                onClick={() => setShowEventCreate(true)}
+                disabled={active.type === 'dm' && 'requestStatus' in active && active.requestStatus === 'pending'}
+                className="w-[44px] h-[44px] md:w-[52px] md:h-[52px] shrink-0 bg-stone-100 text-stone-500 rounded-full md:rounded-3xl flex items-center justify-center hover:bg-stone-200 transition-colors disabled:opacity-50"
+              >
+                <CalendarIcon size={18} className="md:w-5 md:h-5" />
+              </button>
               <textarea
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}

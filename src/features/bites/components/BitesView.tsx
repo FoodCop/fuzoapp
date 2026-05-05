@@ -576,6 +576,7 @@ const BitesRecipeModal = ({
       >
         <button 
           onClick={onClose} 
+          aria-label="Close recipe details"
           className="absolute top-6 right-6 z-50 w-12 h-12 bg-stone-900 text-white rounded-2xl flex items-center justify-center active:scale-90 transition-transform shadow-xl"
         >
           <X size={24} />
@@ -1025,6 +1026,13 @@ export const AIRecipeStudio = ({
   const [error, setError] = useState<string | null>(null);
   const [isPostingToFeed, setIsPostingToFeed] = useState(false);
   const [feedPostSuccess, setFeedPostSuccess] = useState(false);
+  const studioMountedRef = useRef(true);
+  const studioRequestSeqRef = useRef(0);
+
+  useEffect(() => {
+    studioMountedRef.current = true;
+    return () => { studioMountedRef.current = false; };
+  }, []);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1032,31 +1040,39 @@ export const AIRecipeStudio = ({
 
     try {
       const imageData = await readImageFileAsDataUrl(file);
+      if (!studioMountedRef.current) return;
       setImage(imageData);
       setImageMimeType(file.type || 'image/jpeg');
       setError(null);
       setCurrentStep(1);
     } catch {
-      setError('Failed to read image.');
+      if (studioMountedRef.current) setError('Failed to read image.');
     }
   };
 
   const handleGenerate = async () => {
     if (!description.trim()) return;
 
+    const requestSeq = ++studioRequestSeqRef.current;
     setCurrentStep(3); // Neural Synthesis Reveal
     setIsGenerating(true);
     setError(null);
 
     try {
       const text = await GeminiService.analyzeBite(title, category, description, image || undefined, imageMimeType);
+      if (!shouldApplyLatestRequest(studioMountedRef, requestSeq, studioRequestSeqRef)) return;
+      
       const parsed = parseAiJson(text);
       setGeneratedRecipe(parsed);
     } catch {
-      setError('Neural Assembly failed.');
-      setCurrentStep(2);
+      if (shouldApplyLatestRequest(studioMountedRef, requestSeq, studioRequestSeqRef)) {
+        setError('Neural Assembly failed.');
+        setCurrentStep(2);
+      }
     } finally {
-      setIsGenerating(false);
+      if (shouldApplyLatestRequest(studioMountedRef, requestSeq, studioRequestSeqRef)) {
+        setIsGenerating(false);
+      }
     }
   };
 
@@ -1105,7 +1121,7 @@ export const AIRecipeStudio = ({
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-[200] text-white flex flex-col overflow-hidden">
       <header className="p-8 border-b border-white/5 bg-stone-950/50 backdrop-blur-xl shrink-0 flex items-center justify-between z-30">
         <StudioStepper steps={STUDIO_STEPS} currentStep={currentStep} className="flex-grow max-w-2xl mx-auto" />
-        <button onClick={onClose} className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-2xl flex items-center justify-center transition-colors">
+        <button onClick={onClose} aria-label="Close Recipe Studio" className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-2xl flex items-center justify-center transition-colors">
           <X size={24} />
         </button>
       </header>

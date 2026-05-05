@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { 
-  MapPin, ChefHat, PlayCircle, User, LayoutGrid, Music2, Pin, Youtube, ChevronLeft, Loader2 
-} from 'lucide-react';
+import { Share2, MapPin, ChefHat, PlayCircle, User, LayoutGrid, Music2, Pin, Youtube, ChevronLeft, Loader2 } from 'lucide-react';
 import type { AppItem } from '../../../shared/types/appItem';
 import type { AuthUser } from '../../auth/types/auth';
 import type { ChatFriend, ChatInboxItem } from '../../chat/types/chatUi';
@@ -219,6 +217,12 @@ export const PublicProfileView = ({
         ? 'You are connected with this profile.'
         : 'Follow this profile to stay connected.';
 
+  const handleShareProfile = useCallback(() => {
+    const url = `${globalThis.location.origin}${globalThis.location.pathname}?userId=${targetUserId}`;
+    navigator.clipboard.writeText(url);
+    alert('Profile link copied to clipboard!');
+  }, [targetUserId]);
+
   const handleRelationshipAction = useCallback(async () => {
     if (!authUser?.id || !targetUserId || relationshipLoading || relationshipUpdating) {
       return;
@@ -344,6 +348,14 @@ export const PublicProfileView = ({
               Back To My Profile
             </button>
           )}
+          <button
+            type="button"
+            onClick={handleShareProfile}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-white border border-stone-200 text-stone-900 text-[12px] font-black uppercase tracking-widest shadow-sm hover:bg-stone-50 transition-colors"
+          >
+            <Share2 size={14} />
+            Share Profile
+          </button>
           {canFollowProfile && (
             <button
               type="button"

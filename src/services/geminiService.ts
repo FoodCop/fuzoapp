@@ -270,6 +270,49 @@ export const GeminiService = {
     return result.data?.text || '{}';
   },
 
+  async analyzeScreenshot(imageUrl: string): Promise<string> {
+    const prompt = `
+      Analyze this food-related screenshot (possibly from Pinterest, Instagram, or a personal gallery).
+      Extract the culinary essence for a high-fidelity "Photo Card".
+      
+      Extract the following details in JSON format:
+      - name: (The dish name or title, be descriptive)
+      - cat: (The cuisine or category, e.g. "Italian", "Dessert", "Healthy")
+      - description: (A punchy, aesthetic social media caption that captures the vibe of the photo)
+      - tags: (Array of 3-5 keywords like #pinterest, #foodie, #aesthetic)
+      - restaurant: (If evident, else "Inspired by Pinterest")
+      
+      Return ONLY the JSON.
+    `;
+
+    const mimeType = imageUrl.startsWith('data:image/png') ? 'image/png' : 'image/jpeg';
+    const base64Data = imageUrl.includes(',') ? imageUrl.split(',')[1] : imageUrl;
+
+    const result = await this.generateContent({
+      model: 'gemini-flash-latest',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { text: prompt },
+            { 
+              inlineData: {
+                mimeType,
+                data: base64Data
+              }
+            }
+          ]
+        }
+      ]
+    });
+
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+
+    return result.data?.text || '{}';
+  },
+
   async analyzeBite(title: string, category: string, description: string, image?: string, mimeType = 'image/jpeg'): Promise<string> {
     const prompt = `You are an expert chef. Analyze this dish: "${title}" (${category}). 
       Description: ${description}. 

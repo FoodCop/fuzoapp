@@ -93,6 +93,7 @@ export const ScoutView = ({
   });
   const [pinnedPlace, setPinnedPlace] = useState<ScoutPlace | null>(null);
   const [isPinning, setIsPinning] = useState(false);
+  const [isPinningMode, setIsPinningMode] = useState(false);
 
   // --- REFS: Performance & Resource Locking ---
   const mapRef = useRef<HTMLDivElement>(null);
@@ -151,34 +152,35 @@ export const ScoutView = ({
    * SECTION: Data Fetching — Source B (Community FUZO Snaps)
    * Hydrates the map with global discoveries persisted to the 'fuzo_locations' table.
    */
-  useEffect(() => {
+  const loadFuzo = useCallback(async () => {
     if (!hasSupabaseConfig || !supabase) return;
-    const loadFuzo = async () => {
-      const { data } = await supabase.from('fuzo_locations').select('*').limit(50);
-      if (data) {
-        setCommunitySnapPlaces(data.map((row, i) => ({
-          id: `fuzo-${row.id || i}`,
-          markerSource: 'fuzo' as const,
-          name: row.location_name || row.restaurant_name || 'FUZO Discovery',
-          cat: row.cuisine || 'Spot',
-          rating: 4.5,
-          reviews: 12,
-          address: row.address || '',
-          phone: '',
-          website: '',
-          img: row.photos?.[0] || '',
-          lat: Number(row.latitude),
-          lng: Number(row.longitude),
-          vibe: row.tags || [],
-          timings: {},
-          menu: [],
-          userReviews: [],
-          photos: row.photos || []
-        })));
-      }
-    };
-    loadFuzo();
+    const { data } = await supabase.from('fuzo_locations').select('*').limit(50);
+    if (data) {
+      setCommunitySnapPlaces(data.map((row, i) => ({
+        id: `fuzo-${row.id || i}`,
+        markerSource: 'fuzo' as const,
+        name: row.location_name || row.restaurant_name || 'FUZO Discovery',
+        cat: row.cuisine || 'Spot',
+        rating: 4.5,
+        reviews: 12,
+        address: row.address || '',
+        phone: '',
+        website: '',
+        img: row.photos?.[0] || '',
+        lat: Number(row.latitude),
+        lng: Number(row.longitude),
+        vibe: row.tags || [],
+        timings: {},
+        menu: [],
+        userReviews: [],
+        photos: row.photos || []
+      })));
+    }
   }, []);
+
+  useEffect(() => {
+    loadFuzo();
+  }, [loadFuzo]);
 
   /**
    * SECTION: Data Fetching — Source C (Personal Saved Items)
@@ -339,11 +341,20 @@ export const ScoutView = ({
   };
 
   const handleMapClick = useCallback((e: any) => {
-    if (!e.latLng) return;
-    const lat = e.latLng.lat();
-    const lng = e.latLng.lng();
-    reverseGeocode(lat, lng);
-  }, [reverseGeocode]);
+    if (isPinningMode) {
+      const lat = e.latLng.lat();
+      const lng = e.latLng.lng();
+      setSnapStudioData({
+        lat,
+        lng,
+        restaurant: '',
+        address: '',
+        cuisine: ''
+      });
+      setIsAddPinModalOpen(true);
+      setIsPinningMode(false);
+    }
+  }, [isPinningMode]);
 
   const handleRecenterMap = useCallback(() => {
     navigator.geolocation.getCurrentPosition((p) => {
@@ -603,8 +614,16 @@ export const ScoutView = ({
           <Locate size={18} className="text-stone-600" />
         </button>
         <button 
+          onClick={() => setIsPinningMode(!isPinningMode)}
+          className={`w-11 h-11 rounded-full shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-2 ${isPinningMode ? 'bg-purple-600 text-white border-white animate-pulse' : 'bg-stone-900 text-white border-white/20'}`}
+          title="Drop a Pin"
+        >
+          <MapPin size={20} strokeWidth={3} />
+        </button>
+        <button 
           onClick={() => setIsAddPinModalOpen(true)}
-          className="w-11 h-11 bg-stone-900 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-2 border-white/20"
+          className="w-11 h-11 bg-white text-stone-900 rounded-full shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all border border-stone-200"
+          title="Add Discovery Wizard"
         >
           <Plus size={20} strokeWidth={3} />
         </button>
@@ -644,9 +663,14 @@ export const ScoutView = ({
 
       {isAddPinModalOpen && (
         <ScoutAddPinModal 
-          onClose={() => setIsAddPinModalOpen(false)}
+          initialCoordinates={snapStudioData}
+          onClose={() => {
+            setIsAddPinModalOpen(false);
+            setSnapStudioData(null);
+          }}
           onSuccess={() => {
             if (mapInstanceRef.current) fetchPlaces(mapInstanceRef.current);
+            loadFuzo();
           }}
         />
       )}

@@ -330,6 +330,8 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
   // --- REFS: Hardware Access ---
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const snapMountedRef = useRef(true);
+  const snapRequestSeqRef = useRef(0);
 
   // LOGIC: Hardware Camera Lifecycle Management
   const startCamera = async () => {
@@ -351,6 +353,7 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
 
   // EFFECT: Manages camera resources based on active wizard step
   useEffect(() => {
+    snapMountedRef.current = true;
     if (currentStep === 0) {
       startCamera();
       
@@ -358,6 +361,7 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
       if (!initialData?.lat || !initialData?.lng) {
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
+            if (!snapMountedRef.current) return;
             const lat = pos.coords.latitude;
             const lng = pos.coords.longitude;
             setLocation({ lat, lng });
@@ -365,6 +369,7 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
             // Sub-Logic: Reverse search nearby spots using Google Places proxy
             try {
               const result = await PlacesService.searchNearby(lat, lng, 100);
+              if (!snapMountedRef.current) return;
               if (result.success && result.data?.results?.length) {
                 setNearbyPlaces(result.data.results);
                 const place = result.data.results[0];
@@ -374,17 +379,22 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
                 }));
               }
             } catch (err) {
-              console.warn('Auto-geocoding failed:', err);
+              // Silent fail for auto-locate
             }
           },
-          (err) => console.warn('Location error:', err),
+          (err) => {
+             if (snapMountedRef.current) console.warn('Location error:', err);
+          },
           { enableHighAccuracy: true }
         );
       }
     } else {
       stopCamera();
     }
-    return () => stopCamera();
+    return () => {
+      snapMountedRef.current = false;
+      stopCamera();
+    };
   }, [currentStep, initialData]);
 
   // LOGIC: Image Capture (Viewfinder -> Canvas -> DataURL)
@@ -415,10 +425,15 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
    */
   const handleNeuralAnalysis = async () => {
     if (!capturedImage) return;
+    const requestSeq = ++snapRequestSeqRef.current;
     setIsAnalyzing(true);
     try {
       await new Promise(r => setTimeout(r, 1500)); // UX buffer
+      if (!shouldApplyLatestRequest(snapMountedRef, requestSeq, snapRequestSeqRef)) return;
+      
       const geminiResult = await GeminiService.analyzeSnap(capturedImage, snapData.description);
+      if (!shouldApplyLatestRequest(snapMountedRef, requestSeq, snapRequestSeqRef)) return;
+      
       const parsed = parseAiJson(geminiResult) || {};
       
       const localTags = extractLocalTags(snapData.description);
@@ -433,14 +448,18 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
         tags: combinedTags
       }));
     } catch (error) {
-      console.error('Neural analysis failed:', error);
-      const localTags = extractLocalTags(snapData.description);
-      setSnapData((prev: any) => ({
-        ...prev,
-        tags: [...new Set([...(prev.tags || []), ...localTags])]
-      }));
+      if (shouldApplyLatestRequest(snapMountedRef, requestSeq, snapRequestSeqRef)) {
+        console.error('Neural analysis failed:', error);
+        const localTags = extractLocalTags(snapData.description);
+        setSnapData((prev: any) => ({
+          ...prev,
+          tags: [...new Set([...(prev.tags || []), ...localTags])]
+        }));
+      }
     } finally {
-      setIsAnalyzing(false);
+      if (shouldApplyLatestRequest(snapMountedRef, requestSeq, snapRequestSeqRef)) {
+        setIsAnalyzing(false);
+      }
     }
   };
 
@@ -500,7 +519,7 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
       {/* SECTION: Global Header & Progress Tracker */}
       <header className="p-8 border-b border-white/5 bg-stone-950/50 backdrop-blur-xl shrink-0 flex items-center justify-between z-30">
         <StudioStepper steps={STUDIO_STEPS} currentStep={currentStep} className="flex-grow max-w-2xl mx-auto" />
-        <button onClick={onClose} className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-2xl flex items-center justify-center transition-colors">
+        <button onClick={onClose} aria-label="Close Snap Studio" className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-2xl flex items-center justify-center transition-colors">
           <X size={24} />
         </button>
       </header>
@@ -511,14 +530,14 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
           <div className="h-full flex flex-col relative animate-in fade-in duration-500">
             <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
             <footer className="absolute bottom-12 inset-x-0 flex justify-around items-center z-20 px-8">
-              <label className="w-16 h-16 bg-white/10 backdrop-blur-3xl rounded-3xl flex items-center justify-center text-white cursor-pointer border border-white/20">
+              <label aria-label="Upload from gallery" className="w-16 h-16 bg-white/10 backdrop-blur-3xl rounded-3xl flex items-center justify-center text-white cursor-pointer border border-white/20">
                 <ImageIcon size={28} />
                 <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
               </label>
-              <button onClick={handleCapture} className="w-32 h-32 rounded-full border-[10px] border-white/30 bg-white/10 shadow-2xl backdrop-blur-xl active:scale-90 transition-transform flex items-center justify-center group">
+              <button onClick={handleCapture} aria-label="Capture photo" className="w-32 h-32 rounded-full border-[10px] border-white/30 bg-white/10 shadow-2xl backdrop-blur-xl active:scale-90 transition-transform flex items-center justify-center group">
                 <div className="w-20 h-20 bg-white rounded-full" />
               </button>
-              <button className="w-16 h-16 bg-white/10 backdrop-blur-3xl rounded-3xl flex items-center justify-center text-white border border-white/20">
+              <button aria-label="Switch camera" className="w-16 h-16 bg-white/10 backdrop-blur-3xl rounded-3xl flex items-center justify-center text-white border border-white/20">
                 <RefreshCw size={28} />
               </button>
             </footer>

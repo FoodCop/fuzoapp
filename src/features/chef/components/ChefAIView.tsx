@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Bot, Send } from 'lucide-react';
+import { Bot, Send, Bell } from 'lucide-react';
 import { GeminiService } from '../../../services/geminiService';
 import { CHEF_SUGGESTED_PROMPTS } from '../constants/prompts';
 
@@ -7,7 +7,7 @@ import { CHEF_SUGGESTED_PROMPTS } from '../constants/prompts';
  * ChefAIView - AI Chat interface for culinary expertise.
  * Extracted from index.tsx as part of the modularization effort.
  */
-export const ChefAIView = () => {
+export const ChefAIView = ({ onShowNotifications }: { onShowNotifications?: () => void }) => {
   const [messages, setMessages] = useState([{ role: 'ai', text: 'Chef FUZO here. What culinary secrets shall we unlock?' }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,7 +27,7 @@ export const ChefAIView = () => {
       const res = await GeminiService.generateContent({
         model: 'gemini-3-flash-preview',
         contents: txt,
-        config: { systemInstruction: "You are Chef FUZO, an elite AAA culinary expert. Be bold, concise, and professional." },
+        config: { systemInstruction: "You are TAKO, an elite AAA culinary expert AI within the FUZO ecosystem. Be bold, concise, and professional." },
       });
 
       if (res.success && res.data?.text) {
@@ -56,10 +56,18 @@ export const ChefAIView = () => {
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-stone-900 rounded-2xl flex items-center justify-center text-yellow-400 shadow-xl"><Bot size={24} /></div>
           <div>
-            <h4 className="font-black text-xs uppercase tracking-widest">Chef FUZO AI</h4>
+            <h4 className="font-black text-xs uppercase tracking-widest">TAKO AI</h4>
             <p className="text-[11px] text-emerald-500 font-bold uppercase tracking-widest">Online</p>
           </div>
         </div>
+        <button 
+          onClick={onShowNotifications}
+          className="p-3 bg-white text-stone-400 rounded-2xl shadow-sm border border-stone-100 active:scale-90 transition-transform relative"
+          aria-label="Notifications"
+        >
+          <Bell size={20} />
+          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white" aria-hidden="true" />
+        </button>
       </header>
       <div className="flex-grow p-8 overflow-y-auto hide-scrollbar space-y-6">
         <div className="flex flex-wrap gap-2">
