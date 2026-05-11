@@ -133,8 +133,8 @@ export const AuthOrchestrator: React.FC<AuthOrchestratorProps> = ({
     setIsAuthenticated(true);
     setHasCompletedOnboarding(true);
     setShowAuth(false);
-    setTab('feed');
-    globalThis.history.replaceState(null, '', `${appPath}?view=feed`);
+    setTab('dashboard');
+    globalThis.history.replaceState(null, '', `${appPath}?view=dashboard`);
   };
 
   /**
@@ -156,8 +156,8 @@ export const AuthOrchestrator: React.FC<AuthOrchestratorProps> = ({
               type="button"
               onClick={() => {
                 setDemoPayload(null);
-                setTab('feed');
-                globalThis.history.replaceState(null, '', `${appPath}?view=feed`);
+                setTab('dashboard');
+                globalThis.history.replaceState(null, '', `${appPath}?view=dashboard`);
                 setIsOnboardingDemo(false);
               }}
               className="px-4 py-2 rounded-2xl bg-stone-900 text-white text-[12px] font-black uppercase tracking-widest"
@@ -199,8 +199,8 @@ export const AuthOrchestrator: React.FC<AuthOrchestratorProps> = ({
             setIsAuthenticated(true);
             setHasCompletedOnboarding(true);
             setShowAuth(false);
-            setTab('feed');
-            globalThis.history.replaceState(null, '', `${appPath}?view=feed`);
+            setTab('dashboard');
+            globalThis.history.replaceState(null, '', `${appPath}?view=dashboard`);
           });
         }}
       />

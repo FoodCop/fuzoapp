@@ -457,9 +457,9 @@ const App = () => {
     });
 
     if (isAuthenticated) {
-      setTab('feed');
+      setTab('dashboard');
       
-      const targetPath = `${APP_PATH}?view=feed`;
+      const targetPath = `${APP_PATH}?view=dashboard`;
 
       authDebugLog('auth_callback_route_authenticated_redirect', {
         to: targetPath,
@@ -914,7 +914,7 @@ const App = () => {
       setShowAuth(false);
       setPoints(0);
       setLevel(1);
-      setTab('feed');
+      setTab('dashboard');
       setPublicProfileUserId('');
       setSidebarOpen(false);
       setShowSnap(false);
