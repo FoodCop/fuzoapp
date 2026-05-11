@@ -276,6 +276,7 @@ const App = () => {
   const isOnboardingDemoView = viewParam === 'onboarding-demo';
   const appRoute = isAppPath(pathname);
   const authCallbackRoute = isAuthCallbackPath(pathname);
+  const homeRoute = viewParam === 'home';
 
   const requestNotificationPermission = useCallback(async () => {
     if (globalThis.Notification === undefined) {
