@@ -447,14 +447,18 @@ const App = () => {
     const { hostname, pathname, search, hash } = globalThis.location;
     const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
     
-    // Redirect logic only applies to production
-    if (!isLocal && isAuthenticated && isLanding) {
+    // STRICT PRODUCTION REDIRECT:
+    // Only trigger if we are strictly on the landing domain (fuzo.app or www.fuzo.app)
+    // and we are NOT on a preview URL or localhost.
+    const isStrictLandingDomain = hostname === LANDING_DOMAIN || hostname === `www.${LANDING_DOMAIN}`;
+
+    if (!isLocal && isAuthenticated && isStrictLandingDomain) {
       const coreAppUrl = getCoreAppUrl();
       const targetPath = pathname === '/' ? APP_PATH : pathname;
       const target = `${coreAppUrl}${targetPath}${search}${hash}`;
       
       authDebugLog('domain_guard_redirect_triggered', { from: hostname, to: target });
-      globalThis.location.assign(target);
+      globalThis.location.replace(target);
     }
   }, [isAuthenticated, authBooting, isLanding]);
 
@@ -491,7 +495,7 @@ const App = () => {
       if (!isLocal && isLanding) {
         const target = `${getCoreAppUrl()}${targetPath}`;
         authDebugLog('auth_callback_cross_domain_redirect', { to: target });
-        globalThis.location.assign(target);
+        globalThis.location.replace(target);
         return;
       }
 

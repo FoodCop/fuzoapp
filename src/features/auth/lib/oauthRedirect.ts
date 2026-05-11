@@ -115,7 +115,13 @@ export const getCoreAppUrl = () => {
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return `${origin}?mode=app`;
   }
-  return import.meta.env.VITE_CORE_APP_URL || `https://${CORE_APP_SUBDOMAIN}`;
+  
+  const configured = normalizeAppUrl(import.meta.env.VITE_CORE_APP_URL);
+  if (configured && configured !== `https://${LANDING_DOMAIN}` && configured !== `http://${LANDING_DOMAIN}`) {
+    return configured;
+  }
+
+  return `https://${CORE_APP_SUBDOMAIN}`;
 };
 
 /**
