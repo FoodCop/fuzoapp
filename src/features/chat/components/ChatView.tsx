@@ -12,7 +12,8 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { 
-  Share2, Send, Check, CheckCheck, AlertCircle, Clock, MessageSquare, Plus, Calendar as CalendarIcon
+  Share2, Send, Check, CheckCheck, AlertCircle, Clock, MessageSquare, Plus, Calendar as CalendarIcon,
+  LayoutGrid, X, Search, ChevronLeft, Eye, Bookmark
 } from 'lucide-react';
 import { ChatService, type ChatMessage } from '../services/chatService';
 import { filterFriendsByQuery } from '../lib/chatHelpers';
@@ -119,7 +120,9 @@ export const ChatView = ({
   }, [authUser?.id]);
 
   useEffect(() => {
-    if (!draft.trim() || !activeId || !authUser?.id || !conversationId) return;
+    if (!draft.trim() || !activeId || !authUser?.id) return;
+    if (activeType === 'dm' && !conversationId) return;
+
 
     const targetId = activeType === 'group' ? activeId : conversationId;
     const isGroup = activeType === 'group';
@@ -280,14 +283,15 @@ export const ChatView = ({
       return;
     }
 
-    const sentMessage = sent.data;
-    setMessages(prev => prev
-      .filter((message) => message.id !== optimisticId)
-      .concat([{ 
-        ...mapMessageToUi(sentMessage), 
+    setMessages(prev => {
+      const filtered = prev.filter((m) => m.id !== optimisticId);
+      const mapped = mapMessageToUi(sent.data!);
+      return [...filtered, { 
+        ...mapped, 
         status: 'sent', 
         senderName: (authUser.user_metadata?.full_name as string) || (authUser.user_metadata?.name as string) || 'You' 
-      }]));
+      }];
+    });
   };
 
   const sendEventInvite = async (eventData: {

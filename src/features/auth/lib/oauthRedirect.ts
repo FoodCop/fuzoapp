@@ -19,8 +19,15 @@ export const isLandingDomain = () => {
   if (mode === 'landing') return true;
   if (mode === 'app') return false;
 
-  // Production check
-  return hostname === LANDING_DOMAIN;
+  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+  if (isLocal) return true; // Default to landing for local if no mode
+
+  // Production check: If it's the landing domain or its www variant
+  const isLanding = hostname === LANDING_DOMAIN || hostname === `www.${LANDING_DOMAIN}`;
+  if (isLanding) return true;
+
+  // If it's NOT the core app subdomain, we treat it as landing (covers preview URLs)
+  return hostname !== CORE_APP_SUBDOMAIN;
 };
 
 /**
@@ -35,8 +42,8 @@ export const isCoreAppDomain = () => {
   if (mode === 'app') return true;
   if (mode === 'landing') return false;
 
-  // Production check (or fallback for localhost if not specified)
-  return hostname === CORE_APP_SUBDOMAIN || hostname === 'localhost' || hostname === '127.0.0.1';
+  // Production check
+  return hostname === CORE_APP_SUBDOMAIN;
 };
 
 const isDebugFlagTrue = (value: string | undefined) => value === '1' || value === 'true';
@@ -97,4 +104,28 @@ export const getOAuthRedirectUrl = () => {
 
   // Local dev
   return `${origin}${AUTH_CALLBACK_PATH}`;
+};
+
+/**
+ * Returns the correct URL for the Core Application, 
+ * respecting local development mode overrides.
+ */
+export const getCoreAppUrl = () => {
+  const { origin, hostname } = globalThis.location;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return `${origin}?mode=app`;
+  }
+  return import.meta.env.VITE_CORE_APP_URL || `https://${CORE_APP_SUBDOMAIN}`;
+};
+
+/**
+ * Returns the correct URL for the Landing Page, 
+ * respecting local development mode overrides.
+ */
+export const getLandingUrl = () => {
+  const { origin, hostname } = globalThis.location;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return `${origin}?mode=landing`;
+  }
+  return `https://${LANDING_DOMAIN}`;
 };

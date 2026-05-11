@@ -18,7 +18,12 @@ We have just finished a high-impact development cycle covering **Phase 4 (Social
 These are the environment-level steps required to finalize the migration:
 
 1. **DNS Setup**: 
-   - Ensure `app.fuzo.app` points to the same deployment as `fuzo.app`.
+   - Add a new **CNAME** record:
+     - **Type**: `CNAME`
+     - **Name**: `app`
+     - **Target**: `da6fb9f71710137b.vercel-dns-017.com`
+   - In **Vercel Dashboard**, add `app.fuzo.app` to the project domains.
+
 2. **OAuth URI Whitelisting**:
    - Update **Supabase Dashboard** -> Auth -> URL Configuration.
    - Update **Google Cloud Console** -> APIs & Services -> Credentials.
@@ -27,16 +32,22 @@ These are the environment-level steps required to finalize the migration:
 3. **Environment Verification**:
    - Verify that `.env` on the production server has `VITE_CORE_APP_URL` and `VITE_LANDING_URL` correctly set.
 
+### Chat System Debugging
+- **Crash Fix**: Resolved missing Lucide icon imports in `ChatView.tsx` (LayoutGrid, X, Search, ChevronLeft, Eye, Bookmark).
+- **Typing Status**: Fixed a logic bug that prevented typing indicators from showing in group chats.
+- **Routing Parity**: Implemented `getCoreAppUrl()` and `getLandingUrl()` in `oauthRedirect.ts` to ensure local development properly toggles modes without redirecting to production subdomains.
+
 ## Current Roadmap Status
 - [x] Phase 1: Core UX & Map Fixes
 - [x] Phase 2: Profile & Notifications
 - [x] Phase 3: Enhanced Discovery & AI Imports
 - [x] Phase 4: Social Sync & Connectivity
 - [x] Phase 5: Subdomain Migration
+- [x] Chat Debugging & Realtime Polish
 
 ## Technical Notes
 - The `index.tsx` file has been significantly updated with domain-aware early returns.
 - `AuthOrchestrator` has been optimized to handle the cross-domain transition.
 - Use `npm run build` to verify production integrity after any logic changes.
 
-**Handover complete. Ready for environment verification and live testing in the next session.**
+**Handover complete. Ready for environment verification and live testing.**

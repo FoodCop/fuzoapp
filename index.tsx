@@ -49,7 +49,11 @@ import { shouldApplyLatestRequest } from './src/shared/utils/async';
 import { FeedView, FeedService, getUserFeedLocation } from './src/features/feed';
 import AuthOrchestrator from './src/features/auth/components/AuthOrchestrator';
 import { LandingPage as LandingView } from './src/features/landing/components/LandingView';
-import { APP_PATH, HOME_ENTRY_URL, authDebugLog, getOAuthRedirectUrl, isAppPath, isAuthCallbackPath, isLandingDomain, isCoreAppDomain } from './src/features/auth/lib/oauthRedirect';
+import { 
+  APP_PATH, HOME_ENTRY_URL, authDebugLog, getOAuthRedirectUrl, 
+  isAppPath, isAuthCallbackPath, isLandingDomain, isCoreAppDomain,
+  getCoreAppUrl, getLandingUrl 
+} from './src/features/auth/lib/oauthRedirect';
 import type { AuthUser } from './src/features/auth/types/auth';
 // Feature constants/types moved to modules
 import { DEFAULT_FRIENDS } from './src/features/chat/constants/chatSeeds';
@@ -432,6 +436,28 @@ const App = () => {
     authDebugLog('path_normalization_noop', { currentPath });
   }, []);
 
+  /**
+   * DOMAIN GUARD: 
+   * Ensures that authenticated users are strictly on the Core App subdomain 
+   * in production, preventing 'fuzo.app' from rendering the app shell.
+   */
+  useEffect(() => {
+    if (authBooting) return;
+
+    const { hostname, pathname, search, hash } = globalThis.location;
+    const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+    
+    // Redirect logic only applies to production
+    if (!isLocal && isAuthenticated && isLanding) {
+      const coreAppUrl = getCoreAppUrl();
+      const targetPath = pathname === '/' ? APP_PATH : pathname;
+      const target = `${coreAppUrl}${targetPath}${search}${hash}`;
+      
+      authDebugLog('domain_guard_redirect_triggered', { from: hostname, to: target });
+      globalThis.location.assign(target);
+    }
+  }, [isAuthenticated, authBooting, isLanding]);
+
   useEffect(() => {
     if (authBooting || isAuthenticated || showAuth) {
       return;
@@ -456,10 +482,23 @@ const App = () => {
 
     if (isAuthenticated) {
       setTab('feed');
+      
+      const { hostname } = globalThis.location;
+      const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+      const targetPath = `${APP_PATH}?view=feed`;
+
+      // If we're on the landing domain but authenticated, we must jump domains
+      if (!isLocal && isLanding) {
+        const target = `${getCoreAppUrl()}${targetPath}`;
+        authDebugLog('auth_callback_cross_domain_redirect', { to: target });
+        globalThis.location.assign(target);
+        return;
+      }
+
       authDebugLog('auth_callback_route_authenticated_redirect', {
-        to: `${APP_PATH}?view=feed`,
+        to: targetPath,
       });
-      globalThis.history.replaceState(null, '', `${APP_PATH}?view=feed`);
+      globalThis.history.replaceState(null, '', targetPath);
       return;
     }
 
@@ -915,7 +954,7 @@ const App = () => {
       setShowSnap(false);
       setActiveShareItem(null);
       setSavedItems(FALLBACK_SAVED_ITEMS);
-      globalThis.history.replaceState(null, '', HOME_ENTRY_URL);
+      globalThis.location.href = getLandingUrl();
     }
   };
 
@@ -1031,11 +1070,12 @@ const App = () => {
   );
 
   // Domain-aware rendering for strictly Landing Page environment
-  if (isLanding) {
+  // We exclude auth callbacks and app paths from this block to let the 
+  // background effects handle the redirect.
+  if (isLanding && !isAuthenticated && !authCallbackRoute && !appRoute) {
     return (
       <LandingView onStart={() => {
-        const appUrl = import.meta.env.VITE_CORE_APP_URL || `https://${CORE_APP_SUBDOMAIN}`;
-        globalThis.location.href = appUrl;
+        globalThis.location.href = getCoreAppUrl();
       }} />
     );
   }
