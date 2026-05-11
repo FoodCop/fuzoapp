@@ -3,7 +3,6 @@ import { supabase } from '../../../services/supabaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AuthView } from './AuthView';
 import OnboardingV2Flow from './OnboardingV2Flow';
-import { LandingPage as LandingView } from '../../landing/components/LandingView';
 import type { OnboardingV2Payload } from '../types/onboarding';
 import type { AuthUser } from '../types/auth';
 
@@ -25,7 +24,6 @@ interface AuthOrchestratorProps {
   onboardingV2Enabled: boolean;
   appPath: string;
   homeUrl: string;
-  homeRoute: boolean;
   appRoute: boolean;
   authCallbackRoute: boolean;
 }
@@ -42,7 +40,6 @@ export const AuthOrchestrator: React.FC<AuthOrchestratorProps> = ({
   onboardingV2Enabled,
   appPath,
   homeUrl,
-  homeRoute,
   appRoute,
   authCallbackRoute,
 }) => {
@@ -189,13 +186,9 @@ export const AuthOrchestrator: React.FC<AuthOrchestratorProps> = ({
     );
   }
 
-  // 2. Landing Mode (Cinematic Intro)
-  if (homeRoute && !showAuth) {
-    return <LandingView onStart={() => setShowAuth(true)} />;
-  }
-
-  // 3. Auth/Onboarding Wizard
-  if (showAuth && !hasCompletedOnboarding) {
+  // 2. Auth/Onboarding Wizard
+  // If not authenticated or has not completed onboarding, we show the AuthView
+  if (!isAuthenticated || (showAuth && !hasCompletedOnboarding)) {
     return (
       <AuthView
         initialStep={isAuthenticated ? 'onboarding' : 'signin'}
@@ -216,5 +209,6 @@ export const AuthOrchestrator: React.FC<AuthOrchestratorProps> = ({
 
   return null;
 };
+
 
 export default AuthOrchestrator;

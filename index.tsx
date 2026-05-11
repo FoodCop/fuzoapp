@@ -48,10 +48,9 @@ import { useIsDesktop } from './src/app/hooks/useIsDesktop';
 import { shouldApplyLatestRequest } from './src/shared/utils/async';
 import { FeedView, FeedService, getUserFeedLocation } from './src/features/feed';
 import AuthOrchestrator from './src/features/auth/components/AuthOrchestrator';
-import { LandingPage as LandingView } from './src/features/landing/components/LandingView';
 import { 
   APP_PATH, HOME_ENTRY_URL, authDebugLog, getOAuthRedirectUrl, 
-  isAppPath, isAuthCallbackPath, isLandingDomain, isCoreAppDomain,
+  isAppPath, isAuthCallbackPath, isCoreAppDomain,
   getCoreAppUrl, getLandingUrl 
 } from './src/features/auth/lib/oauthRedirect';
 import type { AuthUser } from './src/features/auth/types/auth';
@@ -235,7 +234,6 @@ const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friend
 // --- MAIN APP ---
 
 const App = () => {
-  const isLanding = useMemo(() => isLandingDomain(), []);
   const isApp = useMemo(() => isCoreAppDomain(), []);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
@@ -275,7 +273,6 @@ const App = () => {
   const notificationPromptedRef = useRef(false);
   const pathname = globalThis.location.pathname;
   const viewParam = new URLSearchParams(globalThis.location.search).get('view');
-  const homeRoute = !isApp && (pathname === '/' || pathname === APP_PATH) && (viewParam === null || viewParam === 'home') && !isAuthenticated;
   const isOnboardingDemoView = viewParam === 'onboarding-demo';
   const appRoute = isAppPath(pathname);
   const authCallbackRoute = isAuthCallbackPath(pathname);
@@ -436,32 +433,6 @@ const App = () => {
     authDebugLog('path_normalization_noop', { currentPath });
   }, []);
 
-  /**
-   * DOMAIN GUARD: 
-   * Ensures that authenticated users are strictly on the Core App subdomain 
-   * in production, preventing 'fuzo.app' from rendering the app shell.
-   */
-  useEffect(() => {
-    if (authBooting) return;
-
-    const { hostname, pathname, search, hash } = globalThis.location;
-    const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
-    
-    // STRICT PRODUCTION REDIRECT:
-    // Only trigger if we are strictly on the landing domain (fuzo.app or www.fuzo.app)
-    // and we are NOT on a preview URL or localhost.
-    const isStrictLandingDomain = hostname === LANDING_DOMAIN || hostname === `www.${LANDING_DOMAIN}`;
-
-    if (!isLocal && isAuthenticated && isStrictLandingDomain) {
-      const coreAppUrl = getCoreAppUrl();
-      const targetPath = pathname === '/' ? APP_PATH : pathname;
-      const target = `${coreAppUrl}${targetPath}${search}${hash}`;
-      
-      authDebugLog('domain_guard_redirect_triggered', { from: hostname, to: target });
-      globalThis.location.replace(target);
-    }
-  }, [isAuthenticated, authBooting, isLanding]);
-
   useEffect(() => {
     if (authBooting || isAuthenticated || showAuth) {
       return;
@@ -487,17 +458,7 @@ const App = () => {
     if (isAuthenticated) {
       setTab('feed');
       
-      const { hostname } = globalThis.location;
-      const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
       const targetPath = `${APP_PATH}?view=feed`;
-
-      // If we're on the landing domain but authenticated, we must jump domains
-      if (!isLocal && isLanding) {
-        const target = `${getCoreAppUrl()}${targetPath}`;
-        authDebugLog('auth_callback_cross_domain_redirect', { to: target });
-        globalThis.location.replace(target);
-        return;
-      }
 
       authDebugLog('auth_callback_route_authenticated_redirect', {
         to: targetPath,
@@ -1067,26 +1028,15 @@ const App = () => {
       onboardingV2Enabled={ONBOARDING_V2_ENABLED}
       appPath={APP_PATH}
       homeUrl={HOME_ENTRY_URL}
-      homeRoute={homeRoute}
       appRoute={appRoute}
       authCallbackRoute={authCallbackRoute}
     />
   );
 
-  // Domain-aware rendering for strictly Landing Page environment
-  // We exclude auth callbacks and app paths from this block to let the 
-  // background effects handle the redirect.
-  if (isLanding && !isAuthenticated && !authCallbackRoute && !appRoute) {
-    return (
-      <LandingView onStart={() => {
-        globalThis.location.href = getCoreAppUrl();
-      }} />
-    );
-  }
 
   return (
     <AnimatePresence mode="wait">
-      {isOnboardingDemoView || (homeRoute && !showAuth) || (showAuth && !hasCompletedOnboarding) ? (
+      {isOnboardingDemoView || !isAuthenticated || (showAuth && !hasCompletedOnboarding) ? (
         <motion.div
           key="entry-layer"
           initial={{ opacity: 0 }}

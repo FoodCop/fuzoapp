@@ -4,31 +4,8 @@ export const APP_PATH = '/app';
 export const HOME_ENTRY_URL = '/?view=home';
 
 // Domain constants
-export const LANDING_DOMAIN = 'fuzo.app';
 export const CORE_APP_SUBDOMAIN = 'app.fuzo.app';
-
-/**
- * Detects if the current environment is strictly the Landing Page (fuzo.app).
- * Supports local testing via ?mode=landing
- */
-export const isLandingDomain = () => {
-  const { hostname, search } = globalThis.location;
-  
-  // Local testing override
-  const mode = new URLSearchParams(search).get('mode');
-  if (mode === 'landing') return true;
-  if (mode === 'app') return false;
-
-  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
-  if (isLocal) return true; // Default to landing for local if no mode
-
-  // Production check: If it's the landing domain or its www variant
-  const isLanding = hostname === LANDING_DOMAIN || hostname === `www.${LANDING_DOMAIN}`;
-  if (isLanding) return true;
-
-  // If it's NOT the core app subdomain, we treat it as landing (covers preview URLs)
-  return hostname !== CORE_APP_SUBDOMAIN;
-};
+export const LANDING_URL = 'https://fuzo.app';
 
 /**
  * Detects if the current environment is the Core App (app.fuzo.app).
@@ -41,6 +18,9 @@ export const isCoreAppDomain = () => {
   const mode = new URLSearchParams(search).get('mode');
   if (mode === 'app') return true;
   if (mode === 'landing') return false;
+
+  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+  if (isLocal) return true;
 
   // Production check
   return hostname === CORE_APP_SUBDOMAIN;
@@ -107,31 +87,21 @@ export const getOAuthRedirectUrl = () => {
 };
 
 /**
- * Returns the correct URL for the Core Application, 
- * respecting local development mode overrides.
+ * Returns the correct URL for the Core Application.
  */
 export const getCoreAppUrl = () => {
   const { origin, hostname } = globalThis.location;
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return `${origin}?mode=app`;
+    return origin;
   }
   
-  const configured = normalizeAppUrl(import.meta.env.VITE_CORE_APP_URL);
-  if (configured && configured !== `https://${LANDING_DOMAIN}` && configured !== `http://${LANDING_DOMAIN}`) {
-    return configured;
-  }
-
-  return `https://${CORE_APP_SUBDOMAIN}`;
+  return normalizeAppUrl(import.meta.env.VITE_CORE_APP_URL) || `https://${CORE_APP_SUBDOMAIN}`;
 };
 
 /**
- * Returns the correct URL for the Landing Page, 
- * respecting local development mode overrides.
+ * Returns the correct URL for the Landing Page.
  */
 export const getLandingUrl = () => {
-  const { origin, hostname } = globalThis.location;
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return `${origin}?mode=landing`;
-  }
-  return `https://${LANDING_DOMAIN}`;
+  return LANDING_URL;
 };
+
