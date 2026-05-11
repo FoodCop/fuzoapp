@@ -18,23 +18,17 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFocusTrap } from '../../../shared/hooks/useFocusTrap';
 import type { ChatInboxItem } from '../../chat/types/chatUi';
+import type { AppNotification } from '../types/notifications';
 
-interface AppNotification {
-  id: string;
-  type: 'message' | 'friend_request' | 'system' | 'achievement';
-  title: string;
-  description: string;
-  time: string;
-  unread: boolean;
-  originalType?: 'dm' | 'group';
-}
+// Interface moved to src/features/notifications/types/notifications.ts
 
 interface NotificationsViewProps {
   isOpen: boolean;
   onClose: () => void;
-  friends: ChatInboxItem[];
+  notifications: AppNotification[];
   onOpenChat: (id: string, type: 'dm' | 'group') => void;
   onMarkAllRead: () => void;
+  onMarkRead: (id: string) => void;
 }
 
 /**
@@ -45,29 +39,8 @@ interface NotificationsViewProps {
  * - Handles 'Mark as Read' persistence (via friends state sync).
  * - Triggers immersive chat transitions.
  */
-export const NotificationsView = ({ isOpen, onClose, friends, onOpenChat, onMarkAllRead }: NotificationsViewProps) => {
+export const NotificationsView = ({ isOpen, onClose, notifications, onOpenChat, onMarkAllRead, onMarkRead }: NotificationsViewProps) => {
   const containerRef = useFocusTrap(isOpen);
-
-  // SECTION: logic — Notification Derivation
-  // Notifications are derived from the 'friends' state to ensure real-time sync with Supabase.
-  const notifications = useMemo<AppNotification[]>(() => {
-    return friends
-      .filter(f => (f.unreadCount ?? 0) > 0 || (f.type === 'dm' && 'requestStatus' in f && f.requestStatus === 'pending'))
-      .map(f => {
-        const isRequest = f.type === 'dm' && 'requestStatus' in f && f.requestStatus === 'pending';
-        return {
-          id: String(f.id),
-          type: isRequest ? 'friend_request' : 'message',
-          title: isRequest ? 'Connection Request' : 'New Message',
-          description: isRequest 
-            ? `${f.name} wants to join your Culinary Crew.`
-            : `You have ${f.unreadCount} unread message${(f.unreadCount ?? 0) > 1 ? 's' : ''} from ${f.name}.`,
-          time: ('time' in f ? f.time : f.lastMessageAt) || 'now',
-          unread: true,
-          originalType: f.type || 'dm'
-        };
-      });
-  }, [friends]);
 
   return (
     <AnimatePresence>
@@ -117,15 +90,19 @@ export const NotificationsView = ({ isOpen, onClose, friends, onOpenChat, onMark
                   <button 
                     key={notif.id}
                     onClick={() => {
-                      if (notif.type === 'message' || notif.type === 'friend_request') {
-                        onOpenChat(notif.id, notif.originalType || 'dm');
+                      onMarkRead(notif.id);
+                      const targetId = notif.data?.conversation_id || notif.data?.group_id;
+                      if (targetId) {
+                        onOpenChat(targetId, notif.originalType || 'dm');
                       }
                     }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        if (notif.type === 'message' || notif.type === 'friend_request') {
-                          onOpenChat(notif.id, notif.originalType || 'dm');
+                        onMarkRead(notif.id);
+                        const targetId = notif.data?.conversation_id || notif.data?.group_id;
+                        if (targetId) {
+                          onOpenChat(targetId, notif.originalType || 'dm');
                         }
                       }
                     }}

@@ -1,6 +1,7 @@
 import { supabase } from '../../../services/supabaseClient';
 import { buildDefaultSettingsProfile, mapProfileToSettingsUpdate, mergeSettingsFromRow } from '../lib/settingsMappers';
 import type { AuthContextUser, PublicUserProfile, PublicUserRow, SettingsProfile, UserSettingsRow } from '../types/settings';
+import { YouTubeService } from '../../../services/youtubeService';
 
 interface SettingsServiceResult<T> {
   success: boolean;
@@ -171,6 +172,32 @@ export const SettingsService = {
       .getPublicUrl(filePath);
 
     return { success: true, data: publicUrlData.publicUrl };
+  },
+
+  async syncYouTubeWithGoogle(): Promise<SettingsServiceResult<{ youtube: string }>> {
+    const client = supabase;
+    if (!client) return { success: false, error: 'Supabase is not configured' };
+
+    const { data: sessionData, error: sessionError } = await client.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      return { success: false, error: 'No active session found.' };
+    }
+
+    const providerToken = sessionData.session.provider_token;
+    if (!providerToken) {
+      return { success: false, error: 'No Google account linked or session expired. Please sign in with Google again.' };
+    }
+
+    const ytResult = await YouTubeService.getMyChannel(providerToken);
+    if (!ytResult.success || !ytResult.data) {
+      return { success: false, error: ytResult.error || 'Failed to identify YouTube channel.' };
+    }
+
+    // Return the handle or URL to the UI so it can be saved with other settings
+    return {
+      success: true,
+      data: { youtube: ytResult.data.handle || ytResult.data.url }
+    };
   },
 };
 

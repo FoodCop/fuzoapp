@@ -8,6 +8,7 @@ export interface SettingsItemProps {
   value: string;
   onClick: () => void;
   color?: 'stone' | 'blue' | 'emerald' | 'indigo' | 'orange' | 'red' | 'yellow';
+  action?: React.ReactNode;
 }
 
 export interface NavIconProps {

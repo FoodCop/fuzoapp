@@ -130,6 +130,49 @@ export const YouTubeService = {
       };
     }
   },
+
+  /**
+   * Fetches the user's YouTube channel handle using a Google Access Token.
+   */
+  async getMyChannel(accessToken: string): Promise<ServiceResult<{ handle: string; url: string }>> {
+    try {
+      const response = await axios.get('https://www.googleapis.com/youtube/v3/channels', {
+        params: {
+          part: 'snippet',
+          mine: true,
+        },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const items = response.data?.items || [];
+      if (items.length === 0) {
+        return { success: false, error: 'No YouTube channel found for this Google account.' };
+      }
+
+      const channel = items[0];
+      const handle = channel.snippet?.customUrl || '';
+      const channelId = channel.id;
+      const url = handle ? `https://youtube.com/${handle}` : `https://youtube.com/channel/${channelId}`;
+
+      return {
+        success: true,
+        data: { handle, url },
+      };
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        return {
+          success: false,
+          error: error.response?.data?.error?.message || error.message,
+        };
+      }
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch YouTube channel',
+      };
+    }
+  },
 };
 
 export default YouTubeService;

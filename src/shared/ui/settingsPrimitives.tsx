@@ -1,4 +1,4 @@
-﻿import type React from 'react';
+import type React from 'react';
 import { ChevronRight } from 'lucide-react';
 import type { SettingsItemProps } from '../types/ui';
 
@@ -11,7 +11,7 @@ export const SettingsSection = ({ title, children }: { title: string; children: 
   </div>
 );
 
-export const SettingsItem = ({ icon: Icon, label, value, onClick, color = 'stone' }: SettingsItemProps) => (
+export const SettingsItem = ({ icon: Icon, label, value, onClick, color = 'stone', action }: SettingsItemProps) => (
   <button
     onClick={onClick}
     className="w-full p-8 flex items-center justify-between hover:bg-stone-50 transition-colors group text-left"
@@ -25,6 +25,14 @@ export const SettingsItem = ({ icon: Icon, label, value, onClick, color = 'stone
         <p className="font-bold text-sm text-stone-900">{value}</p>
       </div>
     </div>
-    <ChevronRight size={20} className="text-stone-200 group-hover:text-stone-400 transition-colors" />
+    <div className="flex items-center gap-4">
+      {/* Optional action slot */}
+      {action && (
+        <div onClick={(e) => e.stopPropagation()}>
+          {action}
+        </div>
+      )}
+      <ChevronRight size={20} className="text-stone-200 group-hover:text-stone-400 transition-colors" />
+    </div>
   </button>
 );

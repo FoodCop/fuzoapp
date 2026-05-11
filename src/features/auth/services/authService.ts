@@ -48,6 +48,7 @@ export const AuthService = {
         queryParams: provider === 'google' ? {
           access_type: 'offline',
           prompt: 'consent',
+          scope: 'https://www.googleapis.com/auth/youtube.readonly email profile',
         } : undefined,
       },
     });

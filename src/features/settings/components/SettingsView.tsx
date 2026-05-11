@@ -75,6 +75,8 @@ export const SettingsView = ({
   const [sendingResetEmail, setSendingResetEmail] = useState(false);
   const [settingsError, setSettingsError] = useState('');
   const [settingsMessage, setSettingsMessage] = useState('');
+  const [syncingYoutube, setSyncingYoutube] = useState(false);
+  const [showYoutubeSyncModal, setShowYoutubeSyncModal] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
@@ -262,6 +264,27 @@ export const SettingsView = ({
     }
 
     setSendingResetEmail(false);
+  };
+
+  const handleSyncYoutube = async () => {
+    if (syncingYoutube) return;
+
+    setSyncingYoutube(true);
+    setSettingsError('');
+    setSettingsMessage('Syncing with Google...');
+
+    const result = await SettingsService.syncYouTubeWithGoogle();
+
+    if (result.success && result.data) {
+      updateProfileField('youtube', result.data.youtube);
+      setSettingsMessage('YouTube channel identified! Save settings to persist.');
+      setShowYoutubeSyncModal(false);
+    } else {
+      setSettingsError(result.error || 'Failed to sync YouTube channel.');
+      setSettingsMessage('');
+    }
+
+    setSyncingYoutube(false);
   };
 
   // SECTION: Media Orchestration
@@ -466,7 +489,18 @@ export const SettingsView = ({
           icon={Youtube}
           label="YouTube"
           value={profile.youtube || 'Not set'}
-          onClick={() => editField('youtube', 'YouTube')}
+          onClick={() => setShowYoutubeSyncModal(true)}
+          action={
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowYoutubeSyncModal(true);
+              }}
+              className="px-3 py-1.5 bg-stone-100 text-stone-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-stone-900 hover:text-white transition-all"
+            >
+              Sync
+            </button>
+          }
         />
       </SettingsSection>
 
@@ -542,6 +576,77 @@ export const SettingsView = ({
         currentValue={profile[modalState.field] || ''}
         title={modalState.title}
       />
+
+      {/* SECTION: YouTube Sync Modal */}
+      <AnimatePresence>
+        {showYoutubeSyncModal && (
+          <div className="fixed inset-0 z-[600] flex items-center justify-center p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !syncingYoutube && setShowYoutubeSyncModal(false)}
+              className="absolute inset-0 bg-stone-900/60 backdrop-blur-xl"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-sm bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
+            >
+              <div className="p-10 text-center">
+                <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center text-red-600 mx-auto mb-6">
+                  <Youtube size={40} />
+                </div>
+                <h3 className="text-2xl font-black uppercase tracking-tighter text-stone-900 mb-2">Sync YouTube</h3>
+                <p className="text-sm font-bold text-stone-500 leading-relaxed mb-8">
+                  Connect your Google account to automatically identify and verify your YouTube channel handle.
+                </p>
+
+                <div className="space-y-3">
+                  <button
+                    onClick={handleSyncYoutube}
+                    disabled={syncingYoutube}
+                    className="w-full py-4 bg-stone-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    {syncingYoutube ? (
+                      <>
+                        <RefreshCw size={14} className="animate-spin" />
+                        Syncing...
+                      </>
+                    ) : (
+                      <>
+                        <Youtube size={14} />
+                        Sync with Google
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setShowYoutubeSyncModal(false)}
+                    disabled={syncingYoutube}
+                    className="w-full py-4 bg-stone-50 text-stone-400 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-stone-100 transition-colors"
+                  >
+                    Maybe Later
+                  </button>
+                </div>
+              </div>
+
+              {/* Manual Entry Fallback */}
+              <div className="p-6 bg-stone-50 border-t border-stone-100 text-center">
+                <button 
+                  onClick={() => {
+                    setShowYoutubeSyncModal(false);
+                    editField('youtube', 'YouTube');
+                  }}
+                  className="text-[10px] font-black uppercase tracking-widest text-stone-400 hover:text-stone-900 transition-colors"
+                >
+                  Or enter manually
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
 
   );

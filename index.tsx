@@ -75,6 +75,8 @@ import { Badge } from './src/shared/ui/Badge';
 import { StudioStepper } from './src/shared/ui/StudioStepper';
 import { readImageFileAsDataUrl, parseAiJson } from './src/shared/lib/studioHelpers';
 import { SettingsService } from './src/features/settings/services/settingsService';
+import { NotificationService } from './src/features/notifications/services/notificationService';
+import type { AppNotification } from './src/features/notifications/types/notifications';
 // Trims constants/types moved to modules
 import { API_KEYS } from './src/shared/constants/apiKeys';
 import type { AppItem } from './src/shared/types/appItem';
@@ -262,7 +264,8 @@ const App = () => {
   const [chatActiveType, setChatActiveType] = useState<'dm' | 'group' | null>(null);
 
   const [friends, setFriends] = useState<ChatInboxItem[]>(DEFAULT_FRIENDS);
-  const totalUnread = useMemo(() => friends.reduce((sum, friend) => sum + (friend.unreadCount || 0), 0), [friends]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const totalUnread = useMemo(() => friends.reduce((sum, friend) => sum + (friend.unreadCount || 0), 0) + notifications.filter(n => n.unread).length, [friends, notifications]);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | 'unsupported'>(() => {
     if (globalThis.Notification === undefined) {
       return 'unsupported';
@@ -631,9 +634,50 @@ const App = () => {
     )));
   }, []);
 
-  const handleMarkAllNotificationsAsRead = useCallback(() => {
-    setFriends(prev => prev.map(f => ({ ...f, unreadCount: 0 })));
+  const handleMarkNotificationRead = useCallback(async (id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, unread: false } : n));
+    await NotificationService.markAsRead(id);
   }, []);
+
+  const handleMarkAllNotificationsAsRead = useCallback(async () => {
+    setFriends(prev => prev.map(f => ({ ...f, unreadCount: 0 })));
+    setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
+    if (authUser?.id) {
+      await NotificationService.markAllRead(authUser.id);
+    }
+  }, [authUser?.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadNotifications = async () => {
+      if (!profileReady || !authUser?.id || !hasSupabaseConfig) return;
+
+      const result = await NotificationService.listNotifications(authUser.id);
+      if (cancelled || !result.success || !result.data) return;
+
+      setNotifications(result.data);
+    };
+
+    loadNotifications();
+
+    const unsubscribe = NotificationService.subscribeToNotifications(authUser?.id || '', (newNotif) => {
+      setNotifications(prev => [newNotif, ...prev].slice(0, 50));
+      
+      // Also trigger a system notification if needed
+      if (notificationPermission === 'granted' && globalThis.Notification && (globalThis.document.visibilityState !== 'visible' || !globalThis.document.hasFocus())) {
+        new globalThis.Notification(newNotif.title, {
+          body: newNotif.description,
+          icon: '/favicon.png',
+        });
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [authUser?.id, profileReady, notificationPermission]);
 
   useEffect(() => {
     if (!isAuthenticated || !authUser?.id || !hasSupabaseConfig) {
@@ -1061,8 +1105,9 @@ const App = () => {
           <NotificationsView 
             isOpen={showNotifications} 
             onClose={() => setShowNotifications(false)} 
-            friends={friends}
+            notifications={notifications}
             onMarkAllRead={handleMarkAllNotificationsAsRead}
+            onMarkRead={handleMarkNotificationRead}
             onOpenChat={(id, type) => {
               setShowNotifications(false);
               setChatActiveId(id);

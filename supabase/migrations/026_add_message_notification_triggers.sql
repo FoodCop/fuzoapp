@@ -26,9 +26,14 @@ BEGIN
     VALUES (
       v_receiver_id,
       'new_message',
-      'New Message',
-      v_sender_name || ' sent you a message',
-      jsonb_build_object('conversation_id', NEW.conversation_id, 'sender_id', NEW.sender_id)
+      CASE WHEN NEW.shared_item IS NOT NULL THEN 'New Food Card' ELSE 'New Message' END,
+      CASE WHEN NEW.shared_item IS NOT NULL THEN v_sender_name || ' sent you a food card' ELSE v_sender_name || ' sent you a message' END,
+      jsonb_build_object(
+        'conversation_id', NEW.conversation_id, 
+        'sender_id', NEW.sender_id, 
+        'has_attachment', NEW.shared_item IS NOT NULL,
+        'item_name', CASE WHEN NEW.shared_item IS NOT NULL THEN NEW.shared_item->>'name' ELSE NULL END
+      )
     );
   END IF;
 
