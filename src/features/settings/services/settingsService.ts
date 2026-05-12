@@ -98,14 +98,30 @@ export const SettingsService = {
 
     const updatePayload = mapProfileToSettingsUpdate(profile);
 
-    // Sync to Auth Metadata so UI reflects changes immediately
-    await client.auth.updateUser({
+    // Sync to Auth Metadata so UI reflects changes immediately across all sessions
+    // We sync ALL editable fields to metadata as a fast-cache fallback
+    const { error: authError } = await client.auth.updateUser({
       data: {
+        display_name: profile.name,
+        full_name: profile.name,
+        username: profile.username,
+        bio: profile.bio,
+        phone: profile.phone,
+        location: profile.location,
+        instagram_url: profile.instagram,
+        facebook_url: profile.facebook,
+        tiktok_url: profile.tiktok,
+        pinterest_url: profile.pinterest,
+        youtube_url: profile.youtube,
         profile_type: profile.profileType,
         profile_subtype: profile.profileSubtype,
         chef_subtype: profile.profileType === 'Chef' ? profile.profileSubtype : undefined,
       }
     });
+
+    if (authError) {
+      console.warn('Auth metadata sync failed, but proceeding with DB update:', authError.message);
+    }
 
     const { data, error } = await client
       .from('users')
@@ -174,7 +190,7 @@ export const SettingsService = {
     return { success: true, data: publicUrlData.publicUrl };
   },
 
-  async syncYouTubeWithGoogle(): Promise<SettingsServiceResult<{ youtube: string }>> {
+  async syncYouTubeWithGoogle(): Promise<SettingsServiceResult<{ youtube: string; title: string }>> {
     const client = supabase;
     if (!client) return { success: false, error: 'Supabase is not configured' };
 
@@ -196,7 +212,10 @@ export const SettingsService = {
     // Return the handle or URL to the UI so it can be saved with other settings
     return {
       success: true,
-      data: { youtube: ytResult.data.handle || ytResult.data.url }
+      data: { 
+        youtube: ytResult.data.handle || ytResult.data.url,
+        title: ytResult.data.title
+      }
     };
   },
 };

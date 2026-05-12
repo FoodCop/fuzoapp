@@ -134,7 +134,7 @@ export const YouTubeService = {
   /**
    * Fetches the user's YouTube channel handle using a Google Access Token.
    */
-  async getMyChannel(accessToken: string): Promise<ServiceResult<{ handle: string; url: string }>> {
+  async getMyChannel(accessToken: string): Promise<ServiceResult<{ handle: string; url: string; title: string }>> {
     try {
       const response = await axios.get('https://www.googleapis.com/youtube/v3/channels', {
         params: {
@@ -152,13 +152,14 @@ export const YouTubeService = {
       }
 
       const channel = items[0];
+      const title = channel.snippet?.title || '';
       const handle = channel.snippet?.customUrl || '';
       const channelId = channel.id;
       const url = handle ? `https://youtube.com/${handle}` : `https://youtube.com/channel/${channelId}`;
 
       return {
         success: true,
-        data: { handle, url },
+        data: { handle, url, title },
       };
     } catch (error) {
       if (axios.isAxiosError(error)) {

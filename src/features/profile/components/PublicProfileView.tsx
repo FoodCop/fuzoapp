@@ -319,21 +319,31 @@ export const PublicProfileView = ({
           <div className="text-center"><p className="text-2xl font-black">{savedItems.length}</p><p className="text-[12px] font-black uppercase tracking-widest text-stone-400">Saves</p></div>
           <div className="w-px h-10 bg-stone-100" />
           <div className="flex items-center gap-2">
-            <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="Instagram profile">
-              <InstagramMark size={18} />
-            </a>
-            <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="Facebook profile">
-              <FacebookMark size={18} />
-            </a>
-            <a href={socialLinks.tiktok} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="TikTok profile">
-              <Music2 size={18} />
-            </a>
-            <a href={socialLinks.pinterest} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="Pinterest profile">
-              <Pin size={18} />
-            </a>
-            <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="YouTube channel">
-              <Youtube size={18} />
-            </a>
+            {socialLinks.instagram && !socialLinks.instagram.endsWith('instagram.com') && (
+              <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="Instagram profile">
+                <InstagramMark size={18} />
+              </a>
+            )}
+            {socialLinks.facebook && !socialLinks.facebook.endsWith('facebook.com') && (
+              <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="Facebook profile">
+                <FacebookMark size={18} />
+              </a>
+            )}
+            {socialLinks.tiktok && !socialLinks.tiktok.endsWith('tiktok.com') && (
+              <a href={socialLinks.tiktok} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="TikTok profile">
+                <Music2 size={18} />
+              </a>
+            )}
+            {socialLinks.pinterest && !socialLinks.pinterest.endsWith('pinterest.com') && (
+              <a href={socialLinks.pinterest} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="Pinterest profile">
+                <Pin size={18} />
+              </a>
+            )}
+            {socialLinks.youtube && !socialLinks.youtube.endsWith('youtube.com') && (
+              <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="YouTube channel">
+                <Youtube size={18} />
+              </a>
+            )}
           </div>
         </div>
 

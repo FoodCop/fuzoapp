@@ -14,8 +14,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   User, Bot, MapPin, Mail, Shield, AlertCircle, Phone, 
-  Music2, Pin, Youtube, ChefHat, Flame, Bell, LogOut, Camera 
+  Music2, Pin, Youtube, ChefHat, Flame, Bell, LogOut, Camera,
+  RefreshCw, CheckCircle2 
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { AuthUser } from '../../auth/types/auth';
 import type { SettingsProfile } from '../types/settings';
 import { SettingsService } from '../services/settingsService';
@@ -76,7 +78,10 @@ export const SettingsView = ({
   const [settingsError, setSettingsError] = useState('');
   const [settingsMessage, setSettingsMessage] = useState('');
   const [syncingYoutube, setSyncingYoutube] = useState(false);
+  const [youtubeConnected, setYoutubeConnected] = useState(false);
+  const [detectedChannelTitle, setDetectedChannelTitle] = useState('');
   const [showYoutubeSyncModal, setShowYoutubeSyncModal] = useState(false);
+  const [hasAutodetected, setHasAutodetected] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
@@ -91,10 +96,9 @@ export const SettingsView = ({
   });
 
 
-  useEffect(() => {
-    setProfile(defaults);
-    setIsDirty(false);
-  }, [defaults]);
+  // SECTION: Initial Sync
+  // Removed redundant useEffect that was resetting isDirty on defaults change
+  // to prevent it from overriding autodetection updates.
 
   // SECTION: Persistence logic
   useEffect(() => {
@@ -123,8 +127,11 @@ export const SettingsView = ({
         });
       }
 
-      setLoadingSettings(false);
       setIsDirty(false);
+      setLoadingSettings(false);
+      
+      // Log for debugging
+      console.log('Settings loaded successfully for:', authUser.id);
     };
 
     loadSettings();
@@ -133,6 +140,28 @@ export const SettingsView = ({
       cancelled = true;
     };
   }, [authUser, defaults]);
+
+  // SECTION: YouTube Autodetection
+  useEffect(() => {
+    // Only attempt autodetection once the settings have finished loading
+    if (!loadingSettings && !profile.youtube && !hasAutodetected && authUser?.id) {
+      const attemptAutodetect = async () => {
+        const result = await SettingsService.syncYouTubeWithGoogle();
+        if (result.success && result.data) {
+          // Use a small delay to ensure this update doesn't get batched with the initial load reset
+          setTimeout(() => {
+            setProfile(prev => ({ ...prev, youtube: result.data.youtube }));
+            setIsDirty(true);
+            setDetectedChannelTitle(result.data.title);
+            setYoutubeConnected(true);
+            setShowYoutubeSyncModal(true);
+          }, 200);
+        }
+        setHasAutodetected(true);
+      };
+      attemptAutodetect();
+    }
+  }, [loadingSettings, profile.youtube, hasAutodetected, authUser?.id]);
 
   const handleSignOutClick = async () => {
     if (signingOut) return;
@@ -178,24 +207,33 @@ export const SettingsView = ({
 
     setSavingSettings(true);
     setSettingsError('');
-    setSettingsMessage('');
+    setSettingsMessage('Synchronizing profile...');
 
-    const result = await SettingsService.updateUserSettings(authUser, profile);
+    try {
+      const result = await SettingsService.updateUserSettings(authUser, profile);
 
-    if (!result.success || !result.data) {
-      setSettingsError(result.error || 'Unable to save settings right now.');
+      if (!result.success || !result.data) {
+        setSettingsError(result.error || 'Unable to save settings right now.');
+        setSavingSettings(false);
+        return;
+      }
+
+      setProfile(prev => ({
+        ...prev,
+        ...result.data,
+        email: prev.email,
+      }));
+      setIsDirty(false);
       setSavingSettings(false);
-      return;
+      setSettingsMessage('Success! Your profile is up to date.');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSettingsMessage(''), 3000);
+    } catch (err) {
+      console.error('Settings save fatal error:', err);
+      setSettingsError('A connection error occurred. Please try again.');
+      setSavingSettings(false);
     }
-
-    setProfile(prev => ({
-      ...prev,
-      ...result.data,
-      email: prev.email,
-    }));
-    setIsDirty(false);
-    setSavingSettings(false);
-    setSettingsMessage('Settings saved.');
   };
 
   // SECTION: Security Flows
@@ -270,6 +308,7 @@ export const SettingsView = ({
     if (syncingYoutube) return;
 
     setSyncingYoutube(true);
+    setYoutubeConnected(false);
     setSettingsError('');
     setSettingsMessage('Syncing with Google...');
 
@@ -277,8 +316,9 @@ export const SettingsView = ({
 
     if (result.success && result.data) {
       updateProfileField('youtube', result.data.youtube);
-      setSettingsMessage('YouTube channel identified! Save settings to persist.');
-      setShowYoutubeSyncModal(false);
+      setDetectedChannelTitle(result.data.title);
+      setYoutubeConnected(true);
+      setSettingsMessage(`Connected to ${result.data.title || 'YouTube'}!`);
     } else {
       setSettingsError(result.error || 'Failed to sync YouTube channel.');
       setSettingsMessage('');
@@ -596,53 +636,77 @@ export const SettingsView = ({
             >
               <div className="p-10 text-center">
                 <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center text-red-600 mx-auto mb-6">
-                  <Youtube size={40} />
+                  {youtubeConnected ? (
+                    <CheckCircle2 size={40} className="text-emerald-500" />
+                  ) : (
+                    <Youtube size={40} />
+                  )}
                 </div>
-                <h3 className="text-2xl font-black uppercase tracking-tighter text-stone-900 mb-2">Sync YouTube</h3>
+                <h3 className="text-2xl font-black uppercase tracking-tighter text-stone-900 mb-2">
+                  {youtubeConnected ? 'Channel Connected' : 'Sync YouTube'}
+                </h3>
                 <p className="text-sm font-bold text-stone-500 leading-relaxed mb-8">
-                  Connect your Google account to automatically identify and verify your YouTube channel handle.
+                  {youtubeConnected 
+                    ? `We've successfully identified your YouTube channel: ${detectedChannelTitle || profile.youtube}. Save your settings to keep this link.`
+                    : 'Connect your Google account to automatically identify and verify your YouTube channel handle.'
+                  }
                 </p>
 
                 <div className="space-y-3">
-                  <button
-                    onClick={handleSyncYoutube}
-                    disabled={syncingYoutube}
-                    className="w-full py-4 bg-stone-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
-                  >
-                    {syncingYoutube ? (
-                      <>
-                        <RefreshCw size={14} className="animate-spin" />
-                        Syncing...
-                      </>
-                    ) : (
-                      <>
-                        <Youtube size={14} />
-                        Sync with Google
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setShowYoutubeSyncModal(false)}
-                    disabled={syncingYoutube}
-                    className="w-full py-4 bg-stone-50 text-stone-400 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-stone-100 transition-colors"
-                  >
-                    Maybe Later
-                  </button>
+                  {!youtubeConnected ? (
+                    <button
+                      onClick={handleSyncYoutube}
+                      disabled={syncingYoutube}
+                      className="w-full py-4 bg-stone-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                    >
+                      {syncingYoutube ? (
+                        <>
+                          <RefreshCw size={14} className="animate-spin" />
+                          Syncing...
+                        </>
+                      ) : (
+                        <>
+                          <Youtube size={14} />
+                          Sync with Google
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowYoutubeSyncModal(false)}
+                      className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all"
+                    >
+                      <CheckCircle2 size={14} />
+                      Perfect, thanks!
+                    </button>
+                  )}
+                  
+                  {!youtubeConnected && (
+                    <button
+                      onClick={() => setShowYoutubeSyncModal(false)}
+                      disabled={syncingYoutube}
+                      className="w-full py-4 bg-stone-50 text-stone-400 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-stone-100 transition-colors"
+                    >
+                      Maybe Later
+                    </button>
+                  )}
                 </div>
               </div>
 
               {/* Manual Entry Fallback */}
-              <div className="p-6 bg-stone-50 border-t border-stone-100 text-center">
-                <button 
-                  onClick={() => {
-                    setShowYoutubeSyncModal(false);
-                    editField('youtube', 'YouTube');
-                  }}
-                  className="text-[10px] font-black uppercase tracking-widest text-stone-400 hover:text-stone-900 transition-colors"
-                >
-                  Or enter manually
-                </button>
-              </div>
+              {!youtubeConnected && (
+                <div className="p-6 bg-stone-50 border-t border-stone-100 text-center">
+                  <button 
+                    onClick={() => {
+                      setShowYoutubeSyncModal(false);
+                      editField('youtube', 'YouTube');
+                    }}
+                    className="text-[10px] font-black uppercase tracking-widest text-stone-400 hover:text-stone-900 transition-colors"
+                  >
+                    Or enter manually
+                  </button>
+                </div>
+              )}
             </motion.div>
           </div>
         )}

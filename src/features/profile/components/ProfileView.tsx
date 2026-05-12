@@ -256,6 +256,11 @@ export const ProfileView = ({
               <Music2 size={18} />
             </a>
           )}
+          {socialLinks.pinterest && !socialLinks.pinterest.endsWith('pinterest.com') && (
+            <a href={socialLinks.pinterest} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="Pinterest profile">
+              <Pin size={18} />
+            </a>
+          )}
           {socialLinks.youtube && !socialLinks.youtube.endsWith('youtube.com') && (
             <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-stone-50 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all active:scale-90" aria-label="YouTube profile">
               <Youtube size={18} />
