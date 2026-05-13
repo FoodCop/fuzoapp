@@ -57,5 +57,6 @@ This document tracks all bug fixes and technical updates performed during the au
     - Updated immersive backgrounds for all user personas with high-fidelity imagery.
 - **Stability:** Added missing `Lucide` icons and `shouldApplyLatestRequest` utilities to multiple features to resolve async race conditions.
 - **Chat:** Audited Group Chat functionality; confirmed full support for sharing Food Cards, Bites, and Videos within Studio Groups.
+- **Import:** Verified the **AI Photo Import** studio. Confirmed that Pinterest and gallery screenshots are correctly analyzed via `GeminiService.analyzeScreenshot` and syndicated as interactive Photo Cards to the feed.
 
 **Status:** ✅ VERIFIED & COMPLETE
