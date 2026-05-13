@@ -106,6 +106,7 @@ export type GoogleMapsLike = {
       computeDistanceBetween: (p1: { lat: number; lng: number }, p2: { lat: number; lng: number }) => number;
     };
   };
+  places: any;
 };
 
 

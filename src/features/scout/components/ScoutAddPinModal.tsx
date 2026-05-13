@@ -7,7 +7,7 @@ import { getGoogleMaps } from '../types/scoutUi';
 import { UGC_CUISINES } from '../../../shared/utils/taxonomy';
 import { Badge } from '../../../shared/ui/Badge';
 import { StudioStepper } from '../../../shared/ui/StudioStepper';
-import { loadUploadedImage } from '../../../shared/lib/studioHelpers';
+import { readImageFileAsDataUrl } from '../../../shared/lib/studioHelpers';
 import { ScoutPersistence } from '../services/scoutPersistence';
 import { supabase } from '../../../services/supabaseClient';
 
@@ -17,7 +17,7 @@ interface ScoutAddPinModalProps {
   initialCoordinates?: { lat: number; lng: number };
 }
 
-const STEPS = ['Region', 'Pin', 'Identity', 'Photos', 'Details', 'Done'];
+const STEPS = ['Search', 'Pin', 'Identity', 'Photos', 'Details', 'Done'];
 
 export const ScoutAddPinModal = ({ onClose, onSuccess, initialCoordinates }: ScoutAddPinModalProps) => {
   const [currentStep, setCurrentStep] = useState(initialCoordinates ? 2 : 0);
@@ -25,7 +25,6 @@ export const ScoutAddPinModal = ({ onClose, onSuccess, initialCoordinates }: Sco
   const [error, setError] = useState<string | null>(null);
 
   // Form State
-  const [region, setRegion] = useState({ country: '', state: '' });
   const [coordinates, setCoordinates] = useState(initialCoordinates || { lat: 40.7128, lng: -74.0060 });
   const [address, setAddress] = useState('');
   const [identity, setIdentity] = useState({ name: '', cuisine: '' });
@@ -49,26 +48,54 @@ export const ScoutAddPinModal = ({ onClose, onSuccess, initialCoordinates }: Sco
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
 
-  // --- Step 1: Auto-centering Logic ---
-  const handleRegionSubmit = async () => {
-    if (!region.country || !region.state) return;
+  // --- Step 0: Autocomplete Logic ---
+  const autocompleteInputRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (currentStep === 0 && autocompleteInputRef.current) {
+      const google = getGoogleMaps();
+      if (!google || !google.places) return;
+
+      const autocomplete = new google.places.Autocomplete(autocompleteInputRef.current, {
+        fields: ['formatted_address', 'geometry', 'name'],
+        types: ['establishment', 'geocode']
+      });
+
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (place.geometry && place.geometry.location) {
+          const lat = place.geometry.location.lat();
+          const lng = place.geometry.location.lng();
+          setCoordinates({ lat, lng });
+          setAddress(place.formatted_address || place.name || '');
+          if (place.name) {
+            setIdentity(prev => ({ ...prev, name: place.name }));
+          }
+          setCurrentStep(1);
+        }
+      });
+
+      autocompleteRef.current = autocomplete;
+    }
+  }, [currentStep]);
+
+  const handleManualSearch = async () => {
+    if (!address) return;
     setIsLoading(true);
     const google = getGoogleMaps();
     if (!google) return;
 
     const geocoder = new google.Geocoder();
-    const query = `${region.state}, ${region.country}`;
-
     try {
-      const response = await geocoder.geocode({ address: query });
+      const response = await geocoder.geocode({ address });
       if (response.results?.[0]) {
         const { lat, lng } = response.results[0].geometry.location;
-        const newCoords = { lat: lat(), lng: lng() };
-        setCoordinates(newCoords);
+        setCoordinates({ lat: lat(), lng: lng() });
         setAddress(response.results[0].formatted_address);
         setCurrentStep(1);
       } else {
-        setError('Could not find this region. Please be more specific.');
+        setError('Could not find this location.');
       }
     } catch (err) {
       setError('Geocoding service failed.');
@@ -199,45 +226,40 @@ export const ScoutAddPinModal = ({ onClose, onSuccess, initialCoordinates }: Sco
           </div>
         )}
 
-        {/* --- STEP 0: REGION --- */}
+        {/* --- STEP 0: SEARCH --- */}
         {currentStep === 0 && (
           <div className="max-w-md mx-auto h-full flex flex-col justify-center p-8 space-y-12 animate-in slide-in-from-bottom duration-500">
             <div className="space-y-4 text-center">
               <Badge color="yellow">Scout Pin</Badge>
-              <h2 className="text-5xl font-black uppercase tracking-tighter italic leading-tight">Where's the Discovery?</h2>
-              <p className="text-stone-500 font-bold text-xs uppercase tracking-[0.2em]">Enter the region to center our search</p>
+              <h2 className="text-5xl font-black uppercase tracking-tighter italic leading-tight">Find the Spot</h2>
+              <p className="text-stone-500 font-bold text-xs uppercase tracking-[0.2em]">Search for a restaurant or address</p>
             </div>
             
             <div className="space-y-6">
               <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-stone-600 ml-6">Country</label>
+                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-stone-600 ml-6">Location Search</label>
                 <div className="relative">
                   <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-stone-500" size={20} />
                   <input 
+                    ref={autocompleteInputRef}
                     autoFocus
-                    placeholder="e.g. United States"
-                    value={region.country}
-                    onChange={(e) => setRegion({ ...region, country: e.target.value })}
+                    placeholder="e.g. Nobu New York or 123 Main St"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
                     className="w-full bg-stone-900/50 border-2 border-white/5 pl-16 pr-8 py-6 rounded-[2.5rem] font-bold text-xl uppercase tracking-tighter outline-none focus:border-yellow-400 focus:bg-stone-900 transition-all"
                   />
                 </div>
               </div>
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-stone-600 ml-6">State / Province</label>
-                <input 
-                  placeholder="e.g. New York"
-                  value={region.state}
-                  onChange={(e) => setRegion({ ...region, state: e.target.value })}
-                  className="w-full bg-stone-900/50 border-2 border-white/5 px-8 py-6 rounded-[2.5rem] font-bold text-xl uppercase tracking-tighter outline-none focus:border-white/20 focus:bg-stone-900 transition-all"
-                />
-              </div>
+              <p className="text-[10px] font-bold text-stone-700 uppercase tracking-widest text-center px-10 leading-relaxed">
+                Start typing to see suggestions. Selecting a suggestion will automatically pinpoint it on the map.
+              </p>
             </div>
 
             <button 
-              onClick={handleRegionSubmit}
-              disabled={!region.country || !region.state || isLoading}
+              onClick={handleManualSearch}
+              disabled={!address || isLoading}
               className={`w-full py-7 rounded-[3rem] font-black uppercase tracking-widest text-sm shadow-2xl transition-all flex items-center justify-center gap-3 ${
-                region.country && region.state ? 'bg-white text-stone-950 hover:scale-[1.02] active:scale-95' : 'bg-stone-900 text-stone-700 cursor-not-allowed'
+                address ? 'bg-white text-stone-950 hover:scale-[1.02] active:scale-95' : 'bg-stone-900 text-stone-700 cursor-not-allowed'
               }`}
             >
               {isLoading ? <Loader2 className="animate-spin" /> : <>Next: Pinpoint <ChevronRight size={18} /></>}
@@ -340,9 +362,14 @@ export const ScoutAddPinModal = ({ onClose, onSuccess, initialCoordinates }: Sco
                     <Plus size={24} />
                   </div>
                   <span className="text-[10px] font-black uppercase tracking-widest text-stone-500">Add Photo</span>
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                  <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
                     const file = e.target.files?.[0];
-                    if (file) loadUploadedImage(file, (img) => setPhotos([...photos, img]), () => {});
+                    if (file) {
+                      try {
+                        const img = await readImageFileAsDataUrl(file);
+                        setPhotos(prev => [...prev, img]);
+                      } catch (err) {}
+                    }
                   }} />
                 </label>
               )}
