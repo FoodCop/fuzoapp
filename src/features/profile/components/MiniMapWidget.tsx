@@ -35,29 +35,27 @@ export const MiniMapWidget = ({
       }
 
       try {
-        // Calculate center based on pins or use default
-        const center = validPins.length > 0 
-          ? { lat: validPins[0].lat!, lng: validPins[0].lng! }
-          : defaultCenter;
-
+        // Calculate initial center or fit bounds
         const map = new googleMaps.Map(mapContainerRef.current, {
-          center,
+          center: defaultCenter,
           zoom: 12,
-          // @ts-ignore - custom styles
           styles: MAP_STYLES,
           disableDefaultUI: true,
-          // @ts-ignore
           zoomControl: true,
-          // @ts-ignore
           gestureHandling: 'cooperative',
         });
 
         mapInstanceRef.current = map;
 
+        const bounds = new googleMaps.LatLngBounds();
+
         // Add Markers
         validPins.forEach(pin => {
+          const pos = { lat: pin.lat!, lng: pin.lng! };
+          bounds.extend(pos);
+
           new googleMaps.Marker({
-            position: { lat: pin.lat!, lng: pin.lng! },
+            position: pos,
             map,
             title: pin.name || 'Saved location',
             icon: {
@@ -72,14 +70,13 @@ export const MiniMapWidget = ({
         });
 
         // Add Heatmap/Density if visualization is available
-        // @ts-ignore
-        if (validPins.length > 0 && typeof google !== 'undefined' && google.maps.visualization) {
+        const visualization = (googleMaps as any).visualization;
+        if (validPins.length > 0 && visualization) {
           const heatmapData = validPins.map(pin => {
-             // @ts-ignore
-             return new google.maps.LatLng(pin.lat!, pin.lng!);
+             return new (googleMaps as any).LatLng(pin.lat!, pin.lng!);
           });
-          // @ts-ignore
-          new google.maps.visualization.HeatmapLayer({
+          
+          new visualization.HeatmapLayer({
             data: heatmapData,
             map,
             radius: 30,
@@ -101,6 +98,11 @@ export const MiniMapWidget = ({
               'rgba(255, 0, 0, 1)'
             ]
           });
+        }
+
+        // Adjust map to show all pins
+        if (validPins.length > 0) {
+          map.fitBounds(bounds, 50); // 50px padding
         }
 
         setIsLoaded(true);

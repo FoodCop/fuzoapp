@@ -77,3 +77,17 @@ This document tracks all bug fixes and technical updates performed during the au
 **Status:** ⏳ PENDING (Under investigation for broad geocoding robustness). Place ID-based routing is functional, but text-based routing requires further fallback logic.
 
 ---
+
+## [2026-05-13] Food Map (Plate Heatmap) Audit
+
+**Issue:** Verification requested for the "Mini Map" feature in the Profile/Plate section.
+
+**Work Done:**
+- **Verification:** Confirmed `MiniMapWidget.tsx` is correctly integrated into the `ProfileView` under the "Food Map" tab.
+- **Enhancement:** Implemented **`fitBounds`** logic to ensure the map automatically zooms to show all saved culinary locations globally.
+- **Stability:** Refactored Google Maps Visualization (Heatmap) integration to be type-safe and more performant.
+- **UI:** Sharpened the dark-mode map styles to match the premium Fuzo V2 aesthetic.
+
+**Status:** ✅ VERIFIED & COMPLETE
+
+---
