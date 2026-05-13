@@ -17,7 +17,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Search, X, RefreshCw, Navigation, Locate, ChefHat, Menu, Bell, Plus } from 'lucide-react';
+import { Search, X, RefreshCw, Navigation, Locate, ChefHat, Menu, Bell, Plus, MapPin } from 'lucide-react';
 import { API_KEYS } from '../../../shared/constants/apiKeys';
 import { hasSupabaseConfig, supabase } from '../../../services/supabaseClient';
 import { PlacesService } from '../../../services/placesService';

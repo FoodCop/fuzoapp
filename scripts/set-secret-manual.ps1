@@ -1,11 +1,34 @@
 # Manual method to set Supabase secret using API
-# This uses your SUPABASE_ACCESS_TOKEN from .env
+# This reads your credentials from the .env file to prevent security leaks
 
-$projectRef = "lgladnskxmbkhcnrsfxv"
-$accessToken = "sbp_3a1c026ca2804704551dd81f43630cdf38dbef86"
-$apiKey = "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"
+# Load .env file helper
+function Load-Env {
+    param($Path = ".env")
+    if (Test-Path $Path) {
+        Get-Content $Path | ForEach-Object {
+            $line = $_.Trim()
+            if ($line -and -not $line.StartsWith("#") -and $line.Contains("=")) {
+                $name, $value = $line.Split("=", 2)
+                $name = $name.Trim()
+                $value = $value.Trim().Trim('"').Trim("'")
+                [Environment]::SetEnvironmentVariable($name, $value, "Process")
+            }
+        }
+    }
+}
 
-Write-Host "Setting OPENAI_API_KEY secret via Supabase Management API..." -ForegroundColor Cyan
+Load-Env
+
+$projectRef = $env:SUPABASE_PROJECT_ID
+$accessToken = $env:SUPABASE_ACCESS_TOKEN
+$apiKey = $env:OPENAI_API_KEY
+
+if (-not $projectRef -or -not $accessToken -or -not $apiKey) {
+    Write-Host "❌ Error: Missing required environment variables (SUPABASE_PROJECT_ID, SUPABASE_ACCESS_TOKEN, or OPENAI_API_KEY) in .env" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Setting OPENAI_API_KEY secret for project $projectRef via Supabase Management API..." -ForegroundColor Cyan
 
 $body = @(
     @{
@@ -32,3 +55,4 @@ try {
     Write-Host "Please use the Dashboard method instead:" -ForegroundColor Yellow
     Write-Host "https://supabase.com/dashboard/project/$projectRef/settings/functions" -ForegroundColor Cyan
 }
+

@@ -8,6 +8,11 @@ export type BiteIngredient = {
   original: string;
 };
 
+export type BiteInstructionStep = {
+  number: number;
+  step: string;
+};
+
 export type BiteRecipe = {
   id: string | number;
   title: string;
@@ -17,6 +22,7 @@ export type BiteRecipe = {
   dishTypes: string[];
   extendedIngredients: BiteIngredient[];
   instructions: string;
+  analyzedInstructions?: BiteInstructionStep[];
   nutrition: { nutrients: BiteNutrient[] } | null;
 };
 
@@ -40,6 +46,8 @@ export type BiteRecipeInput = {
   extendedIngredients?: BiteIngredient[];
   extended_ingredients?: BiteIngredient[];
   instructions?: string;
+  analyzedInstructions?: { name: string; steps: BiteInstructionStep[] }[];
+  analyzed_instructions?: { name: string; steps: BiteInstructionStep[] }[];
   summary?: string;
   nutrition?: { nutrients?: BiteNutrient[] } | null;
 };

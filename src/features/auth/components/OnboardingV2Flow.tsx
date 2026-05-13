@@ -16,6 +16,7 @@ import {
 } from '../constants/onboardingV2Data';
 import { AuthService } from '../services/authService';
 import type { OnboardingLocation, OnboardingV2Payload, UserType } from '../types/onboarding';
+import { InstagramMark, FacebookMark } from '../../../shared/ui/SocialIcons';
 
 /**
  * SECTION: OnboardingV2 Constants & Initial State
@@ -30,9 +31,9 @@ const defaultLocation: OnboardingLocation = {
 
 const ONBOARDING_BACKGROUNDS = {
   individual: "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1200&q=80",
-  chef: "https://images.unsplash.com/photo-1550317138-10000687ad32?auto=format&fit=crop&w=1200&q=80",
-  private_chef: "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1200&q=80",
-  restaurant: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=1200&q=80",
+  chef: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1200&q=80",
+  private_chef: "https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf?auto=format&fit=crop&w=1200&q=80",
+  restaurant: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80",
   culinary_team: "https://images.unsplash.com/photo-1466637574441-749b8f19452f?auto=format&fit=crop&w=1200&q=80",
 };
 

@@ -32,6 +32,7 @@ import type { AuthUser } from '../../auth/types/auth';
 import { API_KEYS } from '../../../shared/constants/apiKeys';
 import { SettingsService } from '../../settings/services/settingsService';
 import { FeedService, getUserFeedLocation } from '../../feed';
+import { shouldApplyLatestRequest } from '../../../shared/utils/async';
 
 // Lightweight motion shims
 type LightweightMotionProps = { children?: React.ReactNode; [key: string]: unknown; };

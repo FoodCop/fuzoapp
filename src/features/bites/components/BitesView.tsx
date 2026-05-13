@@ -36,7 +36,7 @@ import type { ChatInboxItem } from '../../chat/types/chatUi';
 import type { IconComponent } from '../../../shared/types/ui';
 
 // Lightweight motion shims (same as index.tsx)
-type LightweightMotionProps = { children?: React.ReactNode; [key: string]: unknown; };
+type LightweightMotionProps = { children?: React.ReactNode;[key: string]: unknown; };
 const MotionDiv = ({ children, initial: _i, animate: _a, exit: _e, transition: _t, whileHover: _wh, whileTap: _wt, ...rest }: LightweightMotionProps) => <div {...(rest as React.HTMLAttributes<HTMLDivElement>)}>{children}</div>;
 const motion = { div: MotionDiv, img: (props: any) => <img {...props} />, section: (props: any) => <section {...props} />, h1: (props: any) => <h1 {...props} />, h2: (props: any) => <h2 {...props} />, p: (props: any) => <p {...props} />, span: (props: any) => <span {...props} /> };
 const AnimatePresence = ({ children }: { children?: React.ReactNode; mode?: string; initial?: boolean }) => <>{children}</>;
@@ -118,7 +118,7 @@ const buildTrimPrompt = ({
   oEmbedContext: any;
   taxonomy?: any;
 }) => {
-  const taxonomyRule = taxonomy 
+  const taxonomyRule = taxonomy
     ? `\nCRITICAL: Use ONLY these cuisine tags: ${taxonomy.cuisines.join(', ')}. Use ONLY these vibes: ${taxonomy.vibes.join(', ')}. Do NOT add "Cuisine" suffix.`
     : '';
 
@@ -327,7 +327,7 @@ const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friend
           {filteredFriends.map(friend => (
             <button
               type="button"
-              key={friend.id} 
+              key={friend.id}
               onClick={() => handleShareClick(friend.id)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -362,9 +362,9 @@ const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friend
             </div>
           )}
         </div>
-        
+
         <footer className="p-10 bg-stone-50 text-center">
-          <button 
+          <button
             onClick={onClose}
             className="w-full py-5 bg-stone-900 text-white rounded-[2rem] flex items-center justify-center shadow-xl active:scale-95 transition-transform"
           >
@@ -568,14 +568,14 @@ const BitesRecipeModal = ({
 
   return (
     <div role="dialog" aria-modal="true" aria-label="Item details" className="fixed inset-0 z-[500] bg-stone-950/40 backdrop-blur-2xl flex items-center justify-center p-4 md:p-10 overflow-y-auto">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
         className="bg-white w-full max-w-4xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col md:flex-row relative max-h-[90vh]"
       >
-        <button 
-          onClick={onClose} 
+        <button
+          onClick={onClose}
           aria-label="Close recipe details"
           className="absolute top-6 right-6 z-50 w-12 h-12 bg-stone-900 text-white rounded-2xl flex items-center justify-center active:scale-90 transition-transform shadow-xl"
         >
@@ -587,8 +587,8 @@ const BitesRecipeModal = ({
           <img src={selectedRecipe.image} alt={selectedRecipe.title || 'Selected recipe'} className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent md:hidden" />
           <div className="absolute bottom-6 left-8 md:hidden text-white">
-             <Badge color="yellow">Studio Pack #{selectedRecipe.id}</Badge>
-             <h2 className="text-3xl font-black uppercase tracking-tighter mt-2 leading-none">{selectedRecipe.title}</h2>
+            <Badge color="yellow">Studio Pack #{selectedRecipe.id}</Badge>
+            <h2 className="text-3xl font-black uppercase tracking-tighter mt-2 leading-none">{selectedRecipe.title}</h2>
           </div>
         </div>
 
@@ -610,12 +610,12 @@ const BitesRecipeModal = ({
 
           {/* Stats (Mobile) */}
           <div className="flex md:hidden px-8 py-6 gap-4 border-b border-stone-50 shrink-0">
-              <div className="flex items-center gap-2 text-[12px] font-black uppercase tracking-widest text-stone-400">
-                <Clock size={16} /> {selectedRecipe.readyInMinutes} Mins
-              </div>
-              <div className="flex items-center gap-2 text-[12px] font-black uppercase tracking-widest text-stone-400">
-                <User size={16} /> {selectedRecipe.servings} Serves
-              </div>
+            <div className="flex items-center gap-2 text-[12px] font-black uppercase tracking-widest text-stone-400">
+              <Clock size={16} /> {selectedRecipe.readyInMinutes} Mins
+            </div>
+            <div className="flex items-center gap-2 text-[12px] font-black uppercase tracking-widest text-stone-400">
+              <User size={16} /> {selectedRecipe.servings} Serves
+            </div>
           </div>
 
           {/* Tab Bar */}
@@ -670,15 +670,15 @@ const BitesRecipeModal = ({
                     <div className="space-y-3">
                       {selectedRecipe.analyzedInstructions && selectedRecipe.analyzedInstructions.length > 0
                         ? selectedRecipe.analyzedInstructions.map((step: any) => (
-                            <div key={`analyzed-${step.number}`} className="flex gap-4 p-4 bg-stone-50 rounded-2xl border border-stone-100/50 hover:bg-white hover:border-yellow-200 transition-all">
-                              <div className="flex items-center justify-center w-8 h-8 bg-yellow-400 text-stone-900 rounded-full font-black text-xs shrink-0">
-                                {step.number}
-                              </div>
-                              <p className="text-sm font-bold text-stone-600 leading-relaxed pt-0.5">{step.step}</p>
+                          <div key={`analyzed-${step.number}`} className="flex gap-4 p-4 bg-stone-50 rounded-2xl border border-stone-100/50 hover:bg-white hover:border-yellow-200 transition-all">
+                            <div className="flex items-center justify-center w-8 h-8 bg-yellow-400 text-stone-900 rounded-full font-black text-xs shrink-0">
+                              {step.number}
                             </div>
-                          ))
+                            <p className="text-sm font-bold text-stone-600 leading-relaxed pt-0.5">{step.step}</p>
+                          </div>
+                        ))
                         : selectedRecipe.instructions
-                        ? (() => {
+                          ? (() => {
                             const steps = selectedRecipe.instructions
                               .split(/\n+|\.\s+(?=[A-Z])|(?:^\d+\.|^-|^\*)\s+/m)
                               .filter((line: string) => line.trim().length > 0);
@@ -691,7 +691,7 @@ const BitesRecipeModal = ({
                               </div>
                             ));
                           })()
-                        : (
+                          : (
                             <div className="p-4 text-stone-500 text-sm font-bold text-center">Consult Chef FUZO for detailed steps.</div>
                           )}
                     </div>
@@ -1061,7 +1061,7 @@ export const AIRecipeStudio = ({
     try {
       const text = await GeminiService.analyzeBite(title, category, description, image || undefined, imageMimeType);
       if (!shouldApplyLatestRequest(studioMountedRef, requestSeq, studioRequestSeqRef)) return;
-      
+
       const parsed = parseAiJson(text);
       setGeneratedRecipe(parsed);
     } catch {
@@ -1100,7 +1100,7 @@ export const AIRecipeStudio = ({
   const handleFinish = async (action: 'save' | 'share' | 'feed') => {
     const item = buildActionItem();
     if (!item) return;
-    
+
     if (action === 'save') {
       onSave(item);
       setCurrentStep(5); // Success step
@@ -1131,10 +1131,10 @@ export const AIRecipeStudio = ({
           <BitesSourceStep image={image} onUpload={handleImageUpload} onSkip={() => setCurrentStep(1)} />
         )}
         {currentStep === 1 && (
-          <BitesIdentityStep title={title} category={category} onUpdate={(d) => { if(d.title !== undefined) setTitle(d.title); if(d.category !== undefined) setCategory(d.category); }} onNext={() => setCurrentStep(2)} />
+          <BitesIdentityStep title={title} category={category} onUpdate={(d) => { if (d.title !== undefined) setTitle(d.title); if (d.category !== undefined) setCategory(d.category); }} onNext={() => setCurrentStep(2)} />
         )}
         {currentStep === 2 && (
-          <BitesStoryStep description={description} onUpdate={(d) => { if(d.description !== undefined) setDescription(d.description); }} onNext={() => { setCurrentStep(3); handleGenerate(); }} />
+          <BitesStoryStep description={description} onUpdate={(d) => { if (d.description !== undefined) setDescription(d.description); }} onNext={() => { setCurrentStep(3); handleGenerate(); }} />
         )}
         {currentStep === 3 && (
           <NeuralReveal onNext={() => setCurrentStep(4)} />
@@ -1210,8 +1210,8 @@ export const BitesView = ({ onSave, onShareRequest }: { onSave: (item: BiteActio
         </div>
       </header>
 
-      <UgcFilterBar 
-        activeCuisine={activeCuisine} 
+      <UgcFilterBar
+        activeCuisine={activeCuisine}
         onCuisineChange={setActiveCuisine}
         activeDiet={activeDiet}
         onDietChange={setActiveDiet}
@@ -1223,7 +1223,7 @@ export const BitesView = ({ onSave, onShareRequest }: { onSave: (item: BiteActio
           {serviceError}
         </div>
       )}
-      
+
       {loading && filteredRecipes.length === 0 ? (
         <div className="py-24 flex items-center justify-center"><Loader2 className="animate-spin text-white/20" size={48} /></div>
       ) : filteredRecipes.length === 0 ? (

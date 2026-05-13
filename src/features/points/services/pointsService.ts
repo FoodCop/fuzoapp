@@ -236,22 +236,23 @@ export const PointsService = {
   /**
    * SECTION: Ranking & Competitive Analytics
    */
-  async getUserRank(userId: string): Promise<PointsServiceResult<number>> {
+  async getUserRank(userId: string): Promise<PointsServiceResult<{ rank: number; level: number }>> {
     if (!supabase) {
       return { success: false, error: 'Supabase is not configured' };
     }
 
     const { data: userStats, error: statsError } = await supabase
       .from('users')
-      .select('points_total')
+      .select('points_total, points_level')
       .eq('id', userId)
-      .maybeSingle<{ points_total: number | null }>();
+      .maybeSingle<{ points_total: number | null; points_level: number | null }>();
 
     if (statsError) {
       return { success: false, error: statsError.message };
     }
 
     const currentPoints = userStats?.points_total ?? 0;
+    const currentLevel = userStats?.points_level ?? 1;
 
     const { count, error: countError } = await supabase
       .from('users')
@@ -264,7 +265,10 @@ export const PointsService = {
 
     return { 
       success: true, 
-      data: (count ?? 0) + 1 
+      data: {
+        rank: (count ?? 0) + 1,
+        level: currentLevel
+      }
     };
   },
 };

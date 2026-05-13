@@ -78,7 +78,7 @@ export const SettingsView = ({
   const [settingsError, setSettingsError] = useState('');
   const [settingsMessage, setSettingsMessage] = useState('');
   const [syncingYoutube, setSyncingYoutube] = useState(false);
-  const [youtubeConnected, setYoutubeConnected] = useState(false);
+  const [youtubeConnected, setYoutubeConnected] = useState(!!profile.youtube);
   const [detectedChannelTitle, setDetectedChannelTitle] = useState('');
   const [showYoutubeSyncModal, setShowYoutubeSyncModal] = useState(false);
   const [hasAutodetected, setHasAutodetected] = useState(false);
@@ -125,6 +125,11 @@ export const SettingsView = ({
           ...result.data,
           email: defaults.email,
         });
+
+        // Sync local flags
+        if (result.data.youtube) {
+          setYoutubeConnected(true);
+        }
       }
 
       setIsDirty(false);
@@ -531,15 +536,23 @@ export const SettingsView = ({
           value={profile.youtube || 'Not set'}
           onClick={() => setShowYoutubeSyncModal(true)}
           action={
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowYoutubeSyncModal(true);
-              }}
-              className="px-3 py-1.5 bg-stone-100 text-stone-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-stone-900 hover:text-white transition-all"
-            >
-              Sync
-            </button>
+            <div className="flex items-center gap-3">
+              {youtubeConnected && (
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
+                  <CheckCircle2 size={12} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Verified</span>
+                </div>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowYoutubeSyncModal(true);
+                }}
+                className="px-3 py-1.5 bg-stone-100 text-stone-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-stone-900 hover:text-white transition-all"
+              >
+                {youtubeConnected ? 'Resync' : 'Sync'}
+              </button>
+            </div>
           }
         />
       </SettingsSection>

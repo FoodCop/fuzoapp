@@ -70,8 +70,9 @@ export const AuthOrchestrator: React.FC<AuthOrchestratorProps> = ({
         const typeMap: Record<string, string> = {
           'individual': 'Individual',
           'chef': 'Chef',
+          'private_chef': 'Private Chef',
           'restaurant': 'Restaurant',
-          'team': 'Culinary Team'
+          'culinary_team': 'Culinary Team'
         };
 
         const profileType = typeMap[payload.userType] || 'Individual';

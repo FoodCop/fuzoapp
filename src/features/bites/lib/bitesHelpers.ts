@@ -11,6 +11,7 @@ export const normalizeRecipeList = (resultList: BiteRecipeInput[]): BiteRecipe[]
     dishTypes: recipe.dishTypes || recipe.dish_types || ['Recipe'],
     extendedIngredients: recipe.extendedIngredients || recipe.extended_ingredients || [],
     instructions: recipe.instructions || recipe.summary || 'No instructions available.',
+    analyzedInstructions: (recipe.analyzedInstructions || recipe.analyzed_instructions)?.flatMap(set => set.steps),
     nutrition: recipe.nutrition?.nutrients ? { nutrients: recipe.nutrition.nutrients } : null,
   }));
 };

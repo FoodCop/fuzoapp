@@ -33,6 +33,7 @@ import { persistSnapData } from '../services/snapPersistence';
 import { GeminiService } from '../../../services/geminiService';
 import { PlacesService } from '../../../services/placesService';
 import { FeedService } from '../../feed';
+import { shouldApplyLatestRequest } from '../../../shared/utils/async';
 import type { AppItem } from '../../../shared/types/appItem';
 
 

@@ -102,6 +102,13 @@ export const INDIVIDUAL_PATH: OnboardingV2Step[] = [
     options: ['Food Explorer', 'Food Reviewer'],
   },
   {
+    id: 'experience_level',
+    type: 'choice',
+    title: 'Food Expertise',
+    desc: 'How would you rate your culinary level?',
+    options: ['Novice (Learning)', 'Foodie (Enthusiast)', 'Connoisseur (Expert)', 'Pro Critic'],
+  },
+  {
     id: 'flavors',
     type: 'multichoice',
     title: 'Flavor Profile',
