@@ -28,21 +28,35 @@ export const ScoutRoutePlanner = ({
 
     if (originRef.current) {
       const originAutocomplete = new google.places.Autocomplete(originRef.current, {
+        fields: ['formatted_address', 'place_id', 'name'],
         types: ['geocode', 'establishment']
       });
       originAutocomplete.addListener('place_changed', () => {
         const place = originAutocomplete.getPlace();
-        if (place.formatted_address) setOrigin(place.formatted_address);
+        if (place.place_id) {
+          setOrigin(`place_id:${place.place_id}`);
+          // Set the display value back to the readable address
+          if (originRef.current) originRef.current.value = place.formatted_address || place.name || '';
+        } else if (place.formatted_address) {
+          setOrigin(place.formatted_address);
+        }
       });
     }
 
     if (destRef.current) {
       const destAutocomplete = new google.places.Autocomplete(destRef.current, {
+        fields: ['formatted_address', 'place_id', 'name'],
         types: ['geocode', 'establishment']
       });
       destAutocomplete.addListener('place_changed', () => {
         const place = destAutocomplete.getPlace();
-        if (place.formatted_address) setDestination(place.formatted_address);
+        if (place.place_id) {
+          setDestination(`place_id:${place.place_id}`);
+          // Set the display value back to the readable address
+          if (destRef.current) destRef.current.value = place.formatted_address || place.name || '';
+        } else if (place.formatted_address) {
+          setDestination(place.formatted_address);
+        }
       });
     }
   }, [isVisible]);

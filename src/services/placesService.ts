@@ -150,11 +150,20 @@ export const PlacesService = {
    * SECTION: Navigation & Intelligence
    * Fetches pathing data and deep location metadata for UI overlays.
    */
-  async getDirections(origin: string, destination: string): Promise<ServiceResult<{ routes: any[]; status: string }>> {
-    // Note: origin/destination can be place_id:ID or address string
+  async getDirections(origin: string | { lat: number; lng: number }, destination: string | { lat: number; lng: number }): Promise<ServiceResult<{ routes: any[]; status: string }>> {
+    const parseWaypoint = (wp: string | { lat: number; lng: number }) => {
+      if (typeof wp === 'object') {
+        return { location: { latLng: { latitude: wp.lat, longitude: wp.lng } } };
+      }
+      if (wp.startsWith('place_id:')) {
+        return { placeId: wp.replace('place_id:', '') };
+      }
+      return { address: wp };
+    };
+
     const payload = {
-      origin: origin.startsWith('place_id:') ? { placeId: origin.replace('place_id:', '') } : { address: origin },
-      destination: destination.startsWith('place_id:') ? { placeId: destination.replace('place_id:', '') } : { address: destination },
+      origin: parseWaypoint(origin),
+      destination: parseWaypoint(destination),
       travelMode: 'DRIVE',
       routingPreference: 'TRAFFIC_AWARE',
       computeAlternativeRoutes: false,

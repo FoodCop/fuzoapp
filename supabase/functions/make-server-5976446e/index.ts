@@ -72,7 +72,7 @@ serve(async (req: Request) => {
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': GOOGLE_API_KEY,
-          'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.legs,routes.bounds,routes.warnings'
+          'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.legs,routes.viewport,routes.warnings'
         },
         body: JSON.stringify(requestBody)
       })
@@ -80,12 +80,13 @@ serve(async (req: Request) => {
       const data = await response.json()
 
       // Check if the API returned an error
-      if (data.error) {
-        console.error('Google Routes API error:', data.error)
+      if (data.error || !response.ok) {
+        console.error('❌ Google Routes API error:', data.error || data)
         return new Response(
           JSON.stringify({
             status: 'ERROR',
-            error: data.error.message || 'Unknown error from Google Routes API'
+            error: data.error?.message || data.message || 'Unknown error from Google Routes API',
+            details: data.error || data
           }),
           { 
             status: response.status,
@@ -101,6 +102,9 @@ serve(async (req: Request) => {
       }
 
       console.log('✅ Directions retrieved:', transformedResponse.routes.length, 'route(s)')
+      if (transformedResponse.status === 'ZERO_RESULTS') {
+        console.warn('⚠️ Google returned ZERO_RESULTS for this path.')
+      }
 
       return new Response(
         JSON.stringify(transformedResponse),

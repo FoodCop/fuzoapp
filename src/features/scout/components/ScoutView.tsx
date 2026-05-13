@@ -326,7 +326,8 @@ export const ScoutView = ({
           setIsRoutePlannerOpen(false);
         }
       } else {
-        alert("Could not find route. Try being more specific.");
+        const errorMsg = result.error || 'No route found between these points. Try being more specific.';
+        alert(`Route Error: ${errorMsg}`);
       }
     } catch (err) {
       console.error('Route error:', err);

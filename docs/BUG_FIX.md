@@ -60,6 +60,20 @@ This document tracks all bug fixes and technical updates performed during the au
 - **Import:** Verified the **AI Photo Import** studio. Confirmed that Pinterest and gallery screenshots are correctly analyzed via `GeminiService.analyzeScreenshot` and syndicated as interactive Photo Cards to the feed.
 - **UX:** Redesigned the **Unified Creation Modal**. Simplified the interface to a direct "What do you want to create?" question with large icon cards, removing excessive text and adding "Pin a Spot" as a primary creation option.
 - **Scout:** Integrated **Google Places Autocomplete** into the pinning flow. Users can now search for specific restaurants and addresses with pinpoint accuracy. Added auto-fill for restaurant names based on search selection.
-- **Route Planner:** Verified and stabilized the **"Find Eats Along Route"** feature. Confirmed integration with Google Routes API v2 and New Places API for corridor-based discovery. Fixed property access bugs in `ScoutRoutePlanner.tsx`.
 
-**Status:** ✅ VERIFIED & COMPLETE
+---
+
+## [2026-05-13] Scout Route Planning Refinement
+
+**Issue:** 
+- Route calculation sometimes fails with "ZERO_RESULTS" when using broad text addresses (e.g., broad regions like "Morocco").
+- The Google Routes API v2 is stricter with text-based waypoints than the legacy API.
+
+**Work Done:**
+- **Infrastructure:** Integrated Google Routes API v2 and New Places API for corridor-based discovery.
+- **Diagnostics:** Added detailed error reporting and server-side logging to the Supabase Edge Function to identify routing failures.
+- **Stability:** Fixed property access bugs and implemented `place_id` support for higher routing fidelity.
+
+**Status:** ⏳ PENDING (Under investigation for broad geocoding robustness). Place ID-based routing is functional, but text-based routing requires further fallback logic.
+
+---
