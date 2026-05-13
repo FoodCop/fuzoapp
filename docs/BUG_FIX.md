@@ -37,3 +37,25 @@ This document tracks all bug fixes and technical updates performed during the au
 - **UI:** Enhanced `NotificationsView.tsx` to support deep-linking into both DM conversations and Group chats.
 
 **Status:** ✅ VERIFIED & COMPLETE
+
+---
+
+## [2026-05-13] Profile Rank & Onboarding Audit
+
+**Issue:** 
+- Profile rank was showing as a special character (`—`).
+- Recipe instructions were missing for Spoonacular and AI-generated bites.
+- Onboarding for specific user types (Private Chef, Culinary Team) was not syncing correctly.
+- Missing imports causing runtime errors in Scout, Snap, and Trims views.
+
+**Fix:**
+- **Profile:** Updated `PointsService.getUserRank` to return both rank and level. Fixed logic in `ProfileView.tsx` to handle the new object structure.
+- **Bites:** Updated `BiteRecipe` types to include `analyzedInstructions`. Refined `bitesHelpers.ts` to normalize and flatten Spoonacular's nested instruction structure.
+- **Onboarding:** 
+    - Added "Food Expertise" (Expertise Levels) to the Individual path.
+    - Fixed `AuthOrchestrator.tsx` type-mapping to support `private_chef` and `culinary_team`.
+    - Updated immersive backgrounds for all user personas with high-fidelity imagery.
+- **Stability:** Added missing `Lucide` icons and `shouldApplyLatestRequest` utilities to multiple features to resolve async race conditions.
+- **Chat:** Audited Group Chat functionality; confirmed full support for sharing Food Cards, Bites, and Videos within Studio Groups.
+
+**Status:** ✅ VERIFIED & COMPLETE
