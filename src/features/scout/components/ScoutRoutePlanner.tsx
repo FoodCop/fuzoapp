@@ -24,24 +24,27 @@ export const ScoutRoutePlanner = ({
 
   useEffect(() => {
     const google = getGoogleMaps();
-    if (!google || !isVisible) return;
+    if (!google || !google.places || !isVisible) return;
 
-    const originAutocomplete = new (google as any).places.Autocomplete(originRef.current, {
-      types: ['geocode', 'establishment']
-    });
-    const destAutocomplete = new (google as any).places.Autocomplete(destRef.current, {
-      types: ['geocode', 'establishment']
-    });
+    if (originRef.current) {
+      const originAutocomplete = new google.places.Autocomplete(originRef.current, {
+        types: ['geocode', 'establishment']
+      });
+      originAutocomplete.addListener('place_changed', () => {
+        const place = originAutocomplete.getPlace();
+        if (place.formatted_address) setOrigin(place.formatted_address);
+      });
+    }
 
-    originAutocomplete.addListener('place_changed', () => {
-      const place = originAutocomplete.getPlace();
-      if (place.formatted_address) setOrigin(place.formatted_address);
-    });
-
-    destAutocomplete.addListener('place_changed', () => {
-      const place = destAutocomplete.getPlace();
-      if (place.formatted_address) setDestination(place.formatted_address);
-    });
+    if (destRef.current) {
+      const destAutocomplete = new google.places.Autocomplete(destRef.current, {
+        types: ['geocode', 'establishment']
+      });
+      destAutocomplete.addListener('place_changed', () => {
+        const place = destAutocomplete.getPlace();
+        if (place.formatted_address) setDestination(place.formatted_address);
+      });
+    }
   }, [isVisible]);
 
   if (!isVisible) return null;

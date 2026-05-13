@@ -60,5 +60,6 @@ This document tracks all bug fixes and technical updates performed during the au
 - **Import:** Verified the **AI Photo Import** studio. Confirmed that Pinterest and gallery screenshots are correctly analyzed via `GeminiService.analyzeScreenshot` and syndicated as interactive Photo Cards to the feed.
 - **UX:** Redesigned the **Unified Creation Modal**. Simplified the interface to a direct "What do you want to create?" question with large icon cards, removing excessive text and adding "Pin a Spot" as a primary creation option.
 - **Scout:** Integrated **Google Places Autocomplete** into the pinning flow. Users can now search for specific restaurants and addresses with pinpoint accuracy. Added auto-fill for restaurant names based on search selection.
+- **Route Planner:** Verified and stabilized the **"Find Eats Along Route"** feature. Confirmed integration with Google Routes API v2 and New Places API for corridor-based discovery. Fixed property access bugs in `ScoutRoutePlanner.tsx`.
 
 **Status:** ✅ VERIFIED & COMPLETE
