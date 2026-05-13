@@ -17,55 +17,50 @@
 import React from 'react';
 import { 
   Camera, ChefHat, PlayCircle, X, 
-  Sparkles, Zap, ArrowRight, Image as ImageIcon
+  Sparkles, Zap, ArrowRight, Image as ImageIcon,
+  MapPin
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface UnifiedCreationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectOption: (option: 'snap' | 'bites-ai' | 'trim-ai') => void;
+  onSelectOption: (option: 'snap' | 'bites-ai' | 'trim-ai' | 'import-ai' | 'scout') => void;
 }
 
 export const UnifiedCreationModal = ({ isOpen, onClose, onSelectOption }: UnifiedCreationModalProps) => {
-  /**
-   * SECTION: Studio Registry
-   * Definition of the available creation 'transmissions'.
-   */
   const options = [
     {
-      id: 'snap',
-      title: 'Standard Snap',
-      description: 'Capture and tag your culinary moment manually.',
-      icon: Camera,
-      color: 'bg-emerald-500',
-      tag: 'Classic'
+      id: 'trim-ai',
+      title: 'A Video',
+      icon: PlayCircle,
+      color: 'bg-rose-500',
+      isAi: true
     },
     {
       id: 'bites-ai',
-      title: 'AI Bites Studio',
-      description: 'Generate a stunning recipe card from just a photo.',
+      title: 'A Recipe',
       icon: ChefHat,
       color: 'bg-yellow-400',
-      tag: 'AI Powered',
       isAi: true
     },
     {
-      id: 'trim-ai',
-      title: 'AI Trim Studio',
-      description: 'Auto-crop and edit your food videos in seconds.',
-      icon: PlayCircle,
-      color: 'bg-stone-900',
-      tag: 'AI Powered',
-      isAi: true
+      id: 'snap',
+      title: 'A Discovery',
+      icon: Camera,
+      color: 'bg-emerald-500',
+    },
+    {
+      id: 'scout',
+      title: 'Pin a Spot',
+      icon: MapPin,
+      color: 'bg-blue-500',
     },
     {
       id: 'import-ai',
-      title: 'AI Photo Import',
-      description: 'Import from Pinterest or Gallery and auto-create a feed card.',
+      title: 'Import',
       icon: ImageIcon,
       color: 'bg-purple-500',
-      tag: 'AI Powered',
       isAi: true
     }
   ];
@@ -73,39 +68,33 @@ export const UnifiedCreationModal = ({ isOpen, onClose, onSelectOption }: Unifie
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[400] flex items-center justify-center p-6">
-          {/* SECTION: Backdrop Layer */}
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-stone-950/80 backdrop-blur-xl"
+            className="absolute inset-0 bg-stone-950/90 backdrop-blur-2xl"
           />
 
-          {/* SECTION: Modal Container */}
           <motion.div 
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            initial={{ scale: 0.9, opacity: 0, y: 40 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="relative w-full max-w-4xl bg-white rounded-[4rem] shadow-2xl overflow-hidden"
+            exit={{ scale: 0.9, opacity: 0, y: 40 }}
+            className="relative w-full max-w-xl bg-white rounded-[3.5rem] shadow-2xl overflow-hidden"
           >
-            <div className="p-8 md:p-12">
-              <div className="flex items-center justify-between mb-12">
-                <div>
-                  <h2 className="text-4xl font-black uppercase tracking-tighter text-stone-900 italic">Create</h2>
-                  <p className="text-[12px] font-bold uppercase tracking-[0.2em] text-stone-400 mt-1">Select your creative transmission</p>
+            <div className="p-10 md:p-14 text-center">
+              <header className="mb-12 space-y-2">
+                <h2 className="text-4xl font-black uppercase tracking-tighter text-stone-900 leading-none">
+                  What do you want <br/> to create?
+                </h2>
+                <div className="flex justify-center gap-1">
+                  <div className="h-1 w-8 bg-yellow-400 rounded-full" />
+                  <div className="h-1 w-2 bg-stone-200 rounded-full" />
                 </div>
-                <button 
-                  onClick={onClose}
-                  className="w-14 h-14 bg-stone-50 rounded-2xl flex items-center justify-center text-stone-400 hover:text-stone-900 transition-colors"
-                >
-                  <X size={24} />
-                </button>
-              </div>
+              </header>
 
-              {/* SECTION: Feature Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 gap-4">
                 {options.map((option) => (
                   <button
                     key={option.id}
@@ -113,47 +102,35 @@ export const UnifiedCreationModal = ({ isOpen, onClose, onSelectOption }: Unifie
                       onSelectOption(option.id as any);
                       onClose();
                     }}
-                    className="group relative flex flex-col p-8 bg-stone-50 rounded-[3rem] border border-stone-100 text-left hover:bg-white hover:shadow-2xl hover:scale-[1.02] transition-all duration-500"
+                    className="group flex flex-col items-center justify-center p-8 bg-stone-50 rounded-[2.5rem] hover:bg-stone-900 transition-all duration-300 active:scale-95"
                   >
-                    <div className={`w-14 h-14 ${option.color} rounded-2xl flex items-center justify-center ${option.color === 'bg-stone-900' ? 'text-white' : 'text-stone-900'} mb-8 shadow-lg group-hover:rotate-6 transition-transform`}>
-                      <option.icon size={28} />
+                    <div className={`w-16 h-16 ${option.color} rounded-3xl flex items-center justify-center text-white mb-4 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all`}>
+                      <option.icon size={32} strokeWidth={2.5} />
                     </div>
-
-                    <div className="flex-grow space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span className="px-3 py-1 bg-white border border-stone-100 rounded-full text-[11px] font-black uppercase tracking-widest text-stone-400">
-                          {option.tag}
-                        </span>
-                        {option.isAi && <Sparkles size={12} className="text-yellow-500" />}
+                    <span className="text-sm font-black uppercase tracking-widest text-stone-900 group-hover:text-white transition-colors">
+                      {option.title}
+                    </span>
+                    {option.isAi && (
+                      <div className="mt-2 flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded-full">
+                        <Sparkles size={8} /> AI Neural
                       </div>
-                      <h3 className="text-xl font-black uppercase tracking-tighter text-stone-900 leading-tight">
-                        {option.title}
-                      </h3>
-                      <p className="text-xs font-bold text-stone-400 leading-relaxed group-hover:text-stone-500 transition-colors">
-                        {option.description}
-                      </p>
-                    </div>
-
-                    <div className="mt-8 flex items-center gap-2 text-[12px] font-black uppercase tracking-widest text-stone-500 group-hover:text-stone-900 transition-colors">
-                      Begin Flow <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                    </div>
+                    )}
                   </button>
                 ))}
               </div>
-            </div>
 
-            {/* SECTION: Branding & Footer */}
-            <div className="p-8 bg-stone-50 border-t border-stone-100 flex items-center justify-center gap-6">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center text-yellow-500 shadow-sm border border-stone-100">
-                  <Zap size={14} />
-                </div>
-                <p className="text-[12px] font-black uppercase tracking-widest text-stone-400">Powered by Gemini Ultra V2</p>
-              </div>
-              <div className="h-4 w-px bg-stone-200" />
-              <button onClick={onClose} className="text-[12px] font-black uppercase tracking-widest text-stone-400 hover:text-stone-900 transition-colors">
-                Cancel
+              <button 
+                onClick={onClose}
+                className="mt-10 text-xs font-black uppercase tracking-[0.3em] text-stone-400 hover:text-stone-900 transition-colors"
+              >
+                Close Studio
               </button>
+            </div>
+            
+            {/* Minimal Gemini Branding */}
+            <div className="py-4 bg-stone-50 flex items-center justify-center gap-2 border-t border-stone-100">
+               <Zap size={10} className="text-yellow-500" />
+               <span className="text-[9px] font-black uppercase tracking-widest text-stone-400">Powered by Gemini Neural V2</span>
             </div>
           </motion.div>
         </div>

@@ -1124,6 +1124,7 @@ const App = () => {
               else if (option === 'bites-ai') setShowAIBitesStudio(true);
               else if (option === 'trim-ai') setShowAITrimStudio(true);
               else if (option === 'import-ai') setShowAIImportStudio(true);
+              else if (option === 'scout') setTab('scout');
             }}
           />
           

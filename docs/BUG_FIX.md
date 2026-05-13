@@ -58,5 +58,6 @@ This document tracks all bug fixes and technical updates performed during the au
 - **Stability:** Added missing `Lucide` icons and `shouldApplyLatestRequest` utilities to multiple features to resolve async race conditions.
 - **Chat:** Audited Group Chat functionality; confirmed full support for sharing Food Cards, Bites, and Videos within Studio Groups.
 - **Import:** Verified the **AI Photo Import** studio. Confirmed that Pinterest and gallery screenshots are correctly analyzed via `GeminiService.analyzeScreenshot` and syndicated as interactive Photo Cards to the feed.
+- **UX:** Redesigned the **Unified Creation Modal**. Simplified the interface to a direct "What do you want to create?" question with large icon cards, removing excessive text and adding "Pin a Spot" as a primary creation option.
 
 **Status:** ✅ VERIFIED & COMPLETE
