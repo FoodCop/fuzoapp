@@ -13,6 +13,8 @@ export const normalizeRecipeList = (resultList: BiteRecipeInput[]): BiteRecipe[]
     instructions: recipe.instructions || recipe.summary || 'No instructions available.',
     analyzedInstructions: (recipe.analyzedInstructions || recipe.analyzed_instructions)?.flatMap(set => set.steps),
     nutrition: recipe.nutrition?.nutrients ? { nutrients: recipe.nutrition.nutrients } : null,
+    diets: recipe.diets || [],
+    cuisines: recipe.cuisines || [],
   }));
 };
 

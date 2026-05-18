@@ -24,6 +24,8 @@ export type BiteRecipe = {
   instructions: string;
   analyzedInstructions?: BiteInstructionStep[];
   nutrition: { nutrients: BiteNutrient[] } | null;
+  diets?: string[];
+  cuisines?: string[];
 };
 
 export type BiteActionItem = {
@@ -50,4 +52,6 @@ export type BiteRecipeInput = {
   analyzed_instructions?: { name: string; steps: BiteInstructionStep[] }[];
   summary?: string;
   nutrition?: { nutrients?: BiteNutrient[] } | null;
+  diets?: string[];
+  cuisines?: string[];
 };

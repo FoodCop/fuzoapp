@@ -14,6 +14,8 @@ export const BITE_FALLBACK_RECIPES: BiteRecipe[] = [
       { name: 'Fat', amount: 58, unit: 'g' },
       { name: 'Carbohydrates', amount: 32, unit: 'g' },
     ] },
+    diets: [],
+    cuisines: ['French', 'American'],
   },
   {
     id: 2, title: 'Blueberry Matcha Bowl',
@@ -28,6 +30,8 @@ export const BITE_FALLBACK_RECIPES: BiteRecipe[] = [
       { name: 'Fat', amount: 8, unit: 'g' },
       { name: 'Carbohydrates', amount: 45, unit: 'g' },
     ] },
+    diets: ['Vegetarian', 'Vegan', 'Gluten Free'],
+    cuisines: ['Japanese', 'Asian'],
   },
   {
     id: 3, title: 'Spicy Ahi Poke',
@@ -42,6 +46,8 @@ export const BITE_FALLBACK_RECIPES: BiteRecipe[] = [
       { name: 'Fat', amount: 12, unit: 'g' },
       { name: 'Carbohydrates', amount: 50, unit: 'g' },
     ] },
+    diets: ['Gluten Free'],
+    cuisines: ['Japanese', 'Asian'],
   },
   {
     id: 4, title: 'Truffle Mushroom Risotto',
@@ -56,5 +62,7 @@ export const BITE_FALLBACK_RECIPES: BiteRecipe[] = [
       { name: 'Fat', amount: 22, unit: 'g' },
       { name: 'Carbohydrates', amount: 75, unit: 'g' },
     ] },
+    diets: ['Vegetarian', 'Gluten Free'],
+    cuisines: ['Italian'],
   },
 ];

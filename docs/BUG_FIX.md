@@ -122,3 +122,19 @@ This document tracks all bug fixes and technical updates performed during the au
 **Status:** ✅ VERIFIED & COMPLETE (Visually and interactively validated using automated browser subagent flows)
 
 ---
+
+## [2026-05-18] Bites Gallery Search & Gallery UI Redesign
+
+**Issue:**
+- The Bites page lacked a direct search bar with autofill autocomplete suggestions.
+- Filter chips were rendered initially, cluttering the header, instead of appearing only after a search was entered, and they were not filtered to only represent options relevant to active search results.
+- Recipe grid cards and details modals rendered images inside background overlays or side-by-side split rows on desktop, which reduced overall text legibility and consistency.
+
+**Fix:**
+- **Search & Autofill Suggestions:** Implemented a full search engine inside `BitesView` that dynamically builds autocomplete suggestion sets from active recipe titles, cuisines, and diets. Added a glassmorphic floating suggestions dropdown underneath the search bar.
+- **Search-Triggered Relevant Chips:** Modified the UI state logic so that dietary and cuisine filter chips remain completely hidden initially, appearing dynamically only after a search query is typed, and filtering chips strictly to diets and cuisines represented in the matching recipes.
+- **Grid Cards & Detail Modals:** Transformed card layouts in the gallery grid and details modal into elegant vertical stacks where the image sits cleanly at the top with metadata structured at the bottom, achieving ultimate visual legibility and consistency across all viewport sizes.
+
+**Status:** ✅ VERIFIED & COMPLETE (Visually and interactively validated using automated browser subagent flows)
+
+---

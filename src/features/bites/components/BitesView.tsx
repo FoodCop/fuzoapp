@@ -474,6 +474,67 @@ const useBitesFeed = () => {
     return recipes.filter((r) => r.title.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [recipes, searchQuery]);
 
+  // Autocomplete Suggestions Engine
+  const autocompleteSuggestions = useMemo(() => {
+    const suggestions = new Set<string>();
+    
+    // Add default cuisines and diets
+    BITE_CUISINES.forEach((c) => suggestions.add(c));
+    BITE_DIETS.forEach((d) => suggestions.add(d));
+
+    // Extract terms from loaded recipe titles
+    recipes.forEach((r) => {
+      r.title.split(/\s+/).forEach((word) => {
+        const clean = word.replace(/[^a-zA-Z]/g, '');
+        if (clean.length > 3) {
+          const capitalized = clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase();
+          suggestions.add(capitalized);
+        }
+      });
+    });
+
+    return Array.from(suggestions);
+  }, [recipes]);
+
+  const matchingSuggestions = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return [];
+    return autocompleteSuggestions
+      .filter((s) => s.toLowerCase().includes(query) && s.toLowerCase() !== query)
+      .slice(0, 5);
+  }, [searchQuery, autocompleteSuggestions]);
+
+  // Filter chips dynamic relevancy
+  const relevantDiets = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const dietsInRecipes = new Set<string>();
+    recipes.forEach((r) => {
+      (r.diets || []).forEach((d) => dietsInRecipes.add(d.toLowerCase()));
+      const titleLower = r.title.toLowerCase();
+      if (titleLower.includes('vegetarian') || titleLower.includes('veg')) dietsInRecipes.add('vegetarian');
+      if (titleLower.includes('vegan')) dietsInRecipes.add('vegan');
+      if (titleLower.includes('gluten')) dietsInRecipes.add('gluten free');
+      if (titleLower.includes('keto')) dietsInRecipes.add('ketogenic');
+      if (titleLower.includes('paleo')) dietsInRecipes.add('paleo');
+    });
+    return BITE_DIETS.filter((d) => dietsInRecipes.has(d.toLowerCase()));
+  }, [recipes, searchQuery]);
+
+  const relevantCuisines = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const cuisinesInRecipes = new Set<string>();
+    recipes.forEach((r) => {
+      (r.cuisines || []).forEach((c) => cuisinesInRecipes.add(c.toLowerCase()));
+      const titleLower = r.title.toLowerCase();
+      BITE_CUISINES.forEach((cuisine) => {
+        if (titleLower.includes(cuisine.toLowerCase())) {
+          cuisinesInRecipes.add(cuisine.toLowerCase());
+        }
+      });
+    });
+    return BITE_CUISINES.filter((c) => cuisinesInRecipes.has(c.toLowerCase()));
+  }, [recipes, searchQuery]);
+
   return {
     loading,
     serviceError,
@@ -481,6 +542,9 @@ const useBitesFeed = () => {
     activeDiet,
     activeCuisine,
     filteredRecipes,
+    matchingSuggestions,
+    relevantDiets,
+    relevantCuisines,
     setSearchQuery,
     setActiveDiet,
     setActiveCuisine,
@@ -529,15 +593,25 @@ const BitesGrid = ({
             }
           }}
           tabIndex={0}
-          className="group cursor-pointer text-left w-full"
+          className="group cursor-pointer text-left w-full h-full focus:outline-none"
         >
-          <div className="relative aspect-[4/5] rounded-[1.75rem] border-4 border-white shadow-xl overflow-hidden group-hover:scale-[1.02] transition-transform duration-500">
-            <img src={recipe.image} alt={recipe.title || 'Recipe'} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent" />
-            <div className="absolute bottom-10 left-10 right-10 text-white">
-              <h3 className="text-2xl font-black uppercase tracking-tighter mb-2 leading-none">{recipe.title}</h3>
-              <div className="flex gap-2 items-center text-[12px] font-bold uppercase tracking-widest opacity-80">
-                <Clock size={14} /> {recipe.readyInMinutes} Min
+          <div className="bg-white rounded-[2rem] border border-stone-100/80 shadow-md overflow-hidden group-hover:scale-[1.02] group-focus:scale-[1.02] hover:shadow-xl transition-all duration-500 flex flex-col h-full">
+            <div className="relative w-full aspect-[4/3] overflow-hidden shrink-0">
+              <img src={recipe.image} alt={recipe.title || 'Recipe'} className="w-full h-full object-cover" />
+              <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-4 py-2 rounded-2xl flex gap-1.5 items-center text-[10px] font-black uppercase tracking-widest text-stone-900 shadow-sm border border-stone-100/50">
+                <Clock size={12} className="text-yellow-500" /> {recipe.readyInMinutes} Min
+              </div>
+            </div>
+            <div className="p-7 flex flex-col justify-between flex-grow space-y-4">
+              <h3 className="text-lg font-black uppercase tracking-tighter text-stone-900 leading-snug line-clamp-2">
+                {recipe.title}
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {(recipe.dishTypes || []).slice(0, 2).map((tag) => (
+                  <span key={tag} className="text-[9px] font-black uppercase tracking-widest bg-stone-50 border border-stone-100/40 px-3 py-1.5 rounded-xl text-stone-400">
+                    {tag}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
@@ -579,54 +653,42 @@ const BitesRecipeModal = ({
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="bg-white w-full max-w-4xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col md:flex-row relative max-h-[90vh]"
+        className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col relative max-h-[90vh]"
       >
         <button
           onClick={onClose}
           aria-label="Close recipe details"
-          className="absolute top-6 right-6 z-50 w-12 h-12 bg-stone-900 text-white rounded-2xl flex items-center justify-center active:scale-90 transition-transform shadow-xl"
+          className="absolute top-6 right-6 z-50 w-12 h-12 bg-stone-900/80 backdrop-blur-md text-white rounded-2xl flex items-center justify-center active:scale-90 transition-transform shadow-xl border border-stone-800"
         >
           <X size={24} />
         </button>
 
-        {/* Left Side: Image */}
-        <div className="w-full md:w-1/2 h-64 md:h-auto overflow-hidden relative">
+        {/* Top Side: Image */}
+        <div className="w-full h-64 sm:h-80 overflow-hidden relative shrink-0">
           <img src={selectedRecipe.image} alt={selectedRecipe.title || 'Selected recipe'} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent md:hidden" />
-          <div className="absolute bottom-6 left-8 md:hidden text-white">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
+          <div className="absolute bottom-6 left-8 right-8 text-white">
             <Badge color="yellow">Studio Pack #{selectedRecipe.id}</Badge>
-            <h2 className="text-3xl font-black uppercase tracking-tighter mt-2 leading-none">{selectedRecipe.title}</h2>
+            <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter mt-2 leading-tight">{selectedRecipe.title}</h2>
           </div>
         </div>
 
-        {/* Right Side: Content */}
-        <div className="w-full md:w-1/2 flex flex-col h-full bg-white relative overflow-hidden">
-          {/* Header (Desktop) */}
-          <div className="hidden md:block p-10 pb-0 space-y-4 shrink-0">
-            <Badge color="yellow">Studio Pack #{selectedRecipe.id}</Badge>
-            <h2 className="text-4xl font-black uppercase tracking-tighter leading-none text-stone-900">{selectedRecipe.title}</h2>
-            <div className="flex flex-wrap gap-4">
+        {/* Bottom Side: Content */}
+        <div className="w-full flex-grow flex flex-col overflow-hidden bg-white relative">
+          {/* Header Stats Bar */}
+          <div className="px-8 pt-6 pb-0 space-y-4 shrink-0">
+            <div className="flex flex-wrap gap-4 pb-4 border-b border-stone-100">
               <div className="flex items-center gap-2 text-[12px] font-black uppercase tracking-widest text-stone-400">
-                <Clock size={16} /> {selectedRecipe.readyInMinutes} Mins
+                <Clock size={16} className="text-yellow-500" /> {selectedRecipe.readyInMinutes} Mins
               </div>
               <div className="flex items-center gap-2 text-[12px] font-black uppercase tracking-widest text-stone-400">
-                <User size={16} /> {selectedRecipe.servings} Serves
+                <User size={16} className="text-yellow-500" /> {selectedRecipe.servings} Serves
               </div>
-            </div>
-          </div>
-
-          {/* Stats (Mobile) */}
-          <div className="flex md:hidden px-8 py-6 gap-4 border-b border-stone-50 shrink-0">
-            <div className="flex items-center gap-2 text-[12px] font-black uppercase tracking-widest text-stone-400">
-              <Clock size={16} /> {selectedRecipe.readyInMinutes} Mins
-            </div>
-            <div className="flex items-center gap-2 text-[12px] font-black uppercase tracking-widest text-stone-400">
-              <User size={16} /> {selectedRecipe.servings} Serves
             </div>
           </div>
 
           {/* Tab Bar */}
-          <div className="px-8 mt-6 shrink-0">
+          <div className="px-8 mt-4 shrink-0">
             <div className="flex bg-stone-50 p-1.5 rounded-2xl gap-1">
               {tabs.map((t) => (
                 <button
@@ -1181,7 +1243,7 @@ export const AIRecipeStudio = ({
  */
 export const BitesView = ({ onSave, onShareRequest }: { onSave: (item: BiteActionItem) => void, onShareRequest: (item: BiteActionItem) => void }) => {
   const [selectedRecipe, setSelectedRecipe] = useState<BiteRecipe | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
   const {
     loading,
     serviceError,
@@ -1189,6 +1251,9 @@ export const BitesView = ({ onSave, onShareRequest }: { onSave: (item: BiteActio
     activeDiet,
     activeCuisine,
     filteredRecipes,
+    matchingSuggestions,
+    relevantDiets,
+    relevantCuisines,
     setSearchQuery,
     setActiveDiet,
     setActiveCuisine,
@@ -1209,7 +1274,7 @@ export const BitesView = ({ onSave, onShareRequest }: { onSave: (item: BiteActio
 
   return (
     <div className="min-h-screen text-white p-8 md:p-12 pb-32">
-      <header className="mb-12 space-y-4">
+      <header className="mb-8 space-y-4">
         <h2 className="text-5xl font-black uppercase tracking-tighter italic text-black">Bites Gallery</h2>
         <div className="flex items-center gap-4">
           <Badge color="yellow">Neural Recipes</Badge>
@@ -1217,16 +1282,86 @@ export const BitesView = ({ onSave, onShareRequest }: { onSave: (item: BiteActio
         </div>
       </header>
 
-      <UgcFilterBar
-        activeCuisine={activeCuisine}
-        onCuisineChange={setActiveCuisine}
-        activeDiet={activeDiet}
-        onDietChange={setActiveDiet}
-        className="mb-12"
-      />
+      {/* Search Input with Autofill Overlay */}
+      <div className="relative mb-8 max-w-2xl">
+        <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-stone-400" size={20} />
+        <input
+          value={searchQuery}
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search recipes, cuisines, or diets..."
+          className="w-full bg-white/5 pl-14 pr-16 py-5 rounded-[2rem] font-bold text-sm outline-none focus:ring-4 focus:ring-yellow-400/20 text-white placeholder-stone-500 transition-all border border-white/5 focus:bg-stone-900 focus:border-yellow-400/30"
+        />
+        {searchQuery.trim().length > 0 && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="absolute right-6 top-1/2 -translate-y-1/2 text-stone-500 hover:text-white transition-colors"
+          >
+            <X size={18} />
+          </button>
+        )}
+        
+        {/* Autofill suggestions overlay */}
+        {searchFocused && matchingSuggestions.length > 0 && (
+          <div className="absolute top-[105%] left-0 right-0 bg-stone-900 border border-white/10 rounded-[2rem] shadow-2xl p-4 z-[400] overflow-hidden space-y-1 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-500 px-4 py-2 border-b border-white/5 mb-1">
+              Suggestions
+            </div>
+            {matchingSuggestions.map((suggestion) => (
+              <button
+                key={suggestion}
+                onMouseDown={() => {
+                  setSearchQuery(suggestion);
+                  setSearchFocused(false);
+                }}
+                className="w-full text-left px-4 py-3 rounded-2xl text-[12px] font-black uppercase tracking-widest text-stone-400 hover:text-white hover:bg-white/5 transition-all flex items-center gap-3 group"
+              >
+                <Search size={14} className="text-stone-500 group-hover:text-yellow-400 transition-colors" />
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Inline Dynamically Relevant Filter Chips (Post-Search Only) */}
+      {searchQuery.trim().length > 0 && (relevantDiets.length > 0 || relevantCuisines.length > 0) && (
+        <div className="mb-12 space-y-4 animate-in fade-in slide-in-from-top-3 duration-500">
+          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-500 px-1">
+            Refine Search Matches:
+          </div>
+          <div className="flex flex-wrap gap-2.5">
+            {relevantDiets.map((diet) => {
+              const isActive = activeDiet === diet;
+              return (
+                <button
+                  key={diet}
+                  onClick={() => setActiveDiet(activeDiet === diet ? null : diet)}
+                  className={`px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${isActive ? 'bg-yellow-400 text-stone-900 shadow-lg scale-105' : 'bg-stone-900 text-stone-400 border border-white/5 hover:bg-stone-850 hover:text-white'}`}
+                >
+                  🌱 {diet}
+                </button>
+              );
+            })}
+            {relevantCuisines.map((cuisine) => {
+              const isActive = activeCuisine === cuisine;
+              return (
+                <button
+                  key={cuisine}
+                  onClick={() => setActiveCuisine(activeCuisine === cuisine ? null : cuisine)}
+                  className={`px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${isActive ? 'bg-yellow-400 text-stone-900 shadow-lg scale-105' : 'bg-stone-900 text-stone-400 border border-white/5 hover:bg-stone-850 hover:text-white'}`}
+                >
+                  🌍 {cuisine}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {serviceError && (
-        <div className="px-6 py-4 bg-yellow-50 border border-yellow-100 rounded-2xl text-[11px] font-bold text-yellow-800">
+        <div className="px-6 py-4 bg-stone-900 border border-white/5 rounded-2xl text-[11px] font-bold text-yellow-500 mb-8">
           {serviceError}
         </div>
       )}
@@ -1239,21 +1374,31 @@ export const BitesView = ({ onSave, onShareRequest }: { onSave: (item: BiteActio
           <button onClick={() => { setActiveCuisine(null); setActiveDiet(null); }} className="px-8 py-3 bg-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest">Clear Filters</button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-in fade-in duration-500">
           {filteredRecipes.map((recipe) => (
             <button
               type="button"
               key={recipe.id}
               onClick={() => setSelectedRecipe(recipe)}
-              className="group cursor-pointer text-left w-full"
+              className="group cursor-pointer text-left w-full focus:outline-none"
             >
-              <div className="relative aspect-[4/5] rounded-[1.75rem] border-4 border-white shadow-xl overflow-hidden group-hover:scale-[1.02] transition-transform duration-500">
-                <img src={recipe.image} alt={recipe.title || 'Recipe'} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-                <div className="absolute bottom-6 md:bottom-10 left-4 md:left-10 right-4 md:right-10 text-white">
-                  <h3 className="text-sm md:text-2xl font-black uppercase tracking-tighter mb-1 md:mb-2 leading-tight md:leading-none line-clamp-2">{recipe.title}</h3>
-                  <div className="flex gap-2 items-center text-[10px] md:text-[12px] font-bold uppercase tracking-widest opacity-80">
-                    <Clock size={12} className="md:size-[14px]" /> {recipe.readyInMinutes} Min
+              <div className="bg-stone-900 rounded-[2rem] border border-white/5 hover:border-yellow-400/20 shadow-md overflow-hidden group-hover:scale-[1.02] group-focus:scale-[1.02] hover:shadow-2xl transition-all duration-500 flex flex-col h-full">
+                <div className="relative w-full aspect-[4/3] overflow-hidden shrink-0">
+                  <img src={recipe.image} alt={recipe.title || 'Recipe'} className="w-full h-full object-cover" />
+                  <div className="absolute top-4 right-4 bg-stone-950/80 backdrop-blur-md px-3.5 py-1.5 rounded-xl flex gap-1.5 items-center text-[10px] font-black uppercase tracking-widest text-stone-300 shadow-sm border border-white/5">
+                    <Clock size={12} className="text-yellow-400" /> {recipe.readyInMinutes} Min
+                  </div>
+                </div>
+                <div className="p-6 flex flex-col justify-between flex-grow space-y-4">
+                  <h3 className="text-sm md:text-base font-black uppercase tracking-tighter text-white leading-snug line-clamp-2">
+                    {recipe.title}
+                  </h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(recipe.dishTypes || []).slice(0, 2).map((tag) => (
+                      <span key={tag} className="text-[9px] font-black uppercase tracking-widest bg-white/5 border border-white/5 px-2.5 py-1 rounded-lg text-stone-400">
+                        {tag}
+                      </span>
+                    ))}
                   </div>
                 </div>
               </div>
