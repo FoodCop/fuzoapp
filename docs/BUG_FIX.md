@@ -107,3 +107,18 @@ This document tracks all bug fixes and technical updates performed during the au
 **Status:** ✅ VERIFIED & COMPLETE (Visually and interactively validated using automated browser subagent flows)
 
 ---
+
+## [2026-05-18] User Search While Sharing (7.3)
+
+**Issue:** 
+- In the content share modals (both global and bites-specific), the search function lacked support for filtering contacts by custom handles and raw database display names, and was visually uninformative about what search query fields were supported.
+- **Z-Index Layering Bug:** The share modal had `z-[120]` styling, causing it to render underneath the full-screen recipe detail modal (`z-[500]`), making it completely invisible and unclickable when sharing recipes.
+
+**Fix:**
+- **Robust Multi-field Search Filter:** Upgraded `filterFriendsByQuery` in [chatHelpers.ts](file:///k:/H%20DRIVE/Quantum%20Climb/APPS/FUZO_V2/src/features/chat/lib/chatHelpers.ts) and the local helper in [BitesView.tsx](file:///k:/H%20DRIVE/Quantum%20Climb/APPS/FUZO_V2/src/features/bites/components/BitesView.tsx) to match user queries against `username` (system handle), `handle` (metadata handle), `name` (active display name), `display_name` (raw database field), and `email`.
+- **Descriptive Input Placeholder:** Refactored placeholder text inside the text search inputs to guide users: `"Search username, name, or handle..."`
+- **Z-Index Elevation:** Increased z-index of BOTH share modals from `z-[120]` to `z-[600]`, resolving the modal overlay conflict so that it overlays perfectly over recipe detail views.
+
+**Status:** ✅ VERIFIED & COMPLETE (Visually and interactively validated using automated browser subagent flows)
+
+---

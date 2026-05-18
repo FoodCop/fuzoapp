@@ -56,9 +56,16 @@ const filterFriendsByQuery = (friends: ChatInboxItem[], query: string) => {
 
   return friends.filter((friend) => {
     const username = 'username' in friend ? String(friend.username || '').toLowerCase() : '';
+    const handle = 'handle' in friend ? String(friend.handle || '').toLowerCase() : '';
     const displayName = String(friend.name || '').toLowerCase();
+    const displayNameRaw = 'display_name' in friend ? String(friend.display_name || '').toLowerCase() : '';
     const email = 'email' in friend ? String(friend.email || '').toLowerCase() : '';
-    return username.includes(normalized) || displayName.includes(normalized) || email.includes(normalized);
+
+    return username.includes(normalized) || 
+           handle.includes(normalized) || 
+           displayName.includes(normalized) || 
+           displayNameRaw.includes(normalized) || 
+           email.includes(normalized);
   });
 };
 
@@ -293,7 +300,7 @@ const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friend
   };
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Share with friend" className="fixed inset-0 z-[120] bg-stone-900/60 backdrop-blur-xl flex items-end md:items-center justify-center p-0 md:p-10 animate-in fade-in duration-300">
+    <div role="dialog" aria-modal="true" aria-label="Share with friend" className="fixed inset-0 z-[600] bg-stone-900/60 backdrop-blur-xl flex items-end md:items-center justify-center p-0 md:p-10 animate-in fade-in duration-300">
       <div className="bg-white w-full max-w-lg max-h-[90vh] rounded-t-[4rem] md:rounded-[2rem] shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-20 duration-500">
         <header className="p-10 border-b flex justify-between items-center bg-stone-50">
           <div>
@@ -319,7 +326,7 @@ const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friend
             <input
               value={friendSearch}
               onChange={(e) => setFriendSearch(e.target.value)}
-              placeholder="Search username, name, or email"
+              placeholder="Search username, name, or handle..."
               className="w-full bg-stone-50 pl-12 pr-4 py-3 rounded-2xl text-xs font-black uppercase tracking-widest outline-none border border-stone-100 focus:ring-4 focus:ring-yellow-400/10"
             />
           </div>
