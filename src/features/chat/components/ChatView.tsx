@@ -83,6 +83,7 @@ export const ChatView = ({
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
   const [showEventCreate, setShowEventCreate] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const activeIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (initialActiveId) {
@@ -199,6 +200,8 @@ export const ChatView = ({
   };
 
   const openConversation = async (participantId: string, type: 'dm' | 'group' = 'dm') => {
+    activeIdRef.current = participantId;
+
     if (!authUser?.id || !hasSupabaseConfig) {
       setActiveId(participantId);
       setActiveType(type);
@@ -212,10 +215,12 @@ export const ChatView = ({
 
     if (type === 'dm') {
       const conversation = await ChatService.getOrCreateConversation(authUser.id, participantId);
+      if (activeIdRef.current !== participantId) return;
       if (!conversation.success || !conversation.data) return;
 
       setConversationId(conversation.data.id);
       const result = await ChatService.listMessages(conversation.data.id);
+      if (activeIdRef.current !== participantId) return;
       if (!result.success || !result.data) {
         setMessages([]);
         return;
@@ -232,6 +237,7 @@ export const ChatView = ({
     } else {
       setConversationId(null);
       const result = await ChatService.listGroupMessages(participantId);
+      if (activeIdRef.current !== participantId) return;
       if (!result.success || !result.data) {
         setMessages([]);
         return;

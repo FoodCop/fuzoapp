@@ -43,7 +43,7 @@ export const MiniMapWidget = ({
           disableDefaultUI: true,
           zoomControl: true,
           gestureHandling: 'cooperative',
-        });
+        } as any);
 
         mapInstanceRef.current = map;
 

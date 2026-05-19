@@ -264,6 +264,11 @@ const App = () => {
   const [chatActiveType, setChatActiveType] = useState<'dm' | 'group' | null>(null);
 
   const [friends, setFriends] = useState<ChatInboxItem[]>(DEFAULT_FRIENDS);
+  const friendsRef = useRef<ChatInboxItem[]>(DEFAULT_FRIENDS);
+  useEffect(() => {
+    friendsRef.current = friends;
+  }, [friends]);
+
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const totalUnread = useMemo(() => friends.reduce((sum, friend) => sum + (friend.unreadCount || 0), 0) + notifications.filter(n => n.unread).length, [friends, notifications]);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | 'unsupported'>(() => {
@@ -592,7 +597,10 @@ const App = () => {
     }
 
     const unsubscribe = ChatService.subscribeToIncomingMessages(authUser.id, ({ otherUserId, message }) => {
-      const senderName = getFriendDisplayName(otherUserId);
+      const friendsList = friendsRef.current;
+      const match = friendsList.find((f) => String(f.id) === String(otherUserId));
+      const senderName = match ? (match.name || ('username' in match ? match.username : '') || 'Studio Contact') : 'Studio Contact';
+
       incrementUnreadForFriend(otherUserId);
 
       if (notificationPermission !== 'granted' || globalThis.Notification === undefined) {
@@ -624,7 +632,7 @@ const App = () => {
     return () => {
       unsubscribe();
     };
-  }, [authUser?.id, getFriendDisplayName, incrementUnreadForFriend, notificationPermission]);
+  }, [authUser?.id, incrementUnreadForFriend, notificationPermission]);
 
   const handleConversationOpened = useCallback((friendId: string) => {
     setFriends(prev => prev.map((friend) => (

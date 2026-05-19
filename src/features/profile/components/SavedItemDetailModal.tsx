@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { X, MapPin, Bookmark, Share2, PlayCircle, Play } from 'lucide-react';
 
 import type { AppItem } from '../../../shared/types/appItem';
@@ -43,7 +43,7 @@ const SavedActionFooter = ({
       <button
         type="button"
         onClick={onUnsaveClick}
-        className="flex-1 py-4 rounded-[1.5rem] flex items-center justify-center gap-3 transition-transform shadow-xl bg-red-50 text-red-600 border border-red-100 active:scale-95"
+        className="flex-1 py-4 rounded-[1.5rem] flex items-center justify-center gap-3 transition-colors shadow-xl bg-red-600 hover:bg-red-700 text-white font-extrabold active:scale-95 cursor-pointer"
       >
         <X size={20} />
         <span className="font-black uppercase tracking-widest text-[12px]">Remove</span>
@@ -87,34 +87,123 @@ const SavedActionFooter = ({
 const SavedRecipeSections = ({
   recipeIngredients,
   recipeInstructions,
+  nutrition,
 }: {
   recipeIngredients: string[];
   recipeInstructions: string;
+  nutrition?: { calories?: number; protein?: number; fat?: number; carbs?: number };
 }) => {
-  return (
-    <>
-      {recipeIngredients.length > 0 && (
-        <section className="space-y-3">
-          <h4 className="font-black uppercase text-[12px] tracking-[0.25em] text-stone-400">Ingredients</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {recipeIngredients.map((ingredient) => (
-              <div key={ingredient} className="p-4 bg-stone-50 rounded-[1.5rem] border border-stone-100 text-sm font-bold text-stone-700">
-                {ingredient}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+  const [activeTab, setActiveTab] = useState<'ingredients' | 'instructions' | 'nutrition'>('ingredients');
 
-      {recipeInstructions && (
-        <section className="space-y-3">
-          <h4 className="font-black uppercase text-[12px] tracking-[0.25em] text-stone-400">Instructions</h4>
-          <div className="p-5 bg-stone-50 rounded-[2rem] border border-stone-100 text-sm font-bold text-stone-700 whitespace-pre-wrap leading-relaxed">
-            {recipeInstructions}
-          </div>
-        </section>
-      )}
-    </>
+  const steps = recipeInstructions
+    ? recipeInstructions
+        .split(/\r?\n/)
+        .map((step) => step.trim())
+        .filter((step) => step.length > 0)
+        .map((step) => step.replace(/^\d+[\.\s\-)]+\s*/, '').trim())
+        .filter((step) => step.length > 0)
+    : [];
+
+  return (
+    <div className="space-y-6">
+      {/* Premium Dynamic Tab Selector */}
+      <div className="flex p-1 bg-stone-100 rounded-2xl border border-stone-200/50">
+        <button
+          type="button"
+          onClick={() => setActiveTab('ingredients')}
+          className={`flex-grow py-3 px-4 rounded-[1rem] text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${
+            activeTab === 'ingredients'
+              ? 'bg-yellow-400 shadow-sm text-white font-extrabold'
+              : 'text-stone-400 hover:text-stone-600'
+          }`}
+        >
+          Ingredients
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('instructions')}
+          className={`flex-grow py-3 px-4 rounded-[1rem] text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${
+            activeTab === 'instructions'
+              ? 'bg-yellow-400 shadow-sm text-white font-extrabold'
+              : 'text-stone-400 hover:text-stone-600'
+          }`}
+        >
+          Instructions
+        </button>
+        {nutrition && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('nutrition')}
+            className={`flex-grow py-3 px-4 rounded-[1rem] text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${
+              activeTab === 'nutrition'
+                ? 'bg-yellow-400 shadow-sm text-white font-extrabold'
+                : 'text-stone-400 hover:text-stone-600'
+            }`}
+          >
+            Nutrition
+          </button>
+        )}
+      </div>
+
+      <div className="min-h-[200px]">
+        {activeTab === 'ingredients' && (
+          <section className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <h4 className="font-black uppercase text-[12px] tracking-[0.25em] text-stone-400">Ingredients</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {recipeIngredients.length > 0 ? (
+                recipeIngredients.map((ingredient) => (
+                  <div key={ingredient} className="p-4 bg-stone-50 rounded-[1.5rem] border border-stone-100 text-sm font-bold text-stone-700 flex items-center gap-3">
+                    <span className="w-2 h-2 rounded-full bg-yellow-400 shrink-0" />
+                    <span>{ingredient}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm font-bold text-stone-400 italic col-span-2">No ingredients loaded.</p>
+              )}
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'instructions' && (
+          <section className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <h4 className="font-black uppercase text-[12px] tracking-[0.25em] text-stone-400">Instructions</h4>
+            {steps.length > 0 ? (
+              <div className="space-y-3">
+                {steps.map((step, idx) => (
+                  <div key={idx} className="flex gap-4 p-4 bg-stone-50 rounded-[1.75rem] border border-stone-100/50 text-sm font-bold text-stone-700 leading-relaxed items-start">
+                    <div className="w-7 h-7 rounded-full bg-yellow-400 text-stone-900 font-black flex items-center justify-center text-[11px] shrink-0 shadow-sm border border-white">
+                      {idx + 1}
+                    </div>
+                    <div className="pt-0.5">{step}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm font-bold text-stone-400 italic">No instructions available.</p>
+            )}
+          </section>
+        )}
+
+        {activeTab === 'nutrition' && nutrition && (
+          <section className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <h4 className="font-black uppercase text-[12px] tracking-[0.25em] text-stone-400">Nutrition Details</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { label: 'Calories', value: nutrition.calories },
+                { label: 'Protein', value: nutrition.protein },
+                { label: 'Fat', value: nutrition.fat },
+                { label: 'Carbs', value: nutrition.carbs },
+              ].map((entry) => (
+                <div key={entry.label} className="p-4 bg-stone-50 rounded-[1.5rem] border border-stone-100">
+                  <p className="text-xl font-black text-stone-900">{entry.value ?? '--'}</p>
+                  <p className="text-[12px] font-black uppercase tracking-widest text-stone-400 mt-1">{entry.label}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    </div>
   );
 };
 
@@ -248,10 +337,16 @@ const SavedContentSections = ({
         </section>
       )}
 
-      {resolvedType === 'recipe' && <SavedRecipeSections recipeIngredients={recipeIngredients} recipeInstructions={recipeInstructions} />}
+      {resolvedType === 'recipe' && (
+        <SavedRecipeSections 
+          recipeIngredients={recipeIngredients} 
+          recipeInstructions={recipeInstructions} 
+          nutrition={nutrition} 
+        />
+      )}
       {resolvedType === 'video' && <SavedVideoSection keyFoodItem={keyFoodItem} summary={summary} sourceUrl={sourceUrl} />}
       {(resolvedType === 'restaurant' || resolvedType === 'other' || resolvedType === 'photo') && <SavedGenericDetailsSection phone={phone} sourceUrl={sourceUrl} vibe={vibe} />}
-      <SavedNutritionSection nutrition={nutrition} />
+      {resolvedType !== 'recipe' && <SavedNutritionSection nutrition={nutrition} />}
     </>
   );
 };
@@ -302,6 +397,15 @@ export const SavedItemDetailModal = ({ item, onClose, onSave, onUnsave, onShareR
   const reviews = typeof item.reviews === 'number' ? item.reviews : getMetadataNumber(metadata, 'reviews');
   const phone = item.phone || getMetadataString(metadata, 'phone');
   const isAlreadySaved = useMemo(() => savedItems.some((savedItem) => areSavedItemsEquivalent(savedItem, item)), [item, savedItems]);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const triggerClose = useCallback(() => {
+    setIsClosing(true);
+    setTimeout(() => {
+      onClose();
+    }, 250);
+  }, [onClose]);
+
   const {
     dragOffset,
     isDragging,
@@ -313,13 +417,13 @@ export const SavedItemDetailModal = ({ item, onClose, onSave, onUnsave, onShareR
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose();
+        triggerClose();
       }
     };
 
     globalThis.addEventListener('keydown', handleEscape);
     return () => globalThis.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
+  }, [triggerClose]);
 
   const handleSaveClick = () => {
     if (!onSave || isAlreadySaved) {
@@ -334,7 +438,7 @@ export const SavedItemDetailModal = ({ item, onClose, onSave, onUnsave, onShareR
     }
 
     onUnsave(item);
-    onClose();
+    triggerClose();
   };
 
   const handleShareClick = () => {
@@ -342,25 +446,39 @@ export const SavedItemDetailModal = ({ item, onClose, onSave, onUnsave, onShareR
       return;
     }
     onShareRequest(item);
-    onClose();
+    triggerClose();
   };
 
   return (
-    <div className="fixed inset-0 z-[140] flex items-end md:items-center justify-center p-0 md:p-8 animate-in fade-in duration-300">
+    <div className={`fixed inset-0 z-[140] flex items-end md:items-center justify-center p-4 pb-8 md:p-8 transition-opacity duration-250 ease-in-out ${isClosing ? 'opacity-0' : 'opacity-100 animate-in fade-in'}`}>
       <button
         type="button"
         aria-label="Close saved item details"
         className="absolute inset-0 bg-stone-900/70 backdrop-blur-xl"
-        onClick={onClose}
+        onClick={triggerClose}
       />
       <dialog
         open
-        className="relative bg-white w-full max-w-3xl max-h-[100dvh] md:max-h-[92vh] rounded-t-[3rem] md:rounded-[3rem] shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-8 md:zoom-in duration-300"
+        className={`relative bg-white w-full max-w-3xl max-h-[90dvh] md:max-h-[92vh] rounded-[2.5rem] md:rounded-[3rem] shadow-2xl overflow-hidden flex flex-col transition-all duration-250 ${
+          isClosing 
+            ? 'opacity-0 scale-90 translate-y-8' 
+            : 'opacity-100 scale-100 translate-y-0 animate-in slide-in-from-bottom-8 md:zoom-in'
+        }`}
         style={{
           transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
           transition: isDragging ? 'none' : 'transform 220ms ease-out',
         }}
       >
+        {/* Floating notch-safe, YouTube-proof circular glassmorphic Close Button (10.1) */}
+        <button
+          type="button"
+          onClick={triggerClose}
+          aria-label="Close saved item details"
+          className="absolute top-6 right-6 z-50 p-2.5 bg-stone-950/40 text-white rounded-full backdrop-blur-xl border border-white/20 hover:bg-stone-950/60 transition-colors shadow-lg flex items-center justify-center cursor-pointer"
+        >
+          <X size={18} strokeWidth={2.5} />
+        </button>
+
         <button
           type="button"
           aria-label="Swipe down to close"
@@ -402,19 +520,22 @@ export const SavedItemDetailModal = ({ item, onClose, onSave, onUnsave, onShareR
               )}
             </>
           )}
-
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close saved item details"
-            className="absolute top-5 right-5 z-20 p-3 bg-white/15 text-white rounded-2xl backdrop-blur-xl hover:bg-white/25 transition-colors"
-          >
-            <X size={24} />
-          </button>
           
           {!isPlaying && (
             <div className="absolute bottom-0 inset-x-0 p-6 md:p-8 text-white space-y-3">
-              <Badge color="yellow">{category}</Badge>
+              <div className="flex flex-wrap gap-2 items-center">
+                <Badge color="yellow">{category}</Badge>
+                {readyInMinutes !== undefined && (
+                  <span className="px-2.5 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest text-white border border-white/20 shadow-sm">
+                    {readyInMinutes} Min
+                  </span>
+                )}
+                {servings !== undefined && (
+                  <span className="px-2.5 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest text-white border border-white/20 shadow-sm">
+                    {servings} Servings
+                  </span>
+                )}
+              </div>
               <div className="space-y-1">
                 <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tighter leading-none">{title}</h3>
                 {summary && (
@@ -428,16 +549,6 @@ export const SavedItemDetailModal = ({ item, onClose, onSave, onUnsave, onShareR
 
         <div className="p-6 md:p-8 overflow-y-auto space-y-8">
           <div className="flex flex-wrap gap-3">
-            {readyInMinutes !== undefined && (
-              <div className="px-4 py-3 bg-stone-50 rounded-2xl border border-stone-100 text-xs font-black uppercase tracking-widest text-stone-500">
-                {readyInMinutes} Min
-              </div>
-            )}
-            {servings !== undefined && (
-              <div className="px-4 py-3 bg-stone-50 rounded-2xl border border-stone-100 text-xs font-black uppercase tracking-widest text-stone-500">
-                {servings} Servings
-              </div>
-            )}
             {author && (
               <div className="px-4 py-3 bg-stone-50 rounded-2xl border border-stone-100 text-xs font-black uppercase tracking-widest text-stone-500">
                 @{author}

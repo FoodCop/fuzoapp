@@ -115,7 +115,7 @@ export const ImportStudio = ({ onClose, onPost }: ImportStudioProps) => {
 
       <header className="absolute top-0 inset-x-0 p-8 flex justify-between items-center z-10">
         <div>
-          <Badge color="purple">Photo Import</Badge>
+          <Badge color="indigo">Photo Import</Badge>
           <h2 className="text-2xl font-black uppercase tracking-tighter text-white mt-1">AI Studio</h2>
         </div>
         <button 
@@ -167,7 +167,7 @@ export const ImportStudio = ({ onClose, onPost }: ImportStudioProps) => {
                 <img src={image!} alt="Imported discovery" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
                 <div className="absolute top-8 left-8">
-                  <Badge color="purple">{metadata.cat}</Badge>
+                  <Badge color="indigo">{metadata.cat}</Badge>
                 </div>
                 <div className="absolute bottom-12 left-8 right-8 text-white space-y-2">
                   <h4 className="text-2xl font-black uppercase tracking-tighter leading-none">{metadata.name}</h4>

@@ -32,7 +32,7 @@ import { Badge } from '../../../shared/ui/Badge';
 import { AppItem } from '../../../shared/types/appItem';
 import { FeedUiItem } from '../types/feedUi';
 import { DealCard } from './DealCard';
-import { SwipeCard } from './SwipeCard';
+import { SwipeCard, SwipeCardRef } from './SwipeCard';
 import { SavedItemDetailModal } from '../../profile/components/SavedItemDetailModal';
 
 export const FeedView = ({ 
@@ -62,6 +62,15 @@ export const FeedView = ({
   const feedRetryDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const feedMountedRef = useRef(true);
   const missingAuthorTelemetryRef = useRef<Set<string>>(new Set());
+  const activeCardRef = useRef<SwipeCardRef | null>(null);
+
+  const triggerSwipe = (dir: 'left' | 'right' | 'up' | 'down') => {
+    if (activeCardRef.current) {
+      activeCardRef.current.swipe(dir);
+    } else {
+      handleSwipe(dir);
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -346,7 +355,12 @@ export const FeedView = ({
           {items.map((item, i) => {
             const isAdOrTrivia = item.itemType === 'ad' || item.itemType === 'trivia';
             return (
-              <SwipeCard key={item.id} active={i === 0} onSwipe={handleSwipe}>
+              <SwipeCard 
+                key={item.id} 
+                ref={i === 0 ? activeCardRef : undefined} 
+                active={i === 0} 
+                onSwipe={handleSwipe}
+              >
                 <div 
                   className="w-full h-full relative"
                   onClick={() => i === 0 && !isAdOrTrivia && handleAction('expand', item)}
@@ -435,9 +449,48 @@ export const FeedView = ({
           <p className="text-[12px] font-black uppercase tracking-widest text-stone-500 mt-2">Curated Feed Fallback Active</p>
         )}
       </div>
-      <div className="relative w-full max-w-[400px] aspect-[3/4.6] overflow-hidden">
+      <div className="relative w-full max-w-[380px] h-[58vh] max-h-[520px] overflow-hidden shadow-[0_24px_50px_-12px_rgba(0,0,0,0.25)] rounded-[2rem] border border-stone-200/50 bg-white">
         {renderMobileFeedContent()}
       </div>
+
+      {/* Floating Consolidated FAB Controls (10.3) */}
+      {items.length > 0 && !feedLoading && (
+        <div className="flex items-center gap-6 px-6 py-4 rounded-[2rem] bg-white/70 backdrop-blur-xl border border-white/50 shadow-lg mt-2">
+          {/* Dislike / Skip Button */}
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => triggerSwipe('left')}
+            className="w-14 h-14 rounded-full bg-white shadow-md border border-stone-100 flex items-center justify-center text-stone-500 hover:text-red-500 transition-colors cursor-pointer"
+            aria-label="Skip dish"
+          >
+            <X size={24} strokeWidth={3} />
+          </motion.button>
+
+          {/* Save / Like Button */}
+          <motion.button
+            whileHover={{ scale: 1.15 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => triggerSwipe('down')}
+            className="w-16 h-16 rounded-full bg-yellow-400 shadow-lg flex items-center justify-center text-stone-900 hover:bg-yellow-500 transition-all cursor-pointer"
+            aria-label="Save dish"
+          >
+            <Bookmark size={28} strokeWidth={2.5} />
+          </motion.button>
+
+          {/* Share Button */}
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => triggerSwipe('up')}
+            className="w-14 h-14 rounded-full bg-white shadow-md border border-stone-100 flex items-center justify-center text-stone-500 hover:text-blue-500 transition-colors cursor-pointer"
+            aria-label="Share dish"
+          >
+            <Share2 size={22} strokeWidth={2.5} />
+          </motion.button>
+        </div>
+      )}
+
       {!!feedError && (
         <div className="text-[12px] font-black uppercase tracking-widest text-red-500 px-4 text-center">{feedError}</div>
       )}
