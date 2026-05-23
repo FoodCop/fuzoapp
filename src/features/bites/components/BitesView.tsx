@@ -399,6 +399,9 @@ const useBitesFeed = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeDiet, setActiveDiet] = useState<string | null>(null);
   const [activeCuisine, setActiveCuisine] = useState<string | null>(null);
+  const [activePage, setActivePage] = useState(0);
+  const [totalResults, setTotalResults] = useState(0);
+
   const bitesRequestSeqRef = useRef(0);
   const bitesDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bitesMountedRef = useRef(true);
@@ -412,6 +415,11 @@ const useBitesFeed = () => {
     };
   }, []);
 
+  // Reset page to 0 when search query or filter chips change
+  useEffect(() => {
+    setActivePage(0);
+  }, [searchQuery, activeDiet, activeCuisine]);
+
   const fetchBites = useCallback(async (_isRefresh = false, queryOverride?: string) => {
     const requestSeq = ++bitesRequestSeqRef.current;
     setLoading(true);
@@ -424,6 +432,7 @@ const useBitesFeed = () => {
         diet: activeDiet || undefined,
         cuisine: activeCuisine || undefined,
         number: 12,
+        offset: activePage * 12,
       });
 
       const payload = response.data;
@@ -433,17 +442,20 @@ const useBitesFeed = () => {
       if (!response.success || !Array.isArray(resultList) || resultList.length === 0) {
         if (isLatestRequest) {
           setRecipes(BITE_FALLBACK_RECIPES);
+          setTotalResults(BITE_FALLBACK_RECIPES.length);
           if (response.error) setServiceError(response.error);
         }
       } else {
         const normalized = normalizeRecipeList(resultList);
         if (isLatestRequest) {
           setRecipes(normalized);
+          setTotalResults(payload?.totalResults || normalized.length);
         }
       }
     } catch {
       if (shouldApplyLatestRequest(bitesMountedRef, requestSeq, bitesRequestSeqRef)) {
         setRecipes(BITE_FALLBACK_RECIPES);
+        setTotalResults(BITE_FALLBACK_RECIPES.length);
         setServiceError('Unable to load live bites. Showing curated fallback recipes.');
       }
     }
@@ -451,7 +463,7 @@ const useBitesFeed = () => {
     if (shouldApplyLatestRequest(bitesMountedRef, requestSeq, bitesRequestSeqRef)) {
       setLoading(false);
     }
-  }, [activeCuisine, activeDiet, searchQuery]);
+  }, [activeCuisine, activeDiet, searchQuery, activePage]);
 
   useEffect(() => {
     if (bitesDebounceRef.current) {
@@ -549,6 +561,9 @@ const useBitesFeed = () => {
     setActiveDiet,
     setActiveCuisine,
     fetchBites,
+    activePage,
+    totalResults,
+    setActivePage,
   };
 };
 
@@ -599,7 +614,10 @@ const BitesGrid = ({
             <div className="relative w-full aspect-[4/3] overflow-hidden shrink-0">
               <img src={recipe.image} alt={recipe.title || 'Recipe'} className="w-full h-full object-cover" />
               <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-4 py-2 rounded-2xl flex gap-1.5 items-center text-[10px] font-black uppercase tracking-widest text-stone-900 shadow-sm border border-stone-100/50">
-                <Clock size={12} className="text-yellow-500" /> {recipe.readyInMinutes} Min
+                <PieChart size={12} className="text-yellow-500" /> {(() => {
+                  const cal = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Calories');
+                  return cal ? `${Math.round(cal.amount)} Kcal` : '0 Kcal';
+                })()}
               </div>
             </div>
             <div className="p-7 flex flex-col justify-between flex-grow space-y-4">
@@ -1258,6 +1276,9 @@ export const BitesView = ({ onSave, onShareRequest }: { onSave: (item: BiteActio
     setActiveDiet,
     setActiveCuisine,
     fetchBites,
+    activePage,
+    totalResults,
+    setActivePage,
   } = useBitesFeed();
 
 
@@ -1374,37 +1395,65 @@ export const BitesView = ({ onSave, onShareRequest }: { onSave: (item: BiteActio
           <button onClick={() => { setActiveCuisine(null); setActiveDiet(null); }} className="px-8 py-3 bg-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest">Clear Filters</button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-in fade-in duration-500">
-          {filteredRecipes.map((recipe) => (
-            <button
-              type="button"
-              key={recipe.id}
-              onClick={() => setSelectedRecipe(recipe)}
-              className="group cursor-pointer text-left w-full focus:outline-none"
-            >
-              <div className="bg-stone-900 rounded-[2rem] border border-white/5 hover:border-yellow-400/20 shadow-md overflow-hidden group-hover:scale-[1.02] group-focus:scale-[1.02] hover:shadow-2xl transition-all duration-500 flex flex-col h-full">
-                <div className="relative w-full aspect-[4/3] overflow-hidden shrink-0">
-                  <img src={recipe.image} alt={recipe.title || 'Recipe'} className="w-full h-full object-cover" />
-                  <div className="absolute top-4 right-4 bg-stone-950/80 backdrop-blur-md px-3.5 py-1.5 rounded-xl flex gap-1.5 items-center text-[10px] font-black uppercase tracking-widest text-stone-300 shadow-sm border border-white/5">
-                    <Clock size={12} className="text-yellow-400" /> {recipe.readyInMinutes} Min
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-in fade-in duration-500">
+            {filteredRecipes.map((recipe) => (
+              <button
+                type="button"
+                key={recipe.id}
+                onClick={() => setSelectedRecipe(recipe)}
+                className="group cursor-pointer text-left w-full focus:outline-none"
+              >
+                <div className="bg-stone-900 rounded-[2rem] border border-white/5 hover:border-yellow-400/20 shadow-md overflow-hidden group-hover:scale-[1.02] group-focus:scale-[1.02] hover:shadow-2xl transition-all duration-500 flex flex-col h-full">
+                  <div className="relative w-full aspect-[4/3] overflow-hidden shrink-0">
+                    <img src={recipe.image} alt={recipe.title || 'Recipe'} className="w-full h-full object-cover" />
+                    <div className="absolute top-4 right-4 bg-stone-950/80 backdrop-blur-md px-3.5 py-1.5 rounded-xl flex gap-1.5 items-center text-[10px] font-black uppercase tracking-widest text-stone-300 shadow-sm border border-white/5">
+                      <PieChart size={12} className="text-yellow-400" /> {(() => {
+                        const cal = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Calories');
+                        return cal ? `${Math.round(cal.amount)} Kcal` : '0 Kcal';
+                      })()}
+                    </div>
+                  </div>
+                  <div className="p-6 flex flex-col justify-between flex-grow space-y-4">
+                    <h3 className="text-sm md:text-base font-black uppercase tracking-tighter text-white leading-snug line-clamp-2">
+                      {recipe.title}
+                    </h3>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(recipe.dishTypes || []).slice(0, 2).map((tag) => (
+                        <span key={tag} className="text-[9px] font-black uppercase tracking-widest bg-white/5 border border-white/5 px-2.5 py-1 rounded-lg text-stone-400">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
-                <div className="p-6 flex flex-col justify-between flex-grow space-y-4">
-                  <h3 className="text-sm md:text-base font-black uppercase tracking-tighter text-white leading-snug line-clamp-2">
-                    {recipe.title}
-                  </h3>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(recipe.dishTypes || []).slice(0, 2).map((tag) => (
-                      <span key={tag} className="text-[9px] font-black uppercase tracking-widest bg-white/5 border border-white/5 px-2.5 py-1 rounded-lg text-stone-400">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Premium Pagination Bar */}
+          {!loading && totalResults > 12 && (
+            <div className="flex justify-center items-center gap-6 mt-12 py-4 animate-in fade-in duration-300">
+              <button
+                disabled={activePage === 0}
+                onClick={() => setActivePage(activePage - 1)}
+                className="px-6 py-3.5 bg-stone-900 text-stone-300 hover:text-white rounded-2xl font-black uppercase text-[10px] tracking-widest disabled:opacity-30 disabled:pointer-events-none hover:scale-105 active:scale-95 transition-all shadow-md border border-white/5 cursor-pointer"
+              >
+                Prev
+              </button>
+              <span className="text-[10px] font-black uppercase tracking-widest text-stone-500">
+                Page {activePage + 1} of {Math.ceil(totalResults / 12)}
+              </span>
+              <button
+                disabled={activePage >= Math.ceil(totalResults / 12) - 1}
+                onClick={() => setActivePage(activePage + 1)}
+                className="px-6 py-3.5 bg-stone-900 text-stone-300 hover:text-white rounded-2xl font-black uppercase text-[10px] tracking-widest disabled:opacity-30 disabled:pointer-events-none hover:scale-105 active:scale-95 transition-all shadow-md border border-white/5 cursor-pointer"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       <BitesRecipeModal
