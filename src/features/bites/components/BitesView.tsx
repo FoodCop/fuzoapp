@@ -427,7 +427,7 @@ const useBitesFeed = () => {
       });
 
       const payload = response.data;
-      const resultList = (payload?.results || payload?.data?.results || []) as BiteRecipeInput[];
+      const resultList = (payload?.results || []) as BiteRecipeInput[];
       const isLatestRequest = shouldApplyLatestRequest(bitesMountedRef, requestSeq, bitesRequestSeqRef);
 
       if (!response.success || !Array.isArray(resultList) || resultList.length === 0) {

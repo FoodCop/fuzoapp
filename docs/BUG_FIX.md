@@ -151,3 +151,28 @@ This document tracks all bug fixes and technical updates performed during the au
 - **Infrastructure Integrations:** Confirmed real-time channel sync for DMs and groups, HTML5 native system notifications for background states, and Cloudflare-backed Supabase CDN media storage.
 
 **Status:** ✅ VERIFIED & COMPLETE (Stack audited and confirmed 100% operational)
+
+---
+
+## [2026-05-19] Realtime Stability, Mobile Feed UX, & Multi-Tab Recipe Detail Modals
+
+**Issue:**
+- **Realtime WebSocket Storms:** Modifying online statuses or receiving text messages triggered recursive WebSocket teardown and reconnect loops.
+- **Chat Race Conditions:** Rapidly tapping multiple contacts triggered out-of-order asynchronous networking updates that corrupted conversation views.
+- **Mobile Discovery Sizing & Controls:** Rigid aspect ratios caused feed cards to overflow viewport boundaries on smaller devices, and standard swipe triggers lacked an consolidated horizontal FAB deck with programmatically simulated swipe animations.
+- **Legacy Modal Layout & Close button:** Detail modals lacked dynamic tabs, causing ingredients, preparation steps, and nutrition widgets to overflow vertically. Close buttons sat statically inside the header image container and unmounting modals lacked elegant zoom-out exits.
+- **Visual Design Details:** Modals stretched flatly to mobile screen borders without margins, instruction lists lacked unified indexes, active tab selectors were bland, and Unsave buttons was colored in light red instead of strong primary saturated red with white text.
+
+**Fix:**
+- **WebSocket Refactoring:** Implemented a persistent React `friendsRef` to hold the contact list in [index.tsx](file:///k:/H%20DRIVE/Quantum%20Climb/APPS/FUZO_V2/index.tsx#L267), separating user data queries from active subscription lifecycles to eliminate reconnect loops.
+- **Sequence Integrity Guards:** Added sequence locking checks inside `openConversation` in [ChatView.tsx](file:///k:/H%20DRIVE/Quantum%20Climb/APPS/FUZO_V2/src/features/chat/components/ChatView.tsx#L86) to discard slower out-of-order network calls.
+- **Responsive Card Sizing & Programmatic Swipes:** Refactored cards in [SwipeCard.tsx](file:///k:/H%20DRIVE/Quantum%20Climb/APPS/FUZO_V2/src/features/feed/components/SwipeCard.tsx#L12) to expose a forwardRef `.swipe(dir)` command and constrained feed heights to `h-[58vh]` in [FeedView.tsx](file:///k:/H%20DRIVE/Quantum%20Climb/APPS/FUZO_V2/src/features/feed/components/FeedView.tsx#L438). Added a bottom-floating glassmorphic Swipe FAB pill menu (Skip, Save, Share) linked to programmatic swipe vectors.
+- **Sleek Detail Tabs:** Integrated a multi-tab selector (**Ingredients**, **Instructions**, **Nutrition**) in [SavedItemDetailModal.tsx](file:///k:/H%20DRIVE/Quantum%20Climb/APPS/FUZO_V2/src/features/profile/components/SavedItemDetailModal.tsx#L87), collapsing layout heights and grouping nutritional data beautifully.
+- **Custom-Numbered Step Badges:** Parsed and cleaned prep text strings into uniform, separate cards sporting circular yellow index step badges.
+- **Composited Header Badges:** Moved prep time and servings count from lower text lists to float as elegant, glassmorphic labels directly on top of the image overlay.
+- **Floating card margins & rounded dialogs:** Configured symmetric side padding margins (`p-4 pb-8 md:p-8`), rounded modal dialog card corners to `rounded-[2.5rem]` all around, and set max height to a safe `max-h-[90dvh]`.
+- **Close buttons & Exit animations:** Positioned a circular dark glassmorphic Close button absolutely at `top-6 right-6 z-50`. Added a local `isClosing` state to trigger a 250ms delayed close callback, letting smooth CSS exit zoom/fade-out transitions complete.
+- **Bold Visual Highlights:** Updated the footer's Unsave/Remove button to show a solid primary red background (`bg-red-600 hover:bg-red-700`) with bold white text, and highlighted the selected tab button in solid brand yellow (`bg-yellow-400 text-white shadow-sm`).
+
+**Status:** ✅ VERIFIED & COMPLETE (Visually and interactively validated using automated browser subagent flows and compiler checks)
+

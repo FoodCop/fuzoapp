@@ -48,7 +48,6 @@ serve(async (req: Request) => {
           openai_configured: !!Deno.env.get('OPENAI_API_KEY'),
           google_maps_configured: !!Deno.env.get('GOOGLE_MAPS_API_KEY'),
           supabase_configured: !!Deno.env.get('SUPABASE_URL'),
-          spoonacular_configured: !!Deno.env.get('SPOONACULAR_API_KEY'),
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
@@ -275,130 +274,6 @@ serve(async (req: Request) => {
       )
     }
 
-    // Spoonacular Recipe Search
-    if (path === '/spoonacular/recipes/search') {
-      const requestBody = await req.json()
-      const { query, diet, type, cuisine, maxReadyTime, number, offset } = requestBody
-
-      const SPOONACULAR_API_KEY = Deno.env.get('SPOONACULAR_API_KEY')
-      if (!SPOONACULAR_API_KEY) {
-        throw new Error('SPOONACULAR_API_KEY not configured')
-      }
-
-      let searchUrl = `https://api.spoonacular.com/recipes/complexSearch?apiKey=${SPOONACULAR_API_KEY}`
-      
-      if (query) searchUrl += `&query=${encodeURIComponent(query)}`
-      if (diet) searchUrl += `&diet=${encodeURIComponent(diet)}`
-      if (type) searchUrl += `&type=${encodeURIComponent(type)}`
-      if (cuisine) searchUrl += `&cuisine=${encodeURIComponent(cuisine)}`
-      if (maxReadyTime) searchUrl += `&maxReadyTime=${maxReadyTime}`
-      if (number) searchUrl += `&number=${number}`
-      if (offset) searchUrl += `&offset=${offset}`
-      
-      // Add default parameters for better results
-      searchUrl += '&addRecipeInformation=true&fillIngredients=true&instructionsRequired=true&sort=popularity'
-
-      console.log('🍽️ Searching Spoonacular recipes:', { query, diet, type, cuisine })
-
-      const response = await fetch(searchUrl)
-      const data = await response.json()
-
-      if (data.message) {
-        console.error('❌ Spoonacular API error:', data.message)
-      } else {
-        console.log('✅ Spoonacular results:', data.results?.length || 0, 'recipes')
-      }
-
-      return new Response(
-        JSON.stringify(data),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Spoonacular Random Recipes
-    if (path === '/spoonacular/recipes/random') {
-      const requestBody = await req.json().catch(() => ({}))
-      const { number = 10, tags } = requestBody
-
-      const SPOONACULAR_API_KEY = Deno.env.get('SPOONACULAR_API_KEY')
-      if (!SPOONACULAR_API_KEY) {
-        throw new Error('SPOONACULAR_API_KEY not configured')
-      }
-
-      let randomUrl = `https://api.spoonacular.com/recipes/random?apiKey=${SPOONACULAR_API_KEY}&number=${number}`
-      if (tags) randomUrl += `&tags=${encodeURIComponent(tags)}`
-
-      console.log('🎲 Fetching random Spoonacular recipes:', { number, tags })
-
-      const response = await fetch(randomUrl)
-      const data = await response.json()
-
-      return new Response(
-        JSON.stringify(data),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Spoonacular Recipe Information (must come before similar to avoid path conflicts)
-    if (path.startsWith('/spoonacular/recipes/') && !path.includes('/similar')) {
-      const pathParts = path.replace('/spoonacular/recipes/', '').split('/')
-      const recipeId = pathParts[0]
-      
-      if (!recipeId || isNaN(Number(recipeId))) {
-        throw new Error('Invalid recipe ID')
-      }
-
-      const SPOONACULAR_API_KEY = Deno.env.get('SPOONACULAR_API_KEY')
-      if (!SPOONACULAR_API_KEY) {
-        throw new Error('SPOONACULAR_API_KEY not configured')
-      }
-
-      const requestBody = await req.json().catch(() => ({}))
-      const includeNutrition = requestBody.includeNutrition !== false
-
-      const infoUrl = `https://api.spoonacular.com/recipes/${recipeId}/information?apiKey=${SPOONACULAR_API_KEY}&includeNutrition=${includeNutrition}`
-
-      console.log('📖 Fetching Spoonacular recipe information:', recipeId)
-
-      const response = await fetch(infoUrl)
-      const data = await response.json()
-
-      return new Response(
-        JSON.stringify(data),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Spoonacular Similar Recipes
-    if (path.startsWith('/spoonacular/recipes/') && path.includes('/similar')) {
-      const pathParts = path.split('/')
-      const recipeId = pathParts[pathParts.length - 2] // /spoonacular/recipes/{id}/similar
-      
-      if (!recipeId || isNaN(Number(recipeId))) {
-        throw new Error('Invalid recipe ID')
-      }
-
-      const SPOONACULAR_API_KEY = Deno.env.get('SPOONACULAR_API_KEY')
-      if (!SPOONACULAR_API_KEY) {
-        throw new Error('SPOONACULAR_API_KEY not configured')
-      }
-
-      const requestBody = await req.json().catch(() => ({}))
-      const number = requestBody.number || 4
-
-      const similarUrl = `https://api.spoonacular.com/recipes/${recipeId}/similar?apiKey=${SPOONACULAR_API_KEY}&number=${number}`
-
-      console.log('🔗 Fetching similar Spoonacular recipes:', recipeId)
-
-      const response = await fetch(similarUrl)
-      const data = await response.json()
-
-      return new Response(
-        JSON.stringify(data),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
     // Endpoint not found
     return new Response(
       JSON.stringify({ 
@@ -409,11 +284,7 @@ serve(async (req: Request) => {
           '/directions', 
           '/places/nearby', 
           '/places/textsearch', 
-          '/places/details',
-          '/spoonacular/recipes/search',
-          '/spoonacular/recipes/{id}',
-          '/spoonacular/recipes/random',
-          '/spoonacular/recipes/{id}/similar'
+          '/places/details'
         ]
       }),
       { 

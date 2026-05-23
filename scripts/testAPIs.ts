@@ -1,4 +1,4 @@
-import { SpoonacularService } from '../src/services/spoonacular';
+import { SpoonacularService } from '../src/services/spoonacularService';
 import { YouTubeService } from '../src/services/youtube';
 
 async function testAPIs() {

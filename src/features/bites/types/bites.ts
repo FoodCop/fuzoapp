@@ -48,8 +48,8 @@ export type BiteRecipeInput = {
   extendedIngredients?: BiteIngredient[];
   extended_ingredients?: BiteIngredient[];
   instructions?: string;
-  analyzedInstructions?: { name: string; steps: BiteInstructionStep[] }[];
-  analyzed_instructions?: { name: string; steps: BiteInstructionStep[] }[];
+  analyzedInstructions?: { name: string; steps: BiteInstructionStep[] }[] | BiteInstructionStep[];
+  analyzed_instructions?: { name: string; steps: BiteInstructionStep[] }[] | BiteInstructionStep[];
   summary?: string;
   nutrition?: { nutrients?: BiteNutrient[] } | null;
   diets?: string[];
