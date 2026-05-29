@@ -8,7 +8,18 @@ FUZO is a food discovery and social platform built with Vite + React + TypeScrip
 - Build and deploy are root-level (`npm run build`, `vercel.json`)
 - `public/References` has been removed
 
-## Latest Updates (2026-04-16)
+## Latest Updates (2026-05-29)
+
+- **Spoonacular Decoupling**:
+  - Successfully decoupled the app from the Spoonacular API, purging all proxy endpoints to protect credentials and eliminate rate limiting.
+  - Built a zero-latency client-side search and filtering engine powered by a curated offline database (`curatedRecipes.json`) with 1,251 high-fidelity recipes.
+- **Social Connectivity & Sync**:
+  - Integrated Meta (Facebook/Instagram OAuth) via `MetaService.ts` and wired to OnboardingV2Flow.
+  - Integrated a Social Grid to display Instagram media on profiles.
+- **Subdomain Separation**:
+  - The cinematic landing page now resides at `fuzo.app` while the core app is exclusively hosted on `app.fuzo.app`.
+
+## Previous Updates (2026-04-16)
 
 - **AAA Chat Overhaul**:
   - Implemented a full-screen, responsive dual-pane layout for Desktop and a single-pane flow for Mobile.
@@ -149,7 +160,6 @@ VITE_SUPABASE_ANON_KEY=
 GEMINI_API_KEY=
 VITE_GOOGLE_MAPS_API_KEY=
 VITE_OPENAI_API_KEY=
-VITE_SPOONACULAR_API_KEY=
 VITE_YOUTUBE_API_KEY=
 ```
 
@@ -173,7 +183,7 @@ If your Vercel project is connected to `main`, pushes to `main` trigger deployme
 Supabase functions are located in `supabase/functions/`.
 
 Key functions include:
-- `make-server-5976446e` (maps/places/spoonacular proxy endpoints)
+- `make-server-5976446e` (maps/places proxy endpoints; spoonacular removed)
 - `openai-proxy`
 - `youtube-proxy`
 - `openai-health`
