@@ -1,26 +1,31 @@
 import dotenv from 'dotenv';
-import fetch from 'node-fetch';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
-const API_KEY = process.env.GEMINI_API_KEY;
-const URL = `https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`;
+const apiKey = process.env.GEMINI_API_KEY;
 
-async function listModels() {
-  console.log(`Listing available models...`);
-  try {
-    const response = await fetch(URL);
-    const data = await response.json();
-    console.log(`Status: ${response.status}`);
-    if (data.models) {
-      console.log('Available Models:');
-      data.models.forEach(m => console.log(` - ${m.name}`));
-    } else {
-      console.log('No models found or error:', JSON.stringify(data, null, 2));
-    }
-  } catch (error) {
-    console.error('Fetch Error:', error);
-  }
+console.log('Testing Gemini API key...');
+console.log('API Key length:', apiKey ? apiKey.length : 0);
+
+if (!apiKey) {
+  console.error('Error: GEMINI_API_KEY is missing!');
+  process.exit(1);
 }
 
-listModels();
+try {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`;
+  const response = await fetch(url);
+  const data = await response.json();
+  
+  if (!response.ok) {
+    console.error('Gemini API error:', data);
+  } else {
+    console.log('Success! Connected to Gemini API. Available models:', data.models ? data.models.length : 0);
+  }
+} catch (err) {
+  console.error('Catch error:', err);
+}

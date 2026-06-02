@@ -283,6 +283,35 @@ export const AuthView = ({
                   >
                     {authLoading ? <Loader2 className="animate-spin" size={16} /> : (step === 'signin' ? 'Secure Login' : 'Continue')}
                   </button>
+
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setEmail('test@fuzo.app');
+                      setPassword('password123');
+                      setStep('signin');
+                      setAuthLoading(true);
+                      if (supabase) {
+                        supabase.auth.signInWithPassword({
+                          email: 'test@fuzo.app',
+                          password: 'password123'
+                        }).then(({ data, error }) => {
+                          if (error) {
+                            setAuthError(error.message);
+                          } else if (data.session) {
+                            onComplete();
+                          }
+                          setAuthLoading(false);
+                        }).catch(err => {
+                          setAuthError(err.message || 'Bypass failed');
+                          setAuthLoading(false);
+                        });
+                      }
+                    }}
+                    className="w-full py-4 bg-amber-400 hover:bg-amber-500 text-stone-950 rounded-[2.5rem] font-black uppercase tracking-[0.2em] text-[12px] shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                  >
+                    🚀 Developer Bypass (Auto-Login)
+                  </button>
                 </div>
               </div>
 

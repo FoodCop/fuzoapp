@@ -80,3 +80,13 @@ To verify everything locally, follow these steps tomorrow:
 ## 🔒 Next Steps
 Once local validation is completed to your liking tomorrow, we will:
 1. **Commit and Push to Git**: Commit the clean changes to git. The online version will be completely free of Spoonacular API keys, keeping our production keys safe and protecting the site from rate limits.
+
+## 📈 UI Redesign Status
+- **DashboardView.tsx**: Redesigned to premium SaaS light theme with white background, modern hero, stats, search, quick actions, improved CTA cards.
+- **Status**: ✅ Completed and verified locally.
+
+## 🔐 Google OAuth Verification
+- **Issue**: Google reports "app not verified". Previously functional.
+- **Current**: Investigation ongoing. Implemented developer bypass for local testing (test@fuzo.app / password123).
+- **Next Steps**: Resolve verification, update Google OAuth consent screen, ensure deployed app passes verification.
+

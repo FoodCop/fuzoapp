@@ -26,3 +26,4 @@ yarn-error.log*
 public/UPDATE/
 .vercel
 .env*.local
+/docs/
