@@ -147,9 +147,11 @@ export const SettingsView = ({
   }, [authUser, defaults]);
 
   // SECTION: YouTube Autodetection
+  // DISABLED: Pending Google OAuth App Verification. Requesting YouTube scopes triggers unverified app warnings.
   useEffect(() => {
     // Only attempt autodetection once the settings have finished loading
     if (!loadingSettings && !profile.youtube && !hasAutodetected && authUser?.id) {
+      /*
       const attemptAutodetect = async () => {
         const result = await SettingsService.syncYouTubeWithGoogle();
         if (result.success && result.data) {
@@ -165,6 +167,8 @@ export const SettingsView = ({
         setHasAutodetected(true);
       };
       attemptAutodetect();
+      */
+      setHasAutodetected(true);
     }
   }, [loadingSettings, profile.youtube, hasAutodetected, authUser?.id]);
 
@@ -534,6 +538,9 @@ export const SettingsView = ({
           icon={Youtube}
           label="YouTube"
           value={profile.youtube || 'Not set'}
+          onClick={() => editField('youtube', 'YouTube')}
+          /* 
+          // DISABLED: Pending Google Verification
           onClick={() => setShowYoutubeSyncModal(true)}
           action={
             <div className="flex items-center gap-3">
@@ -554,6 +561,7 @@ export const SettingsView = ({
               </button>
             </div>
           }
+          */
         />
       </SettingsSection>
 
