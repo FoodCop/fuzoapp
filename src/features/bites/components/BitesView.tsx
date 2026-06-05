@@ -28,7 +28,6 @@ import UgcFilterBar from '../../../shared/ui/UgcFilterBar';
 import { BITE_FALLBACK_RECIPES } from '../constants/fallbackRecipes';
 import { createBiteRecipeActions, getBiteKeyNutrients, normalizeRecipeList } from '../lib/bitesHelpers';
 import type { BiteActionItem, BiteRecipe, BiteRecipeInput } from '../types/bites';
-import { SpoonacularService } from '../../../services/spoonacularService';
 import { GeminiService } from '../../../services/geminiService';
 import { shouldApplyLatestRequest } from '../../../shared/utils/async';
 import type { AppItem } from '../../../shared/types/appItem';
@@ -427,30 +426,13 @@ const useBitesFeed = () => {
     const effectiveQuery = (queryOverride ?? searchQuery).trim();
 
     try {
-      const response = await SpoonacularService.searchRecipes({
-        query: effectiveQuery || undefined,
-        diet: activeDiet || undefined,
-        cuisine: activeCuisine || undefined,
-        number: 12,
-        offset: activePage * 12,
-      });
-
-      const payload = response.data;
-      const resultList = (payload?.results || []) as BiteRecipeInput[];
+      // Spoonacular service is disabled. Showing curated fallback recipes.
+      await new Promise(resolve => setTimeout(resolve, 300));
       const isLatestRequest = shouldApplyLatestRequest(bitesMountedRef, requestSeq, bitesRequestSeqRef);
 
-      if (!response.success || !Array.isArray(resultList) || resultList.length === 0) {
-        if (isLatestRequest) {
-          setRecipes(BITE_FALLBACK_RECIPES);
-          setTotalResults(BITE_FALLBACK_RECIPES.length);
-          if (response.error) setServiceError(response.error);
-        }
-      } else {
-        const normalized = normalizeRecipeList(resultList);
-        if (isLatestRequest) {
-          setRecipes(normalized);
-          setTotalResults(payload?.totalResults || normalized.length);
-        }
+      if (isLatestRequest) {
+        setRecipes(BITE_FALLBACK_RECIPES);
+        setTotalResults(BITE_FALLBACK_RECIPES.length);
       }
     } catch {
       if (shouldApplyLatestRequest(bitesMountedRef, requestSeq, bitesRequestSeqRef)) {

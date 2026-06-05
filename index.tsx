@@ -38,7 +38,6 @@ import { useTabUrlSync } from './src/app/hooks/useTabUrlSync';
 import { areSavedItemsEquivalent } from './src/features/plate/lib/savedItems';
 import { renderAppView } from './src/app/routes/renderAppView';
 import { PlacesService } from './src/services/placesService';
-import { SpoonacularService } from './src/services/spoonacularService';
 import { YouTubeService } from './src/services/youtubeService';
 import { PlateService } from './src/services/plateService';
 import { FriendRequestService, type FriendRequestRelationship } from './src/services/friendRequestService';

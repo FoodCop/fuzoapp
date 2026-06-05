@@ -1,27 +1,6 @@
-import { SpoonacularService } from '../src/services/spoonacularService';
-import { YouTubeService } from '../src/services/youtube';
+import { YouTubeService } from '../src/services/youtubeService';
 
 async function testAPIs() {
-  console.log('🧪 Testing Spoonacular API...');
-  try {
-    const recipeResult = await SpoonacularService.searchRecipes({ 
-      query: 'pasta', 
-      number: 5 
-    });
-    
-    if (recipeResult.success && recipeResult.data?.results) {
-      console.log('✅ Spoonacular: SUCCESS');
-      console.log(`   Retrieved ${recipeResult.data.results.length} recipes`);
-      console.log(`   Sample: ${recipeResult.data.results[0]?.title || 'N/A'}`);
-    } else {
-      console.log('❌ Spoonacular: FAILED');
-      console.log(`   Error: ${recipeResult.error}`);
-    }
-  } catch (error) {
-    console.log('❌ Spoonacular: ERROR');
-    console.error('   ', error);
-  }
-
   console.log('\n🧪 Testing YouTube API...');
   try {
     const videoResult = await YouTubeService.searchVideos('cooking pasta', 5);

@@ -76,7 +76,7 @@ export const OnboardingV2Flow = ({
     return TEAM_PATH;
   }, [userType]);
 
-  const currentStep = currentPath[stepIndex];
+  const currentStep = currentPath[stepIndex] || currentPath[currentPath.length - 1];
 
   // LOGIC: Browser Geolocation Integration
   const detectLocation = () => {
@@ -131,19 +131,28 @@ export const OnboardingV2Flow = ({
       setPhase('path');
       setStepIndex(0);
     } else if (phase === 'path') {
-      if (stepIndex < currentPath.length - 1) {
-        setStepIndex(prev => prev + 1);
-      } else if (userType === 'individual') {
-        setPhase('quiz');
-      } else {
-        setPhase('location');
-      }
+      setStepIndex(prev => {
+        if (prev < currentPath.length - 1) {
+          return prev + 1;
+        } else {
+          // If already at the end, transition to next phase
+          if (userType === 'individual') {
+            setPhase('quiz');
+          } else {
+            setPhase('location');
+          }
+          return prev;
+        }
+      });
     } else if (phase === 'quiz') {
-      if (quizIndex < FOOD_PERSONALITY_QUIZ.questions.length - 1) {
-        setQuizIndex(prev => prev + 1);
-      } else {
-        setPhase('location');
-      }
+      setQuizIndex(prev => {
+        if (prev < FOOD_PERSONALITY_QUIZ.questions.length - 1) {
+          return prev + 1;
+        } else {
+          setPhase('location');
+          return prev;
+        }
+      });
     }
   };
 
@@ -223,12 +232,12 @@ export const OnboardingV2Flow = ({
                 </div>
               </div>
               <div className="space-y-4">
-                <h2 className="text-4xl font-black uppercase tracking-tighter leading-none">{currentStep.title}</h2>
-                <p className="text-stone-400 font-bold">{currentStep.desc}</p>
+                <h2 className="text-4xl font-black uppercase tracking-tighter leading-none">{currentStep?.title}</h2>
+                <p className="text-stone-400 font-bold">{currentStep?.desc}</p>
               </div>
 
               {/* Sub-Type: Single-Choice Selection */}
-              {currentStep.type === 'choice' && (
+              {currentStep?.type === 'choice' && (
                 <div className="grid grid-cols-1 gap-3">
                   {currentStep.options.map((opt) => (
                     <button
@@ -247,7 +256,7 @@ export const OnboardingV2Flow = ({
               )}
 
               {/* Sub-Type: Multi-Choice Selection (Array persistence) */}
-              {currentStep.type === 'multichoice' && (
+              {currentStep?.type === 'multichoice' && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-2 gap-3">
                     {currentStep.options.map((opt) => {
@@ -278,7 +287,7 @@ export const OnboardingV2Flow = ({
               )}
 
               {/* Sub-Type: Form Data Collection */}
-              {currentStep.type === 'form' && (
+              {currentStep?.type === 'form' && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 gap-5">
                     {(currentStep as OnboardingV2FormStep).fields.map((field) => (
@@ -316,7 +325,7 @@ export const OnboardingV2Flow = ({
               )}
 
               {/* Sub-Type: Media Portfolio / CV Sync */}
-              {currentStep.type === 'media' && (
+              {currentStep?.type === 'media' && (
                 <div className="space-y-6">
                   <div 
                     onClick={() => {
@@ -386,7 +395,7 @@ export const OnboardingV2Flow = ({
               )}
 
               {/* Sub-Type: Social Sync (Meta API) */}
-              {currentStep.type === 'social' && (
+              {currentStep?.type === 'social' && (
                 <div className="space-y-8">
                   <div className="grid grid-cols-1 gap-4">
                     {currentStep.providers.includes('instagram') && (
@@ -454,10 +463,10 @@ export const OnboardingV2Flow = ({
                   <div className="w-10 h-10 bg-yellow-400 rounded-xl flex items-center justify-center text-stone-900 shadow-sm"><Check size={20} strokeWidth={3} /></div>
                   <h2 className="text-2xl font-black uppercase tracking-widest text-stone-300">Culinary DNA</h2>
                 </div>
-                <h3 className="text-4xl font-black uppercase tracking-tighter leading-none">{FOOD_PERSONALITY_QUIZ.questions[quizIndex].question}</h3>
+                <h3 className="text-4xl font-black uppercase tracking-tighter leading-none">{FOOD_PERSONALITY_QUIZ.questions[quizIndex]?.question}</h3>
               </div>
               <div className="grid grid-cols-1 gap-3">
-                {FOOD_PERSONALITY_QUIZ.questions[quizIndex].options.map((opt) => (
+                {FOOD_PERSONALITY_QUIZ.questions[quizIndex]?.options.map((opt) => (
                   <button
                     key={opt.label}
                     onClick={() => {
