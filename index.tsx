@@ -172,22 +172,17 @@ const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friend
                 }
               }}
               tabIndex={0}
-              className="flex items-center justify-between p-4 rounded-[2rem] hover:bg-stone-50 cursor-pointer transition-colors group"
+              className="flex items-center justify-between px-2 py-4 w-full text-left border-b border-stone-100 last:border-b-0 hover:bg-stone-50 cursor-pointer transition-colors group"
             >
               <div className="flex items-center gap-4">
-                <img src={friend.avatar} alt={friend.name || 'Friend avatar'} className="w-12 h-12 rounded-full border-2 border-stone-100" />
+                <img src={friend.avatar} alt={friend.name || 'Friend avatar'} className="w-12 h-12 rounded-full border border-stone-200" />
                 <div>
                   <span className="font-black uppercase text-xs tracking-widest block">{friend.name}</span>
-                  {!!('username' in friend && friend.username) && <span className="text-[11px] font-bold uppercase tracking-widest text-stone-400">@{friend.username}</span>}
                 </div>
               </div>
-              {sentTo.includes(friend.id) ? (
+              {sentTo.includes(friend.id) && (
                 <div className="flex items-center gap-2 text-emerald-500">
                   <CheckCircle2 size={24} strokeWidth={3} />
-                </div>
-              ) : (
-                <div className="p-3 bg-stone-100 rounded-2xl group-hover:bg-yellow-400 transition-colors">
-                  <Send size={18} />
                 </div>
               )}
             </button>

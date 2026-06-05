@@ -30,6 +30,7 @@ import { createBiteRecipeActions, getBiteKeyNutrients, normalizeRecipeList } fro
 import type { BiteActionItem, BiteRecipe, BiteRecipeInput } from '../types/bites';
 import { GeminiService } from '../../../services/geminiService';
 import { shouldApplyLatestRequest } from '../../../shared/utils/async';
+import { supabase, hasSupabaseConfig } from '../../../services/supabaseClient';
 import type { AppItem } from '../../../shared/types/appItem';
 import type { ChatInboxItem } from '../../chat/types/chatUi';
 import type { IconComponent } from '../../../shared/types/ui';
@@ -342,22 +343,17 @@ const ShareModal = ({ item, friends, onShare, onClose }: { item: AppItem, friend
                 }
               }}
               tabIndex={0}
-              className="flex items-center justify-between p-4 rounded-[2rem] hover:bg-stone-50 cursor-pointer transition-colors group"
+              className="flex items-center justify-between px-2 py-4 w-full text-left border-b border-stone-100 last:border-b-0 hover:bg-stone-50 cursor-pointer transition-colors group"
             >
               <div className="flex items-center gap-4">
-                <img src={friend.avatar} alt={friend.name || 'Friend avatar'} className="w-12 h-12 rounded-full border-2 border-stone-100" />
+                <img src={friend.avatar} alt={friend.name || 'Friend avatar'} className="w-12 h-12 rounded-full border border-stone-200" />
                 <div>
                   <span className="font-black uppercase text-xs tracking-widest block">{friend.name}</span>
-                  {!!('username' in friend && friend.username) && <span className="text-[11px] font-bold uppercase tracking-widest text-stone-400">@{friend.username}</span>}
                 </div>
               </div>
-              {sentTo.includes(friend.id) ? (
+              {sentTo.includes(friend.id) && (
                 <div className="flex items-center gap-2 text-emerald-500">
                   <CheckCircle2 size={24} strokeWidth={3} />
-                </div>
-              ) : (
-                <div className="p-3 bg-stone-100 rounded-2xl group-hover:bg-yellow-400 transition-colors">
-                  <Send size={18} />
                 </div>
               )}
             </button>
@@ -426,15 +422,71 @@ const useBitesFeed = () => {
     const effectiveQuery = (queryOverride ?? searchQuery).trim();
 
     try {
-      // Spoonacular service is disabled. Showing curated fallback recipes.
-      await new Promise(resolve => setTimeout(resolve, 300));
+      if (!hasSupabaseConfig || !supabase) {
+        throw new Error('Supabase not configured');
+      }
+
+      let query = supabase
+        .from('recipes')
+        .select('*', { count: 'exact' });
+
+      if (effectiveQuery) {
+        // List of common meal types and dish tags found in the database
+        const KNOWN_DISH_TYPES = [
+          'Morning meal', 'Brunch', 'Beverage', 'Breakfast', 'Drink', 
+          'Lunch', 'Main course', 'Main dish', 'Dinner', 'Side dish', 
+          'Snack', 'Soup', 'Salad', 'Appetizer', 'Dessert', 'Antipasti', 
+          'Starter', 'Fingerfood'
+        ];
+        
+        const queryLower = effectiveQuery.toLowerCase();
+        const queryWords = queryLower.split(/\s+/).filter(Boolean);
+        const matchingDishTypes = KNOWN_DISH_TYPES.filter(dt => {
+          const dtLower = dt.toLowerCase();
+          return queryWords.some(word => dtLower.includes(word));
+        });
+        
+        if (matchingDishTypes.length > 0) {
+          const dishTypeString = `{${matchingDishTypes.map(t => `"${t}"`).join(',')}}`;
+          query = query.or(`title.ilike."*${effectiveQuery}*",dish_types.ov.${dishTypeString}`);
+        } else {
+          query = query.ilike('title', `*${effectiveQuery}*`);
+        }
+      }
+
+      if (activeDiet) {
+        query = query.contains('diets', [activeDiet.toLowerCase()]);
+      }
+
+      if (activeCuisine) {
+        query = query.contains('cuisines', [activeCuisine.toLowerCase()]);
+      }
+
+      // Order by ID or created_at for stable pagination
+      query = query.order('id', { ascending: true });
+
+      const from = activePage * 12;
+      const to = from + 11;
+      const { data, count, error } = await query.range(from, to);
+
+      if (error) {
+        throw error;
+      }
+
       const isLatestRequest = shouldApplyLatestRequest(bitesMountedRef, requestSeq, bitesRequestSeqRef);
 
       if (isLatestRequest) {
-        setRecipes(BITE_FALLBACK_RECIPES);
-        setTotalResults(BITE_FALLBACK_RECIPES.length);
+        if (data && data.length > 0) {
+          const normalized = normalizeRecipeList(data as unknown as BiteRecipeInput[]);
+          setRecipes(normalized);
+          setTotalResults(count || normalized.length);
+        } else {
+          // If no results match search, return empty instead of fallbacks
+          setRecipes([]);
+          setTotalResults(0);
+        }
       }
-    } catch {
+    } catch (err) {
       if (shouldApplyLatestRequest(bitesMountedRef, requestSeq, bitesRequestSeqRef)) {
         setRecipes(BITE_FALLBACK_RECIPES);
         setTotalResults(BITE_FALLBACK_RECIPES.length);
@@ -463,10 +515,7 @@ const useBitesFeed = () => {
     };
   }, [searchQuery, fetchBites]);
 
-  const filteredRecipes = useMemo(() => {
-    if (!searchQuery.trim()) return recipes;
-    return recipes.filter((r) => r.title.toLowerCase().includes(searchQuery.toLowerCase()));
-  }, [recipes, searchQuery]);
+  const filteredRecipes = recipes;
 
   // Autocomplete Suggestions Engine
   const autocompleteSuggestions = useMemo(() => {
@@ -592,23 +641,29 @@ const BitesGrid = ({
           tabIndex={0}
           className="group cursor-pointer text-left w-full h-full focus:outline-none"
         >
-          <div className="bg-white rounded-[2rem] border border-stone-100/80 shadow-md overflow-hidden group-hover:scale-[1.02] group-focus:scale-[1.02] hover:shadow-xl transition-all duration-500 flex flex-col h-full">
-            <div className="relative w-full aspect-[4/3] overflow-hidden shrink-0">
-              <img src={recipe.image} alt={recipe.title || 'Recipe'} className="w-full h-full object-cover" />
-              <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-4 py-2 rounded-2xl flex gap-1.5 items-center text-[10px] font-black uppercase tracking-widest text-stone-900 shadow-sm border border-stone-100/50">
+          <div className="relative rounded-[2rem] shadow-md overflow-hidden group-hover:scale-[1.02] group-focus:scale-[1.02] hover:shadow-xl transition-all duration-500 aspect-[4/5] w-full">
+            <img src={recipe.image} alt={recipe.title || 'Recipe'} className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/10" />
+            
+            <div className="absolute top-5 right-5 flex flex-col gap-2 items-end">
+              <div className="bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-2xl flex gap-1.5 items-center text-[10px] font-black uppercase tracking-widest text-stone-900 shadow-lg border border-white/20">
                 <PieChart size={12} className="text-yellow-500" /> {(() => {
                   const cal = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Calories');
                   return cal ? `${Math.round(cal.amount)} Kcal` : '0 Kcal';
                 })()}
               </div>
+              <div className="bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-2xl flex gap-1.5 items-center text-[10px] font-black uppercase tracking-widest text-stone-900 shadow-lg border border-white/20">
+                <Clock size={12} className="text-yellow-500" /> {recipe.readyInMinutes || 0}m
+              </div>
             </div>
-            <div className="p-7 flex flex-col justify-between flex-grow space-y-4">
-              <h3 className="text-lg font-black uppercase tracking-tighter text-stone-900 leading-snug line-clamp-2">
+
+            <div className="absolute bottom-0 left-0 right-0 p-6 flex flex-col gap-2">
+              <h3 className="text-lg font-black uppercase tracking-tighter text-white leading-tight drop-shadow-lg line-clamp-2">
                 {recipe.title}
               </h3>
-              <div className="flex flex-wrap gap-2">
-                {(recipe.dishTypes || []).slice(0, 2).map((tag) => (
-                  <span key={tag} className="text-[9px] font-black uppercase tracking-widest bg-stone-50 border border-stone-100/40 px-3 py-1.5 rounded-xl text-stone-400">
+              <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap mask-fade-right">
+                {(recipe.dishTypes || []).slice(0, 3).map((tag) => (
+                  <span key={tag} className="shrink-0 text-[10px] font-black uppercase tracking-widest bg-white/20 backdrop-blur-md border border-white/30 px-3 py-1.5 rounded-xl text-white shadow-sm">
                     {tag}
                   </span>
                 ))}
@@ -1386,23 +1441,29 @@ export const BitesView = ({ onSave, onShareRequest }: { onSave: (item: BiteActio
                 onClick={() => setSelectedRecipe(recipe)}
                 className="group cursor-pointer text-left w-full focus:outline-none"
               >
-                <div className="bg-stone-900 rounded-[2rem] border border-white/5 hover:border-yellow-400/20 shadow-md overflow-hidden group-hover:scale-[1.02] group-focus:scale-[1.02] hover:shadow-2xl transition-all duration-500 flex flex-col h-full">
-                  <div className="relative w-full aspect-[4/3] overflow-hidden shrink-0">
-                    <img src={recipe.image} alt={recipe.title || 'Recipe'} className="w-full h-full object-cover" />
-                    <div className="absolute top-4 right-4 bg-stone-950/80 backdrop-blur-md px-3.5 py-1.5 rounded-xl flex gap-1.5 items-center text-[10px] font-black uppercase tracking-widest text-stone-300 shadow-sm border border-white/5">
+                <div className="relative rounded-[2rem] shadow-md overflow-hidden group-hover:scale-[1.02] group-focus:scale-[1.02] hover:shadow-2xl transition-all duration-500 aspect-[4/5] w-full border border-white/5 hover:border-yellow-400/20">
+                  <img src={recipe.image} alt={recipe.title || 'Recipe'} className="absolute inset-0 w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-stone-950/95 via-stone-900/40 to-transparent" />
+                  
+                  <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
+                    <div className="bg-stone-950/80 backdrop-blur-md px-3.5 py-1.5 rounded-xl flex gap-1.5 items-center text-[10px] font-black uppercase tracking-widest text-stone-300 shadow-sm border border-white/5">
                       <PieChart size={12} className="text-yellow-400" /> {(() => {
                         const cal = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Calories');
                         return cal ? `${Math.round(cal.amount)} Kcal` : '0 Kcal';
                       })()}
                     </div>
+                    <div className="bg-stone-950/80 backdrop-blur-md px-3.5 py-1.5 rounded-xl flex gap-1.5 items-center text-[10px] font-black uppercase tracking-widest text-stone-300 shadow-sm border border-white/5">
+                      <Clock size={12} className="text-yellow-400" /> {recipe.readyInMinutes || 0}m
+                    </div>
                   </div>
-                  <div className="p-6 flex flex-col justify-between flex-grow space-y-4">
-                    <h3 className="text-sm md:text-base font-black uppercase tracking-tighter text-white leading-snug line-clamp-2">
+
+                  <div className="absolute bottom-0 left-0 right-0 p-6 flex flex-col gap-2">
+                    <h3 className="text-lg font-black uppercase tracking-tighter text-white leading-tight drop-shadow-lg line-clamp-2">
                       {recipe.title}
                     </h3>
-                    <div className="flex flex-wrap gap-1.5">
-                      {(recipe.dishTypes || []).slice(0, 2).map((tag) => (
-                        <span key={tag} className="text-[9px] font-black uppercase tracking-widest bg-white/5 border border-white/5 px-2.5 py-1 rounded-lg text-stone-400">
+                    <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap mask-fade-right">
+                      {(recipe.dishTypes || []).slice(0, 3).map((tag) => (
+                        <span key={tag} className="shrink-0 text-[9px] font-black uppercase tracking-widest bg-white/10 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-xl text-stone-200 shadow-sm">
                           {tag}
                         </span>
                       ))}
