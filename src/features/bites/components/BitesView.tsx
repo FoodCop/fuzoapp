@@ -693,7 +693,7 @@ const BitesRecipeModal = ({
   onShareRecipe: (recipe: BiteRecipe) => void;
 }) => {
   const [activeTab, setActiveTab] = useState<'ingredients' | 'steps' | 'nutrition'>('ingredients');
-
+  const [successAction, setSuccessAction] = useState<'saved' | 'shared' | null>(null);
   if (!selectedRecipe) return null;
 
   const tabs = [
@@ -847,14 +847,20 @@ const BitesRecipeModal = ({
           {/* Sticky Footer */}
           <footer className="p-8 md:p-10 pt-4 bg-white/90 backdrop-blur-md border-t border-stone-50 flex gap-3 shrink-0 transition-all">
             <button
-              onClick={() => onSaveRecipe(selectedRecipe)}
+              onClick={() => {
+                onSaveRecipe(selectedRecipe);
+                setSuccessAction('saved');
+              }}
               className="flex-1 py-4 md:py-5 bg-stone-900 text-white rounded-[1.5rem] md:rounded-2xl flex items-center justify-center gap-2 md:gap-3 hover:scale-[1.02] active:scale-95 transition-all shadow-xl group"
             >
               <Bookmark size={18} className="md:size-[22px] group-hover:fill-white transition-all" />
               <span className="text-[11px] md:text-[12px] font-black uppercase tracking-widest">Save to Plate</span>
             </button>
             <button
-              onClick={() => onShareRecipe(selectedRecipe)}
+              onClick={() => {
+                onShareRecipe(selectedRecipe);
+                setSuccessAction('shared');
+              }}
               className="py-4 md:py-5 px-6 md:px-10 bg-yellow-400 text-stone-900 rounded-[1.5rem] md:rounded-2xl flex items-center justify-center hover:scale-[1.02] active:scale-95 transition-all shadow-xl"
             >
               <Share2 size={18} className="md:size-[22px]" strokeWidth={3} />
@@ -862,6 +868,29 @@ const BitesRecipeModal = ({
           </footer>
         </div>
       </motion.div>
+
+      {/* Success Modal Overlay */}
+      {successAction && (
+        <div className="absolute inset-0 z-[600] bg-stone-950/80 backdrop-blur-xl flex flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in-95 duration-300">
+          <div className="bg-white p-10 w-full max-w-sm rounded-[3rem] shadow-2xl flex flex-col items-center">
+            <div className="w-24 h-24 bg-yellow-400 rounded-full flex items-center justify-center text-stone-900 mb-6 shadow-xl">
+              <Check size={48} strokeWidth={4} />
+            </div>
+            <h3 className="text-3xl font-black uppercase tracking-tighter text-stone-900 mb-2 leading-none">
+              {successAction === 'saved' ? 'Saved to Plate' : 'Shared Successfully'}
+            </h3>
+            <p className="text-stone-400 font-bold uppercase tracking-widest text-[10px] mb-10 leading-relaxed">
+              {successAction === 'saved' ? 'Recipe is now in your personal collection' : 'Recipe sent to your active contacts'}
+            </p>
+            <button
+              onClick={onClose}
+              className="w-full py-5 bg-stone-900 text-white rounded-[2rem] font-black uppercase tracking-widest text-sm shadow-xl hover:scale-105 active:scale-95 transition-all"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
