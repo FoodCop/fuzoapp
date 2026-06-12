@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { AuthUser } from '../../auth/types/auth';
 import type { SettingsProfile } from '../types/settings';
 import { SettingsService } from '../services/settingsService';
+import { AuthService } from '../../auth/services/authService';
 import { supabase } from '../../../services/supabaseClient';
 import { getOAuthRedirectUrl } from '../../auth/lib/oauthRedirect';
 import { SettingsItem, SettingsSection } from '../../../shared/ui/settingsPrimitives';
@@ -146,31 +147,24 @@ export const SettingsView = ({
     };
   }, [authUser, defaults]);
 
-  // SECTION: YouTube Autodetection
-  // DISABLED: Pending Google OAuth App Verification. Requesting YouTube scopes triggers unverified app warnings.
+  // SECTION: YouTube Sync Completion
   useEffect(() => {
-    // Only attempt autodetection once the settings have finished loading
-    if (!loadingSettings && !profile.youtube && !hasAutodetected && authUser?.id) {
-      /*
-      const attemptAutodetect = async () => {
-        const result = await SettingsService.syncYouTubeWithGoogle();
-        if (result.success && result.data) {
-          // Use a small delay to ensure this update doesn't get batched with the initial load reset
-          setTimeout(() => {
-            setProfile(prev => ({ ...prev, youtube: result.data.youtube }));
-            setIsDirty(true);
-            setDetectedChannelTitle(result.data.title);
-            setYoutubeConnected(true);
-            setShowYoutubeSyncModal(true);
-          }, 200);
-        }
-        setHasAutodetected(true);
-      };
-      attemptAutodetect();
-      */
-      setHasAutodetected(true);
+    let pendingSync = false;
+    try {
+      pendingSync = globalThis.sessionStorage.getItem('fuzo_youtube_sync_pending') === 'true';
+    } catch (e) {
+      // Ignore
     }
-  }, [loadingSettings, profile.youtube, hasAutodetected, authUser?.id]);
+
+    if (pendingSync && !loadingSettings && authUser?.id) {
+      try {
+        globalThis.sessionStorage.removeItem('fuzo_youtube_sync_pending');
+      } catch (e) {}
+      
+      setShowYoutubeSyncModal(true);
+      completeYoutubeSync();
+    }
+  }, [loadingSettings, authUser?.id]);
 
   const handleSignOutClick = async () => {
     if (signingOut) return;
@@ -314,6 +308,14 @@ export const SettingsView = ({
   };
 
   const handleSyncYoutube = async () => {
+    try {
+      await AuthService.signInForYouTubeSync();
+    } catch (error) {
+      setSettingsError(error instanceof Error ? error.message : 'Unable to initiate YouTube sync.');
+    }
+  };
+
+  const completeYoutubeSync = async () => {
     if (syncingYoutube) return;
 
     setSyncingYoutube(true);
@@ -538,9 +540,6 @@ export const SettingsView = ({
           icon={Youtube}
           label="YouTube"
           value={profile.youtube || 'Not set'}
-          onClick={() => editField('youtube', 'YouTube')}
-          /* 
-          // DISABLED: Pending Google Verification
           onClick={() => setShowYoutubeSyncModal(true)}
           action={
             <div className="flex items-center gap-3">
@@ -561,7 +560,6 @@ export const SettingsView = ({
               </button>
             </div>
           }
-          */
         />
       </SettingsSection>
 

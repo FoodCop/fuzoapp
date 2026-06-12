@@ -246,7 +246,7 @@ const TrimsMediaStep = ({
   onNext: () => void 
 }) => {
   return (
-    <div className="fixed inset-0 z-[250] bg-stone-950 p-8 flex flex-col justify-center animate-in fade-in duration-500 overflow-y-auto">
+    <div className="absolute inset-0 bg-stone-950 p-8 flex flex-col justify-center animate-in fade-in duration-500 overflow-y-auto">
       <div className="max-w-4xl mx-auto w-full space-y-12 text-center py-12">
         <div className="space-y-4">
           <Badge color="yellow">Step 1</Badge>
@@ -307,7 +307,7 @@ const TrimsMediaStep = ({
 
 const TrimsIdentityStep = ({ title, author, onUpdate, onNext }: { title: string, author: string, onUpdate: (data: any) => void, onNext: () => void }) => {
   return (
-    <div className="fixed inset-0 z-[250] bg-stone-950 p-8 flex flex-col justify-center animate-in slide-in-from-right duration-500">
+    <div className="absolute inset-0 bg-stone-950 p-8 flex flex-col justify-center animate-in slide-in-from-right duration-500">
       <div className="max-w-md mx-auto w-full space-y-12">
         <div className="space-y-4 text-center">
           <Badge color="yellow">Identity</Badge>
@@ -333,7 +333,7 @@ const TrimsIdentityStep = ({ title, author, onUpdate, onNext }: { title: string,
 
 const TrimsStoryStep = ({ description, onUpdate, onNext }: { description: string, onUpdate: (data: any) => void, onNext: () => void }) => {
   return (
-    <div className="fixed inset-0 z-[250] bg-stone-950 p-8 flex flex-col justify-center animate-in slide-in-from-right duration-500">
+    <div className="absolute inset-0 bg-stone-950 p-8 flex flex-col justify-center animate-in slide-in-from-right duration-500">
       <div className="max-w-md mx-auto w-full space-y-12">
         <div className="space-y-4 text-center">
           <Badge color="yellow">Narrative</Badge>
@@ -355,7 +355,7 @@ const TrimsStoryStep = ({ description, onUpdate, onNext }: { description: string
 
 const TrimsReviewStep = ({ video, data, onEdit, onLock, isUploading }: { video: string | null, data: any, onEdit: () => void, onLock: () => void, isUploading: boolean }) => {
   return (
-    <div className="fixed inset-0 z-[250] bg-stone-950 p-8 flex flex-col items-center justify-center space-y-12 animate-in zoom-in-95 duration-500 overflow-y-auto">
+    <div className="absolute inset-0 bg-stone-950 p-8 flex flex-col items-center justify-center space-y-12 animate-in zoom-in-95 duration-500 overflow-y-auto">
       <div className="space-y-4 text-center">
         <Badge color="yellow">Neural Assembly</Badge>
         <h2 className="text-5xl font-black uppercase tracking-tighter italic text-white leading-none">AI Trim Card</h2>

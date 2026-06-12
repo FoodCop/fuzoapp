@@ -127,7 +127,7 @@ const LocationPinStep = ({ location, onUpdate, onNext }: { location: any, onUpda
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[250] bg-stone-950 flex flex-col overflow-hidden">
+    <div className="absolute inset-0 bg-stone-950 flex flex-col overflow-hidden">
       <div ref={mapRef} className="flex-grow w-full" />
       <div className="absolute inset-x-0 bottom-0 p-8 pt-12 bg-gradient-to-t from-stone-950 via-stone-950/90 to-transparent pointer-events-none">
         <div className="max-w-md mx-auto space-y-8 pointer-events-auto">
@@ -152,7 +152,7 @@ const LocationPinStep = ({ location, onUpdate, onNext }: { location: any, onUpda
  */
 const IdentityStep = ({ restaurant, cuisine, onUpdate, onNext }: { restaurant: string, cuisine: string, onUpdate: (data: any) => void, onNext: () => void }) => {
   return (
-    <div className="fixed inset-0 z-[250] bg-stone-950 p-8 flex flex-col justify-center animate-in slide-in-from-right duration-500">
+    <div className="absolute inset-0 bg-stone-950 p-8 flex flex-col justify-center animate-in slide-in-from-right duration-500">
       <div className="max-w-md mx-auto w-full space-y-12">
         <div className="space-y-4 text-center">
           <Badge color="yellow">Identity</Badge>
@@ -188,7 +188,7 @@ const IdentityStep = ({ restaurant, cuisine, onUpdate, onNext }: { restaurant: s
  */
 const ExperienceStep = ({ rating, description, onUpdate, onNext }: { rating: number, description: string, onUpdate: (data: any) => void, onNext: () => void }) => {
   return (
-    <div className="fixed inset-0 z-[250] bg-stone-950 p-8 flex flex-col justify-center animate-in slide-in-from-right duration-500">
+    <div className="absolute inset-0 bg-stone-950 p-8 flex flex-col justify-center animate-in slide-in-from-right duration-500">
       <div className="max-w-md mx-auto w-full space-y-12">
         <div className="space-y-4 text-center">
           <Badge color="stone">Story</Badge>
@@ -228,7 +228,7 @@ import { NeuralReveal } from '../../../shared/ui/NeuralReveal';
  */
 const ReviewStep = ({ image, data, onEdit, onLock, isUploading }: { image: string, data: any, onEdit: () => void, onLock: () => void, isUploading: boolean }) => {
   return (
-    <div className="fixed inset-0 z-[250] bg-stone-950 p-8 flex flex-col items-center justify-center space-y-12 animate-in zoom-in-95 duration-500 overflow-y-auto">
+    <div className="absolute inset-0 bg-stone-950 p-8 flex flex-col items-center justify-center space-y-12 animate-in zoom-in-95 duration-500 overflow-y-auto">
       <div className="space-y-4 text-center">
         <Badge color="yellow">Locked & Loaded</Badge>
         <h2 className="text-5xl font-black uppercase tracking-tighter italic text-white leading-none">Culinary Snap Card</h2>

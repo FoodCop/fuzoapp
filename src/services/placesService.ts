@@ -129,11 +129,11 @@ export const PlacesService = {
     });
   },
 
-  async searchByText(query: string, latitude: number, longitude: number): Promise<ServiceResult<{ results: ScoutPlace[]; status?: string; error_message?: string }>> {
+  async searchByText(query: string, latitude: number, longitude: number, radius = 50000): Promise<ServiceResult<{ results: ScoutPlace[]; status?: string; error_message?: string }>> {
     return makeRequest<{ results: ScoutPlace[]; status?: string; error_message?: string }>('/places/textsearch', {
       query,
       location: { lat: latitude, lng: longitude },
-      radius: 50000,
+      radius,
     });
   },
 

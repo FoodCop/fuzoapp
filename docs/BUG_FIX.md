@@ -176,3 +176,17 @@ This document tracks all bug fixes and technical updates performed during the au
 
 **Status:** ✅ VERIFIED & COMPLETE (Visually and interactively validated using automated browser subagent flows and compiler checks)
 
+---
+
+## [2026-06-07] Dynamic Taxonomy Registry Refactor
+
+**Issue:**
+- Global application taxonomy (Cuisines, Diets, Meal Types, Vibes) was hardcoded tightly into `src/shared/utils/taxonomy.ts` using `as const` TypeScript arrays and manual synonym mapping.
+- Expanding taxonomy (like adding 40+ new specific dish tags) wasn't sustainable because every new term required editing application source code, and arrays were duplicated inline in search logic (e.g., `KNOWN_DISH_TYPES` inside `BitesView.tsx`).
+
+**Fix:**
+- **Central Data Source:** Created `src/shared/data/fuzoTaxonomy.json` to act as the single source of truth for the entire platform. Defines tags and mapping synonyms in a clean schema (Cuisines, Meal Types, Food Categories, Diets, Vibes, Features, Price Ranges).
+- **Zero-Breaking Loader:** Refactored `taxonomy.ts` to import the JSON and cast arrays as `readonly string[]`, preserving all existing `export const` and `export type` definitions. Downstream consumers (FilterBar, Trims, Snap, Scout) required zero code changes.
+- **Dynamic Search Extension:** Added `getSearchableDishTypes()` to dynamically construct an exhaustive list of all food categories and synonyms from the JSON registry. Refactored `BitesView.tsx` search logic to use this dynamic helper instead of a hardcoded array.
+
+**Status:** ✅ VERIFIED & COMPLETE (Validated via TypeScript compiler `tsc --noEmit` and functional search test)

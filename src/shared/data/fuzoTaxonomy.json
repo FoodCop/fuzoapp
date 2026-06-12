@@ -1,0 +1,131 @@
+{
+  "version": "1.0.0",
+
+  "cuisines": {
+    "tags": [
+      "Italian", "Mexican", "Chinese", "Japanese", "Indian",
+      "Thai", "French", "Greek", "Mediterranean", "American",
+      "Middle Eastern", "Korean", "Vietnamese", "Spanish",
+      "Brazilian", "Turkish", "Caribbean", "Ethiopian", "Fusion"
+    ],
+    "synonyms": {
+      "Chinatown": "Chinese",
+      "Cantonese": "Chinese",
+      "Szechuan": "Chinese",
+      "Middle-east": "Middle Eastern",
+      "Arab": "Middle Eastern"
+    }
+  },
+
+  "mealTypes": {
+    "tags": [
+      "Breakfast", "Brunch", "Lunch", "Dinner",
+      "Late Night", "Midnight Snack", "Snack",
+      "High Tea", "Afternoon Tea", "Dessert",
+      "Supper", "Weekend Brunch"
+    ],
+    "synonyms": {
+      "Morning meal": "Breakfast",
+      "Brekkie": "Breakfast",
+      "Elevenses": "High Tea",
+      "Supper time": "Supper"
+    }
+  },
+
+  "foodCategories": {
+    "tags": [
+      "Bakery", "Fast Food", "Street Food", "Comfort Food",
+      "Fine Dining", "Café", "Brewery", "Bar Food",
+      "BBQ", "Grill", "Seafood", "Pizza", "Burger",
+      "Sandwich", "Wrap", "Taco", "Burrito", "Noodles",
+      "Pasta", "Sushi", "Dumplings", "Curry",
+      "Rice Bowl", "Soup", "Salad"
+    ],
+    "synonyms": {
+      "Pizzeria": "Pizza",
+      "Sushi Bar": "Sushi",
+      "Ramen Shop": "Noodles",
+      "Noodle Bar": "Noodles",
+      "Dumpling House": "Dumplings",
+      "Taqueria": "Taco",
+      "BBQ Joint": "BBQ",
+      "Grill House": "Grill",
+      "Burger Joint": "Burger",
+      "Burrito Bar": "Burrito",
+      "Curry House": "Curry",
+      "Poke Bowl": "Rice Bowl",
+      "Soup Kitchen": "Soup",
+      "Deli": "Sandwich",
+      "Cafe": "Café",
+      "Coffee Shop": "Café",
+      "Ramen": "Noodles",
+      "Tacos": "Taco",
+      "Burgers": "Burger",
+      "Diner": "Comfort Food"
+    }
+  },
+
+  "diets": {
+    "tags": [
+      "Vegetarian", "Vegan", "Gluten Free", "Keto",
+      "Halal", "Kosher", "Paleo", "Dairy Free"
+    ],
+    "synonyms": {
+      "plant-based": "Vegan",
+      "gluten-free": "Gluten Free",
+      "dairy-free": "Dairy Free"
+    }
+  },
+
+  "vibes": {
+    "tags": [
+      "Casual", "Fine Dining", "Cafe", "Rooftop",
+      "Family-Friendly", "Street Food", "Romantic",
+      "Chill", "Industrial"
+    ],
+    "synonyms": {
+      "fancy": "Fine Dining",
+      "premium": "Fine Dining",
+      "cozy": "Chill",
+      "relaxed": "Chill"
+    }
+  },
+
+  "features": {
+    "tags": [
+      "Outdoor Seating", "Live Music", "Pet-Friendly",
+      "WiFi", "Bar", "Valet Parking", "Wheelchair Accessible"
+    ],
+    "synonyms": {
+      "outdoor": "Outdoor Seating",
+      "garden": "Outdoor Seating",
+      "music": "Live Music",
+      "band": "Live Music",
+      "dog": "Pet-Friendly",
+      "pet": "Pet-Friendly",
+      "wifi": "WiFi",
+      "internet": "WiFi"
+    }
+  },
+
+  "priceRanges": {
+    "tags": ["$", "$$", "$$$", "$$$$"],
+    "synonyms": {
+      "cheap": "$",
+      "affordable": "$",
+      "expensive": "$$$"
+    }
+  },
+
+  "contentCategories": {
+    "tags": [
+      "Recipe", "Review", "Hack", "Tip",
+      "Spot", "News", "Trivia"
+    ],
+    "synonyms": {
+      "Kitchen hack": "Hack",
+      "Food hack": "Hack",
+      "Restaurant": "Spot"
+    }
+  }
+}

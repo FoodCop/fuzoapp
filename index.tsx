@@ -459,6 +459,24 @@ const App = () => {
     });
 
     if (isAuthenticated) {
+      const searchParams = new URLSearchParams(globalThis.location.search);
+      const isYoutubeSync = searchParams.get('youtube_sync') === 'true';
+
+      if (isYoutubeSync) {
+        setTab('settings');
+        // Let SettingsView know it should auto-trigger the sync flow
+        try {
+          globalThis.sessionStorage.setItem('fuzo_youtube_sync_pending', 'true');
+        } catch (e) {
+          console.warn('sessionStorage is not available for youtube sync state');
+        }
+        
+        const targetPath = `${APP_PATH}?view=settings`;
+        authDebugLog('auth_callback_route_youtube_sync_redirect', { to: targetPath });
+        globalThis.history.replaceState(null, '', targetPath);
+        return;
+      }
+
       setTab('dashboard');
       
       const targetPath = `${APP_PATH}?view=dashboard`;
@@ -1053,11 +1071,45 @@ const App = () => {
 
   if (authBooting) {
     return (
-      <div className="min-h-screen bg-stone-900 text-white flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 mx-auto rounded-3xl bg-white/10 border border-white/20 animate-pulse" />
-          <p className="font-black uppercase tracking-widest text-xs text-white/60">Initializing Auth...</p>
-        </div>
+      <div className="min-h-screen bg-stone-900 text-white flex flex-col items-center justify-center">
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0.5, rotate: -15 }}
+          animate={{ scale: 1, opacity: 1, rotate: 3 }}
+          transition={{
+            type: "spring",
+            stiffness: 200,
+            damping: 10,
+            repeat: Infinity,
+            repeatType: "reverse",
+            duration: 1.2
+          }}
+          className="w-24 h-24 bg-yellow-400 rounded-[2rem] flex items-center justify-center shadow-[0_0_60px_rgba(250,204,21,0.2)] mb-6"
+        >
+          <ChefHat size={48} className="text-stone-900" strokeWidth={2.5} />
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="flex flex-col items-center"
+        >
+          <h1 className="text-3xl font-black tracking-tighter uppercase text-white mb-3">FUZO</h1>
+          <div className="flex gap-1.5">
+            {[0, 1, 2].map(i => (
+              <motion.div
+                key={i}
+                className="w-1.5 h-1.5 bg-yellow-400 rounded-full"
+                animate={{ y: ["0%", "-100%", "0%"] }}
+                transition={{
+                  duration: 0.6,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: i * 0.1
+                }}
+              />
+            ))}
+          </div>
+        </motion.div>
       </div>
     );
   }

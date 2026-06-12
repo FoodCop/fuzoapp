@@ -24,7 +24,7 @@ export const NeuralReveal = ({
   }, [onNext, duration]);
 
   return (
-    <div className="fixed inset-0 z-[250] bg-stone-950 flex flex-col items-center justify-center p-8 text-center space-y-8 animate-in zoom-in-95 duration-700">
+    <div className="absolute inset-0 bg-stone-950 flex flex-col items-center justify-center p-8 text-center space-y-8 animate-in zoom-in-95 duration-700">
       <Sparkles size={80} className="text-yellow-400 animate-pulse" />
       <h2 className="text-5xl font-black uppercase tracking-tighter italic text-white leading-none">
         {title}

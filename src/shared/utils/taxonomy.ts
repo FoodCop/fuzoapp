@@ -8,54 +8,34 @@
  * recipes, and Google Places data are all mapped to a unified set of 
  * Cuisines, Diets, and Vibes.
  * 
- * Core Responsibilities:
- * 1. Schema Definition: Hard-coded constants for database-aligned tags.
- * 2. Normalization: Logic to strip suffixes and map synonyms (e.g., 'Tacos' -> 'Mexican').
- * 3. AI Bridge: Keyword mapping to help Gemini map free-text to taxonomy.
+ * Data Source: src/shared/data/fuzoTaxonomy.json
  */
+
+import taxonomyData from '../data/fuzoTaxonomy.json';
 
 /**
  * SECTION: Domain Categories & Enumerations
  * Strict constants representing the platform's primary filterable entities.
  */
-export const UGC_CUISINES = [
-  'Italian', 'Mexican', 'Chinese', 'Japanese', 'Indian', 
-  'Thai', 'French', 'Greek', 'Mediterranean', 'American', 
-  'Middle Eastern', 'Korean', 'Vietnamese', 'Spanish', 
-  'Brazilian', 'Turkish', 'Caribbean', 'Ethiopian', 'Fusion'
-] as const;
 
-export const UGC_DIETS = [
-  'Vegetarian', 'Vegan', 'Gluten Free', 'Keto', 'Halal', 'Kosher', 'Paleo', 'Dairy Free'
-] as const;
+// We cast the imported JSON arrays to readonly arrays to preserve the `as const` types for consumers
+export const UGC_CUISINES = taxonomyData.cuisines.tags as unknown as readonly string[];
+export const UGC_DIETS = taxonomyData.diets.tags as unknown as readonly string[];
+export const UGC_MEAL_TYPES = taxonomyData.mealTypes.tags as unknown as readonly string[];
+export const UGC_FOOD_CATEGORIES = taxonomyData.foodCategories.tags as unknown as readonly string[];
+export const UGC_VIBES = taxonomyData.vibes.tags as unknown as readonly string[];
+export const UGC_FEATURES = taxonomyData.features.tags as unknown as readonly string[];
+export const UGC_PRICE_RANGES = taxonomyData.priceRanges.tags as unknown as readonly string[];
+export const UGC_CATEGORIES = taxonomyData.contentCategories.tags as unknown as readonly string[];
 
-export const UGC_MEAL_TYPES = [
-  'Breakfast', 'Lunch', 'Dinner', 'Brunch', 'Snack', 'Late Night'
-] as const;
-
-export const UGC_VIBES = [
-  'Casual', 'Fine Dining', 'Cafe', 'Rooftop', 'Family-Friendly', 'Street Food', 'Romantic', 'Chill', 'Industrial'
-] as const;
-
-export const UGC_FEATURES = [
-  'Outdoor Seating', 'Live Music', 'Pet-Friendly', 'WiFi', 'Bar', 'Valet Parking', 'Wheelchair Accessible'
-] as const;
-
-export const UGC_PRICE_RANGES = [
-  '$', '$$', '$$$', '$$$$'
-] as const;
-
-export const UGC_CATEGORIES = [
-  'Recipe', 'Review', 'Hack', 'Tip', 'Spot', 'News', 'Trivia'
-] as const;
-
-export type UgcCuisine = typeof UGC_CUISINES[number];
-export type UgcDiet = typeof UGC_DIETS[number];
-export type UgcMealType = typeof UGC_MEAL_TYPES[number];
-export type UgcVibe = typeof UGC_VIBES[number];
-export type UgcFeature = typeof UGC_FEATURES[number];
-export type UgcPriceRange = typeof UGC_PRICE_RANGES[number];
-export type UgcCategory = typeof UGC_CATEGORIES[number];
+export type UgcCuisine = string; // Simplified for runtime dynamic JSON
+export type UgcDiet = string;
+export type UgcMealType = string;
+export type UgcFoodCategory = string;
+export type UgcVibe = string;
+export type UgcFeature = string;
+export type UgcPriceRange = string;
+export type UgcCategory = string;
 
 /**
  * SECTION: Hybrid Tagging Mapping
@@ -63,32 +43,28 @@ export type UgcCategory = typeof UGC_CATEGORIES[number];
  * or Place reviews) to strict taxonomy tags.
  */
 export const TAXONOMY_KEYWORD_MAP: Record<string, string> = {
-  'vegan': 'Vegan',
-  'plant-based': 'Vegan',
-  'vegetarian': 'Vegetarian',
-  'halal': 'Halal',
-  'kosher': 'Kosher',
-  'rooftop': 'Rooftop',
-  'outdoor': 'Outdoor Seating',
-  'garden': 'Outdoor Seating',
-  'music': 'Live Music',
-  'band': 'Live Music',
-  'dog': 'Pet-Friendly',
-  'pet': 'Pet-Friendly',
-  'wifi': 'WiFi',
-  'internet': 'WiFi',
-  'fancy': 'Fine Dining',
-  'premium': 'Fine Dining',
-  'street': 'Street Food',
-  'cheap': '$',
-  'affordable': '$',
-  'expensive': '$$$',
-  'cozy': 'Chill',
-  'relaxed': 'Chill',
-  'brunch': 'Brunch',
-  'breakfast': 'Breakfast',
-  'lunch': 'Lunch',
-  'dinner': 'Dinner'
+  // Lowercase keys from all synonyms in the registry for AI matching
+  ...Object.fromEntries(Object.entries(taxonomyData.cuisines.synonyms).map(([k, v]) => [k.toLowerCase(), v])),
+  ...Object.fromEntries(Object.entries(taxonomyData.mealTypes.synonyms).map(([k, v]) => [k.toLowerCase(), v])),
+  ...Object.fromEntries(Object.entries(taxonomyData.foodCategories.synonyms).map(([k, v]) => [k.toLowerCase(), v])),
+  ...Object.fromEntries(Object.entries(taxonomyData.diets.synonyms).map(([k, v]) => [k.toLowerCase(), v])),
+  ...Object.fromEntries(Object.entries(taxonomyData.vibes.synonyms).map(([k, v]) => [k.toLowerCase(), v])),
+  ...Object.fromEntries(Object.entries(taxonomyData.features.synonyms).map(([k, v]) => [k.toLowerCase(), v])),
+  ...Object.fromEntries(Object.entries(taxonomyData.priceRanges.synonyms).map(([k, v]) => [k.toLowerCase(), v])),
+  ...Object.fromEntries(Object.entries(taxonomyData.contentCategories.synonyms).map(([k, v]) => [k.toLowerCase(), v])),
+};
+
+/**
+ * Helper to get a flat list of all food-related searchable tags and their synonyms.
+ * Useful for building dynamic search queries.
+ */
+export const getSearchableDishTypes = (): string[] => {
+  return [
+    ...taxonomyData.mealTypes.tags,
+    ...Object.keys(taxonomyData.mealTypes.synonyms),
+    ...taxonomyData.foodCategories.tags,
+    ...Object.keys(taxonomyData.foodCategories.synonyms),
+  ];
 };
 
 /**
@@ -100,9 +76,9 @@ export const TAXONOMY_KEYWORD_MAP: Record<string, string> = {
  */
 export const normalizeTag = (tag: string): string => {
   if (!tag) return '';
-  
+
   let normalized = tag.trim();
-  
+
   // 1. Remove common suffixes
   const suffixes = [/ cuisine$/i, / food$/i, / cooking$/i, / style$/i, / dishes$/i];
   suffixes.forEach(pattern => {
@@ -110,34 +86,30 @@ export const normalizeTag = (tag: string): string => {
   });
 
   // 2. Case normalization (Title Case) if not price range
-  if (!UGC_PRICE_RANGES.includes(normalized as any)) {
+  if (!UGC_PRICE_RANGES.includes(normalized)) {
     normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase();
   }
 
   // 3. Synonym/Heuristic Mapping
   const synonymMap: Record<string, string> = {
-    'Chinatown': 'Chinese',
-    'Cantonese': 'Chinese',
-    'Szechuan': 'Chinese',
-    'Sushi': 'Japanese',
-    'Ramen': 'Japanese',
-    'Taco': 'Mexican',
-    'Tacos': 'Mexican',
-    'Pasta': 'Italian',
-    'Pizza': 'Italian',
-    'Burger': 'American',
-    'Burgers': 'American',
-    'Diner': 'American',
-    'Middle-east': 'Middle Eastern',
-    'Arab': 'Middle Eastern',
-    'Kitchen hack': 'Hack',
-    'Food hack': 'Hack',
-    'Restaurant': 'Spot',
-    ...TAXONOMY_KEYWORD_MAP
+    ...taxonomyData.cuisines.synonyms,
+    ...taxonomyData.mealTypes.synonyms,
+    ...taxonomyData.foodCategories.synonyms,
+    ...taxonomyData.diets.synonyms,
+    ...taxonomyData.vibes.synonyms,
+    ...taxonomyData.features.synonyms,
+    ...taxonomyData.priceRanges.synonyms,
+    ...taxonomyData.contentCategories.synonyms,
   };
 
+  // Check exact case first, then fallback to lowercase check against keyword map
   if (synonymMap[normalized]) {
     return synonymMap[normalized];
+  }
+
+  const lowerNormalized = normalized.toLowerCase();
+  if (TAXONOMY_KEYWORD_MAP[lowerNormalized]) {
+    return TAXONOMY_KEYWORD_MAP[lowerNormalized];
   }
 
   return normalized;

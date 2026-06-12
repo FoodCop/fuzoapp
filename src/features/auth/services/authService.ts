@@ -48,13 +48,45 @@ export const AuthService = {
         queryParams: provider === 'google' ? {
           access_type: 'offline',
           prompt: 'consent',
-          scope: 'https://www.googleapis.com/auth/youtube.readonly email profile',
         } : undefined,
       },
     });
 
     if (error) {
       authDebugLog(`${provider}_signin_error`, { error: error.message });
+      throw error;
+    }
+  },
+
+  /**
+   * SECTION: Incremental Auth
+   * Triggered specifically to get YouTube scopes.
+   */
+  async signInForYouTubeSync() {
+    if (!supabase) {
+      throw new Error('Supabase is not configured');
+    }
+
+    const baseRedirect = getOAuthRedirectUrl();
+    const separator = baseRedirect.includes('?') ? '&' : '?';
+    const redirectTo = `${baseRedirect}${separator}youtube_sync=true`;
+    
+    authDebugLog('youtube_sync_signin_start', { redirectTo });
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+          scope: 'https://www.googleapis.com/auth/youtube.readonly email profile',
+        },
+      },
+    });
+
+    if (error) {
+      authDebugLog('youtube_sync_signin_error', { error: error.message });
       throw error;
     }
   },

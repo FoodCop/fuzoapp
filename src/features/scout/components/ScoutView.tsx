@@ -40,6 +40,8 @@ import {
   mergePlaceDetails, 
   shouldApplyLatestRequest 
 } from '../lib/scoutLogic';
+import { getDistanceToPolyline } from '../lib/geometryUtils';
+import { getSearchableDishTypes } from '../../../shared/utils/taxonomy';
 import { SnapStudio } from '../../snap/components/SnapView';
 import { ScoutDiscoveryPanel } from './ScoutDiscoveryPanel';
 import { ScoutPlaceModal } from './ScoutPlaceModal';
@@ -78,12 +80,10 @@ export const ScoutView = ({
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
   const [currentRoute, setCurrentRoute] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [placeSuggestions, setPlaceSuggestions] = useState<string[]>([]);
 
-  // Snap Studio Integration
-  const [showSnapStudio, setShowSnapStudio] = useState(false);
-  const [snapStudioData, setSnapStudioData] = useState<any>(null);
-
-  // Filters: UI constraints for the discovery panel
+  // Filters & Pinning State (moved up for dependency access)
   const [filter, setFilter] = useState<ScoutFilter>({
     type: 'all',
     rating: 0,
@@ -94,6 +94,70 @@ export const ScoutView = ({
   const [pinnedPlace, setPinnedPlace] = useState<ScoutPlace | null>(null);
   const [isPinning, setIsPinning] = useState(false);
   const [isPinningMode, setIsPinningMode] = useState(false);
+
+  const autocompleteServiceRef = useRef<any>(null);
+
+  // Initialize AutocompleteService
+  useEffect(() => {
+    if (isMapReady && !autocompleteServiceRef.current) {
+      const google = getGoogleMaps();
+      if (google && google.places) {
+        autocompleteServiceRef.current = new google.places.AutocompleteService();
+      }
+    }
+  }, [isMapReady]);
+
+  // Fetch Place suggestions
+  useEffect(() => {
+    if (!searchQuery || searchQuery.length < 2 || !autocompleteServiceRef.current) {
+      setPlaceSuggestions([]);
+      return;
+    }
+    const google = getGoogleMaps();
+    if (!google) return;
+    
+    let active = true;
+    const center = mapInstanceRef.current?.getCenter();
+    const request: any = { input: searchQuery };
+    
+    if (center) {
+      const lat = typeof center.lat === 'function' ? center.lat() : center.lat;
+      const lng = typeof center.lng === 'function' ? center.lng() : center.lng;
+      request.locationBias = {
+        center: { lat, lng },
+        radius: filter.maxDistance
+      };
+    }
+    
+    autocompleteServiceRef.current.getPlacePredictions(
+      request,
+      (predictions: any, status: any) => {
+        if (!active) return;
+        if (status === 'OK' && predictions) {
+          setPlaceSuggestions(predictions.map((p: any) => p.description).slice(0, 4));
+        } else {
+          setPlaceSuggestions([]);
+        }
+      }
+    );
+    return () => { active = false; };
+  }, [searchQuery, filter.maxDistance]);
+
+  const taxonomySuggestions = useMemo(() => {
+    if (!searchQuery) return [];
+    const lowerQ = searchQuery.toLowerCase();
+    const dishTypes = getSearchableDishTypes();
+    // Unique suggestions
+    return Array.from(new Set(dishTypes.filter(d => d.toLowerCase().includes(lowerQ)))).slice(0, 3);
+  }, [searchQuery]);
+
+  const suggestions = useMemo(() => {
+    return Array.from(new Set([...taxonomySuggestions, ...placeSuggestions]));
+  }, [taxonomySuggestions, placeSuggestions]);
+
+  // Snap Studio Integration
+  const [showSnapStudio, setShowSnapStudio] = useState(false);
+  const [snapStudioData, setSnapStudioData] = useState<any>(null);
 
   // --- REFS: Performance & Resource Locking ---
   const mapRef = useRef<HTMLDivElement>(null);
@@ -123,8 +187,8 @@ export const ScoutView = ({
       const lng = typeof center.lng === 'function' ? center.lng() : center.lng;
 
       const result = query 
-        ? await PlacesService.searchByText(query, lat, lng) 
-        : await PlacesService.searchNearby(lat, lng);
+        ? await PlacesService.searchByText(query, lat, lng, filter.maxDistance) 
+        : await PlacesService.searchNearby(lat, lng, filter.maxDistance);
       
       if (!shouldApplyLatestRequest(mounted, seq, requestSeq)) return;
       setIsLoading(false);
@@ -146,7 +210,7 @@ export const ScoutView = ({
         setMainMapPlaces(SCOUT_FALLBACK_PLACES);
       }
     }
-  }, [mapsApiKey]);
+  }, [mapsApiKey, filter.maxDistance]);
 
   /**
    * SECTION: Data Fetching — Source B (Community FUZO Snaps)
@@ -294,9 +358,12 @@ export const ScoutView = ({
         if (google && mapInstanceRef.current && directionsRendererRef.current) {
           directionsRendererRef.current.setDirections(result.data);
           
-          // Corridor analysis: only show points within 0.005 tolerance of the polyline
-          const polyline = (google as any).geometry.encoding.decodePath(route.polyline.encodedPolyline);
-          const path = new (google as any).Polyline({ path: polyline });
+          // Corridor analysis: robust exact distance calculation
+          const polylinePath = (google as any).geometry.encoding.decodePath(route.polyline.encodedPolyline);
+          const pathPoints = polylinePath.map((p: any) => ({
+            lat: typeof p.lat === 'function' ? p.lat() : p.lat,
+            lng: typeof p.lng === 'function' ? p.lng() : p.lng
+          }));
           
           const searchResult = await PlacesService.searchAlongRoute(route.polyline.encodedPolyline, 'restaurants');
           let combinedResults: ScoutPlace[] = [];
@@ -305,13 +372,14 @@ export const ScoutView = ({
             combinedResults = searchResult.data.results.map((r, i) => toScoutPlace(r, i, mapsApiKey));
           }
 
-          const corridorTolerance = 0.005;
+          // Tolerance of 500 meters from the polyline
+          const MAX_DETOUR_METERS = 500;
           const savedAsScout = savedItems.map((item, i) => toSavedScoutPlace(item, i));
           
           const localAlongRoute = [...mainMapPlaces, ...savedAsScout].filter(p => {
              if (!p.lat || !p.lng) return false;
-             const point = new (google as any).LatLng(p.lat, p.lng);
-             return (google as any).geometry.poly.isLocationOnEdge(point, path, corridorTolerance);
+             const dist = getDistanceToPolyline({ lat: p.lat, lng: p.lng }, pathPoints);
+             return dist <= MAX_DETOUR_METERS;
           });
 
           const seen = new Set();
@@ -368,11 +436,13 @@ export const ScoutView = ({
     });
   }, [fetchPlaces]);
 
-  const handleSearch = (e?: React.FormEvent) => {
+  const handleSearch = (e?: React.FormEvent, explicitQuery?: string) => {
     if (e) e.preventDefault();
+    const queryToUse = explicitQuery || searchQuery;
     if (mapInstanceRef.current) {
-      fetchPlaces(mapInstanceRef.current, searchQuery);
+      fetchPlaces(mapInstanceRef.current, queryToUse);
     }
+    setShowSuggestions(false);
   };
 
   const handlePlaceSelect = (place: ScoutPlace) => {
@@ -545,34 +615,74 @@ export const ScoutView = ({
       {/* FLOATING SEARCH & LEGEND                                      */}
       {/* ═══════════════════════════════════════════════════════════════ */}
       <div className="absolute top-4 left-4 right-20 md:left-6 md:right-auto md:w-[400px] z-10 space-y-2.5">
-        <form onSubmit={handleSearch} className="relative group">
-          <button 
-            type="submit"
-            className="absolute inset-y-0 left-5 flex items-center text-stone-400 group-focus-within:text-stone-900 transition-colors"
-          >
-            <Search size={18} strokeWidth={2.5} />
-          </button>
-          <input 
-            type="text" 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="Search food territory..."
-            className="w-full bg-white h-12 md:h-14 pl-14 pr-12 rounded-full shadow-[0_2px_12px_rgba(0,0,0,0.12)] font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500/30 focus:shadow-[0_2px_20px_rgba(0,0,0,0.15)] transition-all placeholder:text-stone-400 border border-stone-100/80"
-          />
-          {searchQuery && (
+        <div className="bg-white rounded-3xl p-2 shadow-[0_2px_12px_rgba(0,0,0,0.12)] border border-stone-100/80">
+          <form onSubmit={handleSearch} className="relative group">
             <button 
-              type="button"
-              onClick={() => {
-                setSearchQuery('');
-                if (mapInstanceRef.current) fetchPlaces(mapInstanceRef.current);
-              }}
-              className="absolute inset-y-0 right-4 flex items-center text-stone-300 hover:text-stone-900"
+              type="submit"
+              className="absolute inset-y-0 left-5 flex items-center text-stone-400 group-focus-within:text-stone-900 transition-colors"
             >
-              <X size={18} />
+              <Search size={18} strokeWidth={2.5} />
             </button>
-          )}
-        </form>
+            <input 
+              type="text" 
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setShowSuggestions(true);
+              }}
+              onFocus={() => setShowSuggestions(true)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              placeholder="Search food territory..."
+              className="w-full bg-transparent h-10 md:h-12 pl-14 pr-12 font-bold text-sm outline-none placeholder:text-stone-400"
+            />
+            {searchQuery && (
+              <button 
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setShowSuggestions(false);
+                  if (mapInstanceRef.current) fetchPlaces(mapInstanceRef.current);
+                }}
+                className="absolute inset-y-0 right-4 flex items-center text-stone-300 hover:text-stone-900"
+              >
+                <X size={18} />
+              </button>
+            )}
+            
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-stone-100 overflow-hidden z-20">
+                {suggestions.map((sug, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery(sug);
+                      handleSearch(undefined, sug);
+                    }}
+                    className="w-full text-left px-5 py-3 hover:bg-stone-50 text-sm font-bold text-stone-700 border-b border-stone-50 last:border-0"
+                  >
+                    {sug}
+                  </button>
+                ))}
+              </div>
+            )}
+          </form>
+          
+          <div className="px-5 py-2.5 flex items-center gap-4 border-t border-stone-100 mt-1">
+            <span className="text-[11px] font-bold text-stone-500 whitespace-nowrap w-24">Radius: {(filter.maxDistance / 1000).toFixed(1)}km</span>
+            <input 
+              type="range" 
+              min="1000" 
+              max="50000" 
+              step="1000" 
+              value={filter.maxDistance} 
+              onChange={(e) => setFilter({...filter, maxDistance: parseInt(e.target.value)})}
+              onMouseUp={() => { if (mapInstanceRef.current) fetchPlaces(mapInstanceRef.current, searchQuery); }}
+              onTouchEnd={() => { if (mapInstanceRef.current) fetchPlaces(mapInstanceRef.current, searchQuery); }}
+              className="w-full accent-blue-500 h-1.5 bg-stone-200 rounded-lg appearance-none cursor-pointer" 
+            />
+          </div>
+        </div>
 
         <div className="bg-white/95 backdrop-blur-md rounded-full shadow-md px-4 py-2 inline-flex border border-stone-100/60">
           <div className="flex items-center gap-4 text-[11px] font-bold text-stone-500">

@@ -16,7 +16,7 @@ import {
   Bookmark, Share2, RefreshCw, SlidersHorizontal, Sparkles,
   List, PieChart, Image as ImageIcon, CheckCircle2, Check, Send
 } from 'lucide-react';
-import { UGC_CUISINES, normalizeTag, TAXONOMY_KEYWORD_MAP } from '../../../shared/utils/taxonomy';
+import { UGC_CUISINES, normalizeTag, TAXONOMY_KEYWORD_MAP, getSearchableDishTypes } from '../../../shared/utils/taxonomy';
 import { Badge } from '../../../shared/ui/Badge';
 import { StudioStepper } from '../../../shared/ui/StudioStepper';
 import { BitesSkeleton } from '../../../shared/ui/Skeleton';
@@ -431,13 +431,8 @@ const useBitesFeed = () => {
         .select('*', { count: 'exact' });
 
       if (effectiveQuery) {
-        // List of common meal types and dish tags found in the database
-        const KNOWN_DISH_TYPES = [
-          'Morning meal', 'Brunch', 'Beverage', 'Breakfast', 'Drink', 
-          'Lunch', 'Main course', 'Main dish', 'Dinner', 'Side dish', 
-          'Snack', 'Soup', 'Salad', 'Appetizer', 'Dessert', 'Antipasti', 
-          'Starter', 'Fingerfood'
-        ];
+        // Dynamic list of meal types and dish categories directly from taxonomy
+        const KNOWN_DISH_TYPES = getSearchableDishTypes();
         
         const queryLower = effectiveQuery.toLowerCase();
         const queryWords = queryLower.split(/\s+/).filter(Boolean);
@@ -1001,7 +996,7 @@ const BitesControls = ({
 
 const BitesSourceStep = ({ image, onUpload, onSkip }: { image: string | null, onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void, onSkip: () => void }) => {
   return (
-    <div className="fixed inset-0 z-[250] bg-stone-950 p-8 flex flex-col justify-center animate-in fade-in duration-500">
+    <div className="absolute inset-0 bg-stone-950 p-8 flex flex-col justify-center animate-in fade-in duration-500">
       <div className="max-w-xl mx-auto w-full space-y-12 text-center">
         <div className="space-y-4">
           <Badge color="yellow">Neural Vision</Badge>
@@ -1036,7 +1031,7 @@ const BitesSourceStep = ({ image, onUpload, onSkip }: { image: string | null, on
 
 const BitesIdentityStep = ({ title, category, onUpdate, onNext }: { title: string, category: string, onUpdate: (data: any) => void, onNext: () => void }) => {
   return (
-    <div className="fixed inset-0 z-[250] bg-stone-950 p-8 flex flex-col justify-center animate-in slide-in-from-right duration-500">
+    <div className="absolute inset-0 bg-stone-950 p-8 flex flex-col justify-center animate-in slide-in-from-right duration-500">
       <div className="max-w-md mx-auto w-full space-y-12">
         <div className="space-y-4 text-center">
           <Badge color="yellow">Identity</Badge>
@@ -1066,7 +1061,7 @@ const BitesIdentityStep = ({ title, category, onUpdate, onNext }: { title: strin
 
 const BitesStoryStep = ({ description, onUpdate, onNext }: { description: string, onUpdate: (data: any) => void, onNext: () => void }) => {
   return (
-    <div className="fixed inset-0 z-[250] bg-stone-950 p-8 flex flex-col justify-center animate-in slide-in-from-right duration-500">
+    <div className="absolute inset-0 bg-stone-950 p-8 flex flex-col justify-center animate-in slide-in-from-right duration-500">
       <div className="max-w-md mx-auto w-full space-y-12">
         <div className="space-y-4 text-center">
           <Badge color="yellow">Assemblage</Badge>
@@ -1088,7 +1083,7 @@ const BitesStoryStep = ({ description, onUpdate, onNext }: { description: string
 
 const BitesReviewStep = ({ image, data, onEdit, onLock, isUploading }: { image: string | null, data: any, onEdit: () => void, onLock: () => void, isUploading: boolean }) => {
   return (
-    <div className="fixed inset-0 z-[250] bg-stone-950 p-8 flex flex-col items-center justify-center space-y-12 animate-in zoom-in-95 duration-500 overflow-y-auto">
+    <div className="absolute inset-0 bg-stone-950 p-8 flex flex-col items-center justify-center space-y-12 animate-in zoom-in-95 duration-500 overflow-y-auto">
       <div className="space-y-4 text-center">
         <Badge color="yellow">Synced & Loaded</Badge>
         <h2 className="text-5xl font-black uppercase tracking-tighter italic text-white leading-none">Culinary Bite Card</h2>
