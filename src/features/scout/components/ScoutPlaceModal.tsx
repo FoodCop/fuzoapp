@@ -135,7 +135,7 @@ export const ScoutPlaceModal = ({
 
         {/* TABS */}
         <div className="flex border-b border-stone-100">
-          {['overview', 'menu', 'reviews', 'about'].map(tab => (
+          {['overview', 'photos', 'reviews', 'about'].map(tab => (
             <button
               key={tab}
               onClick={() => setModalTab(tab)}
@@ -237,24 +237,35 @@ export const ScoutPlaceModal = ({
             </div>
           )}
 
-          {modalTab === 'menu' && (
-             <div className="py-8 space-y-6 animate-in fade-in duration-300 flex flex-col items-center">
-               <div className="w-16 h-16 bg-stone-100 rounded-full flex items-center justify-center text-stone-400">
-                 <List size={32} />
-               </div>
-               <div className="text-center space-y-2">
-                 <h3 className="font-bold text-stone-900">Menu items not available</h3>
-                 <p className="text-sm text-stone-500 max-w-[250px]">Google does not provide itemized menus for this location.</p>
-               </div>
+          {modalTab === 'photos' && (
+             <div className="space-y-6 animate-in fade-in duration-300">
+               {place.photos && place.photos.length > 0 ? (
+                 <div className="grid grid-cols-2 gap-2">
+                   {place.photos.map((photoUrl, idx) => (
+                     <div key={idx} className="aspect-square rounded-xl overflow-hidden bg-stone-100 border border-stone-100">
+                       <img src={photoUrl} alt={`${place.name} photo ${idx + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                     </div>
+                   ))}
+                 </div>
+               ) : (
+                 <div className="text-center py-10 text-stone-500 text-sm">
+                   No photos available.
+                 </div>
+               )}
+               
+               {/* Keep the website link as a fallback for the menu */}
                {(place.menuLink || place.website) && (
-                 <a 
-                   href={place.menuLink || place.website} 
-                   target="_blank" 
-                   rel="noreferrer"
-                   className="px-6 py-2.5 bg-blue-50 text-blue-700 font-semibold rounded-full text-sm hover:bg-blue-100 transition-colors"
-                 >
-                   View website menu
-                 </a>
+                 <div className="flex flex-col items-center pt-4 border-t border-stone-100">
+                   <p className="text-sm text-stone-500 mb-3 text-center">Looking for the menu?</p>
+                   <a 
+                     href={place.menuLink || place.website} 
+                     target="_blank" 
+                     rel="noreferrer"
+                     className="px-6 py-2.5 bg-stone-100 text-stone-900 font-semibold rounded-full text-sm hover:bg-stone-200 transition-colors"
+                   >
+                     View website menu
+                   </a>
+                 </div>
                )}
              </div>
           )}
