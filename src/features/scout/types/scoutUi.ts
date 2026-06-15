@@ -46,6 +46,27 @@ export interface ScoutPlace {
   isNewFind?: boolean;
   notes?: string;
   time?: string;
+  priceLevel?: number;
+  editorialSummary?: string;
+  dineIn?: boolean;
+  takeout?: boolean;
+  delivery?: boolean;
+  reservable?: boolean;
+  plusCode?: string;
+  currentOpeningHours?: {
+    open_now?: boolean;
+    weekday_text?: string[];
+  };
+  distanceText?: string;
+  wheelchairAccessibleEntrance?: boolean;
+  servesBeer?: boolean;
+  servesWine?: boolean;
+  servesBreakfast?: boolean;
+  servesBrunch?: boolean;
+  servesLunch?: boolean;
+  servesDinner?: boolean;
+  servesVegetarianFood?: boolean;
+  menuLink?: string;
 }
 
 

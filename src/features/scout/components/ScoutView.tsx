@@ -38,7 +38,8 @@ import {
   sortPlaces, 
   filterPlaces, 
   mergePlaceDetails, 
-  shouldApplyLatestRequest 
+  shouldApplyLatestRequest,
+  getDistanceInMeters
 } from '../lib/scoutLogic';
 import { getDistanceToPolyline } from '../lib/geometryUtils';
 import { getSearchableDishTypes } from '../../../shared/utils/taxonomy';
@@ -95,51 +96,101 @@ export const ScoutView = ({
   const [isPinning, setIsPinning] = useState(false);
   const [isPinningMode, setIsPinningMode] = useState(false);
 
-  const autocompleteServiceRef = useRef<any>(null);
 
-  // Initialize AutocompleteService
-  useEffect(() => {
-    if (isMapReady && !autocompleteServiceRef.current) {
-      const google = getGoogleMaps();
-      if (google && google.places) {
-        autocompleteServiceRef.current = new google.places.AutocompleteService();
-      }
-    }
-  }, [isMapReady]);
 
   // Fetch Place suggestions
   useEffect(() => {
-    if (!searchQuery || searchQuery.length < 2 || !autocompleteServiceRef.current) {
+    if (!searchQuery || searchQuery.length < 2) {
       setPlaceSuggestions([]);
       return;
     }
     const google = getGoogleMaps();
-    if (!google) return;
+    if (!google || (!google.places && typeof google.importLibrary !== 'function')) return;
     
     let active = true;
-    const center = mapInstanceRef.current?.getCenter();
     const request: any = { input: searchQuery };
     
-    if (center) {
-      const lat = typeof center.lat === 'function' ? center.lat() : center.lat;
-      const lng = typeof center.lng === 'function' ? center.lng() : center.lng;
-      request.locationBias = {
-        center: { lat, lng },
-        radius: filter.maxDistance
-      };
-    }
+    // Completely omitting locationBias for now, as the new SDK is rejecting 
+    // both Circle literals and LatLngBounds instances in this environment.
     
-    autocompleteServiceRef.current.getPlacePredictions(
-      request,
-      (predictions: any, status: any) => {
-        if (!active) return;
-        if (status === 'OK' && predictions) {
-          setPlaceSuggestions(predictions.map((p: any) => p.description).slice(0, 4));
-        } else {
-          setPlaceSuggestions([]);
+    const fetchSuggestions = async () => {
+      try {
+        if (typeof google.importLibrary === 'function') {
+          const placesLib = await google.importLibrary("places") as any;
+          if (placesLib && placesLib.AutocompleteSuggestion) {
+            const response = await placesLib.AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+            if (!active) return;
+            if (response && response.suggestions) {
+              setPlaceSuggestions(
+                response.suggestions
+                  .map((s: any) => {
+                    if (!s) return null;
+                    
+                    // Try to extract from placePrediction
+                    if (s.placePrediction) {
+                      const textObj = s.placePrediction.text;
+                      if (typeof textObj === 'string') return textObj;
+                      if (textObj && typeof textObj.text === 'string') return textObj.text;
+                      if (typeof s.placePrediction.description === 'string') return s.placePrediction.description;
+                      
+                      // Aggressive fallback for placePrediction
+                      if (textObj && typeof textObj.toString === 'function') return textObj.toString();
+                    }
+                    
+                    // Try to extract from queryPrediction
+                    if (s.queryPrediction) {
+                      const textObj = s.queryPrediction.text;
+                      if (typeof textObj === 'string') return textObj;
+                      if (textObj && typeof textObj.text === 'string') return textObj.text;
+                      if (textObj && typeof textObj.toString === 'function') return textObj.toString();
+                    }
+
+                    // Look for any string property that looks like a description
+                    if (typeof s.description === 'string') return s.description;
+                    if (typeof s.text === 'string') return s.text;
+                    if (typeof s.name === 'string') return s.name;
+                    if (typeof s.formattedAddress === 'string') return s.formattedAddress;
+
+                    // If it's just a raw string
+                    if (typeof s === 'string') return s;
+
+                    // Ultimate UI visualizer: If we literally can't find the text, 
+                    // render the object's keys in the dropdown so we can see what Google gave us.
+                    try {
+                      const keys = Object.keys(s).join(', ');
+                      if (keys) return `[Keys: ${keys}]`;
+                      
+                      // If it's a class with getters, try getting prototype properties
+                      const proto = Object.getPrototypeOf(s);
+                      if (proto) {
+                        const protoKeys = Object.getOwnPropertyNames(proto).filter(k => k !== 'constructor').join(', ');
+                        if (protoKeys) return `[ProtoKeys: ${protoKeys}]`;
+                      }
+                      
+                      const str = JSON.stringify(s);
+                      if (str !== '{}') return str;
+                    } catch (e) {
+                      return `[Error Parsing Object]`;
+                    }
+
+                    return `[Unknown Suggestion Shape]`;
+                  })
+                  .filter(Boolean)
+                  .slice(0, 4)
+              );
+            } else {
+              setPlaceSuggestions([]);
+            }
+            return;
+          }
         }
+      } catch (err) {
+        console.error('Autocomplete API failed:', err);
       }
-    );
+    };
+
+    fetchSuggestions();
+    
     return () => { active = false; };
   }, [searchQuery, filter.maxDistance]);
 
@@ -159,11 +210,15 @@ export const ScoutView = ({
   const [showSnapStudio, setShowSnapStudio] = useState(false);
   const [snapStudioData, setSnapStudioData] = useState<any>(null);
 
+  // User Location
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [mapCenter, setMapCenter] = useState<{lat: number, lng: number} | null>(null);
+
   // --- REFS: Performance & Resource Locking ---
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<MapLike | null>(null);
   const directionsRendererRef = useRef<any>(null);
-  const clustererRef = useRef<MarkerClusterer | null>(null);
+  const activeMarkersRef = useRef<any[]>([]);
   const requestSeq = useRef(0);
   const mounted = useRef(true);
 
@@ -185,6 +240,7 @@ export const ScoutView = ({
       const center = (map as any).getCenter();
       const lat = typeof center.lat === 'function' ? center.lat() : center.lat;
       const lng = typeof center.lng === 'function' ? center.lng() : center.lng;
+      setMapCenter({lat, lng});
 
       const result = query 
         ? await PlacesService.searchByText(query, lat, lng, filter.maxDistance) 
@@ -265,22 +321,38 @@ export const ScoutView = ({
     const seen = new Set<string>();
     const merged: ScoutPlace[] = [];
 
-    const addUnique = (places: ScoutPlace[]) => {
+    const addUnique = (places: ScoutPlace[], checkDistance: boolean = false) => {
       for (const p of places) {
+        let distStr = '';
+        if (mapCenter) {
+          const dist = getDistanceInMeters(mapCenter.lat, mapCenter.lng, p.lat, p.lng);
+          if (checkDistance && dist > filter.maxDistance) continue;
+          
+          if (dist < 1000) {
+            distStr = `${Math.round(dist)} m`;
+          } else {
+            distStr = `${(dist / 1000).toFixed(1)} km`;
+          }
+        }
+
         const key = p.placeId || p.id;
         if (!seen.has(key)) {
           seen.add(key);
-          merged.push({ ...p, matchPercentage: calculateNeuralMatch(p) });
+          merged.push({ 
+            ...p, 
+            matchPercentage: calculateNeuralMatch(p),
+            distanceText: distStr 
+          });
         }
       }
     };
 
-    addUnique(mainMapPlaces);
-    addUnique(communitySnapPlaces);
-    addUnique(myMapPlaces);
+    addUnique(mainMapPlaces, true); // Enforce strict client-side culling, overriding Google's loose bounds
+    addUnique(communitySnapPlaces, true);
+    addUnique(myMapPlaces, true);
 
     return sortPlaces(filterPlaces(merged, filter), filter.sortBy);
-  }, [mainMapPlaces, communitySnapPlaces, myMapPlaces, filter]);
+  }, [mainMapPlaces, communitySnapPlaces, myMapPlaces, filter, mapCenter]);
 
 
   /**
@@ -428,6 +500,7 @@ export const ScoutView = ({
   const handleRecenterMap = useCallback(() => {
     navigator.geolocation.getCurrentPosition((p) => {
       const pos = { lat: p.coords.latitude, lng: p.coords.longitude };
+      setUserLocation(pos);
       if (mapInstanceRef.current) {
         mapInstanceRef.current.setCenter(pos);
         mapInstanceRef.current.setZoom(14);
@@ -450,6 +523,12 @@ export const ScoutView = ({
     if (mapInstanceRef.current) {
       mapInstanceRef.current.panTo({ lat: place.lat, lng: place.lng });
       mapInstanceRef.current.setZoom(16);
+      
+      // Offset the map center to account for both the discovery panel and details drawer on larger screens
+      if (window.innerWidth >= 768) {
+        // panBy(x, y) - negative x pans the map left, which moves the marker right
+        (mapInstanceRef.current as any).panBy(-350, 0); 
+      }
     }
   };
 
@@ -471,8 +550,9 @@ export const ScoutView = ({
           { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
           { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#e0e0e0' }] },
           { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#c9e8f5' }] },
-          { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-          { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#e5f5e0' }] },
+          { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+          { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+          { featureType: 'road.highway', elementType: 'labels', stylers: [{ visibility: 'off' }] },
         ]
       });
 
@@ -495,6 +575,7 @@ export const ScoutView = ({
       // Attempt immediate geolocation for 'My Hub' centering
       navigator.geolocation.getCurrentPosition((p) => {
         const pos = { lat: p.coords.latitude, lng: p.coords.longitude };
+        setUserLocation(pos);
         map.setCenter(pos);
         fetchPlaces(map);
       });
@@ -510,37 +591,52 @@ export const ScoutView = ({
     saved: '#10b981',    // Personal Saved (Emerald)
   };
 
+  const getPinIcon = (google: any, color: string, isUser = false) => {
+    const width = isUser ? 36 : 28;
+    const height = isUser ? 48 : 38;
+    // Standard map pin SVG teardrop
+    const svg = `<svg width="${width}" height="${height}" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 0C5.37 0 0 5.37 0 12c0 8.5 12 20 12 20s12-11.5 12-20C24 5.37 18.63 0 12 0z" fill="${color}" stroke="#ffffff" stroke-width="1.5" />
+      <circle cx="12" cy="12" r="${isUser ? 5 : 4}" fill="#ffffff" opacity="${isUser ? '1' : '0.9'}" />
+    </svg>`;
+    return {
+      url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+      scaledSize: new google.Size(width, height),
+      anchor: new google.Point(width / 2, height)
+    };
+  };
+
   useEffect(() => {
     if (!isMapReady || !mapInstanceRef.current) return;
     const google = getGoogleMaps();
     if (!google) return;
 
-    if (clustererRef.current) {
-      clustererRef.current.clearMarkers();
-    }
+    activeMarkersRef.current.forEach(m => m.setMap(null));
+    activeMarkersRef.current = [];
 
     const markers = activePlaces.map(place => {
       const color = MARKER_COLORS[place.markerSource || 'google'] || '#3b82f6';
       const marker = new google.Marker({
         position: { lat: place.lat, lng: place.lng },
-        icon: {
-          path: google.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: color,
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 2.5,
-        }
+        map: mapInstanceRef.current,
+        icon: getPinIcon(google, color, false)
       });
 
       marker.addListener('click', () => setSelectedPlace(place));
       return marker;
     });
 
-    clustererRef.current = new MarkerClusterer({
-      map: mapInstanceRef.current,
-      markers
-    });
+    if (userLocation) {
+      const userMarker = new google.Marker({
+        position: userLocation,
+        map: mapInstanceRef.current,
+        zIndex: 1000,
+        icon: getPinIcon(google, '#ef4444', true) // Large Red pointer
+      });
+      markers.push(userMarker);
+    }
+
+    activeMarkersRef.current = markers;
 
     // Sub-Logic: New Discovery "Dropped Pin"
     if (pinnedPlace) {
@@ -615,14 +711,9 @@ export const ScoutView = ({
       {/* FLOATING SEARCH & LEGEND                                      */}
       {/* ═══════════════════════════════════════════════════════════════ */}
       <div className="absolute top-4 left-4 right-20 md:left-6 md:right-auto md:w-[400px] z-10 space-y-2.5">
-        <div className="bg-white rounded-3xl p-2 shadow-[0_2px_12px_rgba(0,0,0,0.12)] border border-stone-100/80">
-          <form onSubmit={handleSearch} className="relative group">
-            <button 
-              type="submit"
-              className="absolute inset-y-0 left-5 flex items-center text-stone-400 group-focus-within:text-stone-900 transition-colors"
-            >
-              <Search size={18} strokeWidth={2.5} />
-            </button>
+        <div className="bg-white rounded-[1.5rem] shadow-md border border-stone-100 flex items-center">
+          <form onSubmit={handleSearch} className="flex-1 flex items-center relative h-12">
+            <div className="w-4" /> {/* Spacer to replace the hamburger icon */}
             <input 
               type="text" 
               value={searchQuery}
@@ -633,7 +724,7 @@ export const ScoutView = ({
               onFocus={() => setShowSuggestions(true)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               placeholder="Search food territory..."
-              className="w-full bg-transparent h-10 md:h-12 pl-14 pr-12 font-bold text-sm outline-none placeholder:text-stone-400"
+              className="flex-1 bg-transparent h-full font-medium text-sm outline-none placeholder:text-stone-500"
             />
             {searchQuery && (
               <button 
@@ -643,11 +734,17 @@ export const ScoutView = ({
                   setShowSuggestions(false);
                   if (mapInstanceRef.current) fetchPlaces(mapInstanceRef.current);
                 }}
-                className="absolute inset-y-0 right-4 flex items-center text-stone-300 hover:text-stone-900"
+                className="px-2 h-full flex items-center text-stone-400 hover:text-stone-900"
               >
                 <X size={18} />
               </button>
             )}
+            <button 
+              type="submit"
+              className="w-10 h-full flex items-center justify-center text-stone-500 hover:text-blue-600 transition-colors"
+            >
+              <Search size={18} strokeWidth={2.5} />
+            </button>
             
             {showSuggestions && suggestions.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-stone-100 overflow-hidden z-20">
@@ -659,7 +756,7 @@ export const ScoutView = ({
                       setSearchQuery(sug);
                       handleSearch(undefined, sug);
                     }}
-                    className="w-full text-left px-5 py-3 hover:bg-stone-50 text-sm font-bold text-stone-700 border-b border-stone-50 last:border-0"
+                    className="w-full text-left px-5 py-3 hover:bg-stone-50 text-sm font-medium text-stone-700 border-b border-stone-50 last:border-0"
                   >
                     {sug}
                   </button>
@@ -668,21 +765,18 @@ export const ScoutView = ({
             )}
           </form>
           
-          <div className="px-5 py-2.5 flex items-center gap-4 border-t border-stone-100 mt-1">
-            <span className="text-[11px] font-bold text-stone-500 whitespace-nowrap w-24">Radius: {(filter.maxDistance / 1000).toFixed(1)}km</span>
-            <input 
-              type="range" 
-              min="1000" 
-              max="50000" 
-              step="1000" 
-              value={filter.maxDistance} 
-              onChange={(e) => setFilter({...filter, maxDistance: parseInt(e.target.value)})}
-              onMouseUp={() => { if (mapInstanceRef.current) fetchPlaces(mapInstanceRef.current, searchQuery); }}
-              onTouchEnd={() => { if (mapInstanceRef.current) fetchPlaces(mapInstanceRef.current, searchQuery); }}
-              className="w-full accent-blue-500 h-1.5 bg-stone-200 rounded-lg appearance-none cursor-pointer" 
-            />
-          </div>
+          <div className="w-px h-6 bg-stone-200" />
+          
+          <button 
+            onClick={() => setIsRoutePlannerOpen(true)}
+            className="w-12 h-12 flex items-center justify-center text-blue-600 hover:text-blue-700 transition-colors"
+          >
+            <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+              <Navigation size={16} />
+            </div>
+          </button>
         </div>
+
 
         <div className="bg-white/95 backdrop-blur-md rounded-full shadow-md px-4 py-2 inline-flex border border-stone-100/60">
           <div className="flex items-center gap-4 text-[11px] font-bold text-stone-500">
@@ -713,12 +807,6 @@ export const ScoutView = ({
           <RefreshCw size={18} className={isLoading ? 'animate-spin text-blue-500' : 'text-stone-600'} />
         </button>
         <button 
-          onClick={() => setIsRoutePlannerOpen(true)} 
-          className={`w-11 h-11 rounded-full shadow-md flex items-center justify-center transition-all border ${currentRoute ? 'bg-blue-500 text-white border-blue-400' : 'bg-white text-stone-600 border-stone-100/60 hover:bg-stone-50'}`}
-        >
-          <Navigation size={18} />
-        </button>
-        <button 
           onClick={handleRecenterMap}
           className="w-11 h-11 bg-white rounded-full shadow-md flex items-center justify-center hover:bg-stone-50 transition-colors border border-stone-100/60"
         >
@@ -730,13 +818,6 @@ export const ScoutView = ({
           title="Drop a Pin"
         >
           <MapPin size={20} strokeWidth={3} />
-        </button>
-        <button 
-          onClick={() => setIsAddPinModalOpen(true)}
-          className="w-11 h-11 bg-white text-stone-900 rounded-full shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all border border-stone-200"
-          title="Add Discovery Wizard"
-        >
-          <Plus size={20} strokeWidth={3} />
         </button>
       </div>
 
@@ -757,6 +838,7 @@ export const ScoutView = ({
         onPlaceSelect={handlePlaceSelect}
         filter={filter}
         onFilterChange={setFilter}
+        onDistanceChangeEnd={() => { if (mapInstanceRef.current) fetchPlaces(mapInstanceRef.current, searchQuery); }}
         onClose={() => {}}
       />
 

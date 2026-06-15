@@ -65,6 +65,22 @@ export interface ScoutPlace {
     open_now?: boolean;
     weekday_text?: string[];
   };
+  current_opening_hours?: {
+    open_now?: boolean;
+    weekday_text?: string[];
+  };
+  price_level?: number;
+  editorial_summary?: {
+    overview?: string;
+  };
+  dine_in?: boolean;
+  takeout?: boolean;
+  delivery?: boolean;
+  reservable?: boolean;
+  plus_code?: {
+    global_code?: string;
+    compound_code?: string;
+  };
   user_ratings_total?: number;
   geometry?: {
     location?: {

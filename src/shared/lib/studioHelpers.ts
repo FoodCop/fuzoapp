@@ -12,7 +12,37 @@
  */
 export const readImageFileAsDataUrl = (file: File): Promise<string> => new Promise((resolve, reject) => {
   const reader = new FileReader();
-  reader.onloadend = () => resolve(reader.result as string);
+  reader.onloadend = () => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX_DIMENSION = 1080;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+        if (width > height) {
+          height = Math.round((height * MAX_DIMENSION) / width);
+          width = MAX_DIMENSION;
+        } else {
+          width = Math.round((width * MAX_DIMENSION) / height);
+          height = MAX_DIMENSION;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
+      } else {
+        resolve(reader.result as string);
+      }
+    };
+    img.onerror = () => reject(new Error('Failed to load image for compression'));
+    img.src = reader.result as string;
+  };
   reader.onerror = () => reject(new Error('Failed to read file'));
   reader.readAsDataURL(file);
 });

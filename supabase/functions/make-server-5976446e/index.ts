@@ -251,6 +251,7 @@ serve(async (req: Request) => {
         'formatted_phone_number',
         'international_phone_number',
         'opening_hours',
+        'current_opening_hours',
         'website',
         'rating',
         'reviews',
@@ -258,7 +259,22 @@ serve(async (req: Request) => {
         'price_level',
         'geometry',
         'types',
-        'vicinity'
+        'vicinity',
+        'editorial_summary',
+        'dine_in',
+        'takeout',
+        'delivery',
+        'reservable',
+        'plus_code',
+        'wheelchair_accessible_entrance',
+        'serves_beer',
+        'serves_wine',
+        'serves_breakfast',
+        'serves_brunch',
+        'serves_lunch',
+        'serves_dinner',
+        'serves_vegetarian_food',
+        'url'
       ].join(',')
 
       const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place_id}&fields=${fields}&key=${GOOGLE_API_KEY}`

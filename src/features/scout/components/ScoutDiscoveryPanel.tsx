@@ -8,6 +8,7 @@ interface ScoutDiscoveryPanelProps {
   onPlaceSelect: (place: ScoutPlace) => void;
   filter: ScoutFilter;
   onFilterChange: (filter: ScoutFilter) => void;
+  onDistanceChangeEnd: () => void;
   onClose: () => void;
 }
 
@@ -28,6 +29,7 @@ export const ScoutDiscoveryPanel = ({
   onPlaceSelect, 
   filter, 
   onFilterChange, 
+  onDistanceChangeEnd,
   onClose,
 }: ScoutDiscoveryPanelProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -104,21 +106,20 @@ export const ScoutDiscoveryPanel = ({
           </div>
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex gap-2 px-4 pb-3 overflow-x-auto hide-scrollbar">
-          {filterOptions.map(f => (
-            <button
-              key={f.id}
-              onClick={() => onFilterChange({ ...filter, type: f.id })}
-              className={`px-4 py-1.5 rounded-full text-[11px] font-bold transition-all shrink-0 ${
-                filter.type === f.id 
-                  ? 'bg-stone-900 text-white' 
-                  : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
+        {/* Distance Slider */}
+        <div className="flex items-center gap-4 px-4 py-3 shrink-0">
+          <span className="text-[11px] font-bold text-stone-500 whitespace-nowrap w-24">Radius: {(filter.maxDistance / 1000).toFixed(1)}km</span>
+          <input 
+            type="range" 
+            min="500" 
+            max="10000" 
+            step="500" 
+            value={filter.maxDistance} 
+            onChange={(e) => onFilterChange({...filter, maxDistance: parseInt(e.target.value)})}
+            onMouseUp={onDistanceChangeEnd}
+            onTouchEnd={onDistanceChangeEnd}
+            className="w-full accent-blue-500 h-1.5 bg-stone-200 rounded-lg appearance-none cursor-pointer" 
+          />
         </div>
 
         {/* Place List */}
@@ -139,21 +140,20 @@ export const ScoutDiscoveryPanel = ({
       {/* DESKTOP: Floating Side Panel                              */}
       {/* ══════════════════════════════════════════════════════════ */}
       <div className="hidden md:flex absolute top-20 left-6 z-10 w-[380px] max-h-[calc(100vh-160px)] flex-col bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.08)] border border-stone-100/80 overflow-hidden">
-        {/* Filter Pills */}
-        <div className="flex gap-2 p-4 pb-3 overflow-x-auto hide-scrollbar border-b border-stone-50 shrink-0">
-          {filterOptions.map(f => (
-            <button
-              key={f.id}
-              onClick={() => onFilterChange({ ...filter, type: f.id })}
-              className={`px-4 py-1.5 rounded-full text-[11px] font-bold transition-all shrink-0 ${
-                filter.type === f.id 
-                  ? 'bg-stone-900 text-white' 
-                  : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
+        {/* Distance Slider */}
+        <div className="flex items-center gap-4 p-4 border-b border-stone-50 shrink-0">
+          <span className="text-[11px] font-bold text-stone-500 whitespace-nowrap w-24">Radius: {(filter.maxDistance / 1000).toFixed(1)}km</span>
+          <input 
+            type="range" 
+            min="500" 
+            max="10000" 
+            step="500" 
+            value={filter.maxDistance} 
+            onChange={(e) => onFilterChange({...filter, maxDistance: parseInt(e.target.value)})}
+            onMouseUp={onDistanceChangeEnd}
+            onTouchEnd={onDistanceChangeEnd}
+            className="w-full accent-blue-500 h-1.5 bg-stone-200 rounded-lg appearance-none cursor-pointer" 
+          />
         </div>
 
         {/* Place count */}
@@ -205,15 +205,9 @@ const PlaceCard = ({ place, onSelect }: { place: ScoutPlace; onSelect: (p: Scout
         </div>
         <p className="text-[11px] text-stone-400 mt-0.5 truncate">{place.cat}</p>
         <div className="flex items-center gap-2 mt-1.5">
-          <div className="flex items-center gap-1">
-            <span className={`w-2 h-2 rounded-full ${dotColor}`} />
-            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">{sourceLabel}</span>
+          <div className="flex items-center gap-1 text-stone-500">
+            <span className="text-[11px] font-medium">{place.distanceText || '...'}</span>
           </div>
-          {place.matchPercentage && (
-            <span className="text-[10px] font-bold text-emerald-500">
-              {place.matchPercentage}% match
-            </span>
-          )}
         </div>
       </div>
       <ChevronRight size={14} className="text-stone-300 group-hover:translate-x-0.5 transition-transform shrink-0" />

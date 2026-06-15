@@ -191,7 +191,7 @@ export const GeminiService = {
    */
   async generateContent(request: GeminiGenerateRequest): Promise<GeminiServiceResult> {
     const payload = {
-      model: request.model || 'gemini-flash-latest',
+      model: request.model || 'gemini-1.5-flash-latest',
       contents: normalizeContents(request.contents),
       config: request.config || {},
     };
@@ -246,7 +246,7 @@ export const GeminiService = {
     const base64Data = imageUrl.includes(',') ? imageUrl.split(',')[1] : imageUrl;
 
     const result = await this.generateContent({
-      model: 'gemini-flash-latest',
+      model: 'gemini-1.5-flash-latest',
       contents: [
         {
           role: 'user',
@@ -289,7 +289,7 @@ export const GeminiService = {
     const base64Data = imageUrl.includes(',') ? imageUrl.split(',')[1] : imageUrl;
 
     const result = await this.generateContent({
-      model: 'gemini-flash-latest',
+      model: 'gemini-1.5-flash-latest',
       contents: [
         {
           role: 'user',
@@ -327,7 +327,7 @@ export const GeminiService = {
     }
 
     const result = await this.generateContent({
-      model: 'gemini-flash-latest',
+      model: 'gemini-1.5-flash-latest',
       contents: [{ role: 'user', parts }],
       config: {
         responseMimeType: 'application/json',

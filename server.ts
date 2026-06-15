@@ -155,7 +155,7 @@ async function startServer() {
       });
     }
 
-    const model = String(req.body?.model || 'gemini-flash-latest');
+    const model = String(req.body?.model || 'gemini-1.5-flash-latest');
     const contents = req.body?.contents;
     const config = (req.body?.config || {}) as GeminiConfigInput;
 
