@@ -217,7 +217,9 @@ export const ScoutView = ({
   // --- REFS: Performance & Resource Locking ---
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<MapLike | null>(null);
-  const directionsRendererRef = useRef<any>(null);
+  const directionsRendererRef = useRef<any>(null); // Legacy — kept as null for compat
+  const routePolylineRef = useRef<any>(null);
+  const routeMarkersRef = useRef<any[]>([]);
   const activeMarkersRef = useRef<any[]>([]);
   const requestSeq = useRef(0);
   const mounted = useRef(true);
@@ -427,15 +429,58 @@ export const ScoutView = ({
         setCurrentRoute(route);
         
         const google = getGoogleMaps();
-        if (google && mapInstanceRef.current && directionsRendererRef.current) {
-          directionsRendererRef.current.setDirections(result.data);
-          
-          // Corridor analysis: robust exact distance calculation
+        if (google && mapInstanceRef.current) {
+          // Clear any previous route polyline and markers
+          if (routePolylineRef.current) {
+            routePolylineRef.current.setMap(null);
+            routePolylineRef.current = null;
+          }
+          routeMarkersRef.current.forEach(m => m.setMap(null));
+          routeMarkersRef.current = [];
+
+          // Decode the polyline and draw it on the map
           const polylinePath = (google as any).geometry.encoding.decodePath(route.polyline.encodedPolyline);
           const pathPoints = polylinePath.map((p: any) => ({
             lat: typeof p.lat === 'function' ? p.lat() : p.lat,
             lng: typeof p.lng === 'function' ? p.lng() : p.lng
           }));
+
+          // Draw manual polyline
+          routePolylineRef.current = new google.Polyline({
+            path: polylinePath,
+            geodesic: true,
+            strokeColor: '#4285F4',
+            strokeOpacity: 0.9,
+            strokeWeight: 6,
+            map: mapInstanceRef.current
+          });
+
+          // Add origin marker
+          if (pathPoints.length > 0) {
+            const originMarker = new google.Marker({
+              position: pathPoints[0],
+              map: mapInstanceRef.current,
+              icon: getPinIcon(google, '#22c55e', false), // Green for origin
+              zIndex: 900
+            });
+            routeMarkersRef.current.push(originMarker);
+          }
+
+          // Add destination marker
+          if (pathPoints.length > 1) {
+            const destMarker = new google.Marker({
+              position: pathPoints[pathPoints.length - 1],
+              map: mapInstanceRef.current,
+              icon: getPinIcon(google, '#ef4444', false), // Red for destination
+              zIndex: 900
+            });
+            routeMarkersRef.current.push(destMarker);
+          }
+
+          // Fit map to route bounds
+          const bounds = new google.LatLngBounds();
+          pathPoints.forEach((pt: any) => bounds.extend(pt));
+          mapInstanceRef.current.fitBounds(bounds);
           
           const searchResult = await PlacesService.searchAlongRoute(route.polyline.encodedPolyline, 'restaurants');
           let combinedResults: ScoutPlace[] = [];
@@ -478,6 +523,14 @@ export const ScoutView = ({
 
   const handleClearRoute = () => {
     setCurrentRoute(null);
+    // Clean up polyline
+    if (routePolylineRef.current) {
+      routePolylineRef.current.setMap(null);
+      routePolylineRef.current = null;
+    }
+    // Clean up route markers
+    routeMarkersRef.current.forEach(m => m.setMap(null));
+    routeMarkersRef.current = [];
     if (mapInstanceRef.current) fetchPlaces(mapInstanceRef.current);
   };
 
@@ -559,15 +612,7 @@ export const ScoutView = ({
       mapInstanceRef.current = map;
       setIsMapReady(true);
       
-      directionsRendererRef.current = new google.DirectionsRenderer({
-        map: map,
-        suppressMarkers: false,
-        polylineOptions: {
-          strokeColor: '#3b82f6',
-          strokeWeight: 6,
-          strokeOpacity: 0.8
-        }
-      });
+      // No longer using deprecated DirectionsRenderer — route is drawn via manual Polyline
 
       fetchPlaces(map);
       map.addListener('click', handleMapClick);

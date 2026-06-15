@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { MapPin, Navigation, X, Search, ArrowRight, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { MapPin, Navigation, X, Search, Loader2 } from 'lucide-react';
 import { getGoogleMaps } from '../types/scoutUi';
 
 interface ScoutRoutePlannerProps {
@@ -19,45 +19,112 @@ export const ScoutRoutePlanner = ({
 }: ScoutRoutePlannerProps) => {
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
-  const originRef = useRef<HTMLInputElement>(null);
-  const destRef = useRef<HTMLInputElement>(null);
+  const [originDisplay, setOriginDisplay] = useState('');
+  const [destDisplay, setDestDisplay] = useState('');
+  const [originSuggestions, setOriginSuggestions] = useState<Array<{ text: string; placeId: string }>>([]);
+  const [destSuggestions, setDestSuggestions] = useState<Array<{ text: string; placeId: string }>>([]);
+  const [showOriginDropdown, setShowOriginDropdown] = useState(false);
+  const [showDestDropdown, setShowDestDropdown] = useState(false);
+  
+  const originTimerRef = useRef<any>(null);
+  const destTimerRef = useRef<any>(null);
 
-  useEffect(() => {
-    const google = getGoogleMaps();
-    if (!google || !google.places || !isVisible) return;
+  const extractSuggestionText = (s: any): { text: string; placeId: string } | null => {
+    if (!s) return null;
+    const prediction = s.placePrediction || s.queryPrediction;
+    if (!prediction) return null;
 
-    if (originRef.current) {
-      const originAutocomplete = new google.places.Autocomplete(originRef.current, {
-        fields: ['formatted_address', 'place_id', 'name'],
-        types: ['geocode', 'establishment']
-      });
-      originAutocomplete.addListener('place_changed', () => {
-        const place = originAutocomplete.getPlace();
-        if (place.place_id) {
-          setOrigin(`place_id:${place.place_id}`);
-          // Set the display value back to the readable address
-          if (originRef.current) originRef.current.value = place.formatted_address || place.name || '';
-        } else if (place.formatted_address) {
-          setOrigin(place.formatted_address);
-        }
-      });
+    let text = '';
+    if (prediction.text?.text) text = prediction.text.text;
+    else if (prediction.text?.toString) text = prediction.text.toString();
+    else if (prediction.description) text = prediction.description;
+    
+    const placeId = prediction.placeId || prediction.place_id || '';
+    
+    if (!text) return null;
+    return { text, placeId };
+  };
+
+  const fetchSuggestions = useCallback(async (input: string, setter: (s: Array<{ text: string; placeId: string }>) => void) => {
+    if (!input || input.length < 2) {
+      setter([]);
+      return;
     }
 
-    if (destRef.current) {
-      const destAutocomplete = new google.places.Autocomplete(destRef.current, {
-        fields: ['formatted_address', 'place_id', 'name'],
-        types: ['geocode', 'establishment']
-      });
-      destAutocomplete.addListener('place_changed', () => {
-        const place = destAutocomplete.getPlace();
-        if (place.place_id) {
-          setDestination(`place_id:${place.place_id}`);
-          // Set the display value back to the readable address
-          if (destRef.current) destRef.current.value = place.formatted_address || place.name || '';
-        } else if (place.formatted_address) {
-          setDestination(place.formatted_address);
+    const google = getGoogleMaps();
+    if (!google) return;
+
+    try {
+      if (typeof (google as any).importLibrary === 'function') {
+        const placesLib = await (google as any).importLibrary('places') as any;
+        if (placesLib?.AutocompleteSuggestion) {
+          const response = await placesLib.AutocompleteSuggestion.fetchAutocompleteSuggestions({ input });
+          if (response?.suggestions) {
+            const parsed = response.suggestions
+              .map(extractSuggestionText)
+              .filter((s: any): s is { text: string; placeId: string } => s !== null);
+            setter(parsed);
+          }
         }
-      });
+      }
+    } catch (err) {
+      console.error('Route Planner autocomplete error:', err);
+    }
+  }, []);
+
+  const handleOriginChange = (value: string) => {
+    setOriginDisplay(value);
+    setOrigin(value); // fallback to text if no place selected
+    setShowOriginDropdown(true);
+
+    if (originTimerRef.current) clearTimeout(originTimerRef.current);
+    originTimerRef.current = setTimeout(() => {
+      fetchSuggestions(value, setOriginSuggestions);
+    }, 300);
+  };
+
+  const handleDestChange = (value: string) => {
+    setDestDisplay(value);
+    setDestination(value); // fallback to text if no place selected
+    setShowDestDropdown(true);
+
+    if (destTimerRef.current) clearTimeout(destTimerRef.current);
+    destTimerRef.current = setTimeout(() => {
+      fetchSuggestions(value, setDestSuggestions);
+    }, 300);
+  };
+
+  const selectOrigin = (suggestion: { text: string; placeId: string }) => {
+    setOriginDisplay(suggestion.text);
+    setOrigin(suggestion.placeId ? `place_id:${suggestion.placeId}` : suggestion.text);
+    setOriginSuggestions([]);
+    setShowOriginDropdown(false);
+  };
+
+  const selectDest = (suggestion: { text: string; placeId: string }) => {
+    setDestDisplay(suggestion.text);
+    setDestination(suggestion.placeId ? `place_id:${suggestion.placeId}` : suggestion.text);
+    setDestSuggestions([]);
+    setShowDestDropdown(false);
+  };
+
+  // Cleanup timers
+  useEffect(() => {
+    return () => {
+      if (originTimerRef.current) clearTimeout(originTimerRef.current);
+      if (destTimerRef.current) clearTimeout(destTimerRef.current);
+    };
+  }, []);
+
+  // Reset state when panel becomes visible
+  useEffect(() => {
+    if (isVisible) {
+      setOrigin('');
+      setDestination('');
+      setOriginDisplay('');
+      setDestDisplay('');
+      setOriginSuggestions([]);
+      setDestSuggestions([]);
     }
   }, [isVisible]);
 
@@ -79,34 +146,76 @@ export const ScoutRoutePlanner = ({
         {/* Connecting Line */}
         <div className="absolute left-[23px] top-10 bottom-10 w-0.5 bg-stone-100 dashed-border" />
 
+        {/* Origin Input */}
         <div className="relative">
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-stone-200 bg-white z-10" />
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-green-400 bg-green-50 z-10" />
           <input
-            ref={originRef}
             type="text"
             placeholder="Starting Point"
-            value={origin}
-            onChange={(e) => setOrigin(e.target.value)}
+            value={originDisplay}
+            onChange={(e) => handleOriginChange(e.target.value)}
+            onFocus={() => originSuggestions.length > 0 && setShowOriginDropdown(true)}
+            onBlur={() => setTimeout(() => setShowOriginDropdown(false), 200)}
             className="w-full bg-stone-50 pl-12 pr-6 py-5 rounded-[2rem] text-sm font-bold outline-none border-2 border-transparent focus:border-stone-900 transition-all"
           />
+          {showOriginDropdown && originSuggestions.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-lg border border-stone-100 overflow-hidden z-30">
+              {originSuggestions.map((s, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => selectOrigin(s)}
+                  className="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm text-stone-700 border-b border-stone-50 last:border-0 flex items-center gap-2"
+                >
+                  <MapPin size={14} className="text-stone-400 shrink-0" />
+                  <span className="truncate">{s.text}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
+        {/* Destination Input */}
         <div className="relative">
-          <MapPin size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300 z-10" />
+          <MapPin size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-red-400 z-10" />
           <input
-            ref={destRef}
             type="text"
             placeholder="Destination"
-            value={destination}
-            onChange={(e) => setDestination(e.target.value)}
+            value={destDisplay}
+            onChange={(e) => handleDestChange(e.target.value)}
+            onFocus={() => destSuggestions.length > 0 && setShowDestDropdown(true)}
+            onBlur={() => setTimeout(() => setShowDestDropdown(false), 200)}
             className="w-full bg-stone-50 pl-12 pr-6 py-5 rounded-[2rem] text-sm font-bold outline-none border-2 border-transparent focus:border-stone-900 transition-all"
           />
+          {showDestDropdown && destSuggestions.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-lg border border-stone-100 overflow-hidden z-30">
+              {destSuggestions.map((s, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => selectDest(s)}
+                  className="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm text-stone-700 border-b border-stone-50 last:border-0 flex items-center gap-2"
+                >
+                  <MapPin size={14} className="text-stone-400 shrink-0" />
+                  <span className="truncate">{s.text}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
       <div className="mt-8 flex gap-3">
         <button
-          onClick={onClear}
+          onClick={() => {
+            onClear();
+            setOriginDisplay('');
+            setDestDisplay('');
+            setOrigin('');
+            setDestination('');
+          }}
           className="px-6 py-4 bg-stone-100 text-stone-400 rounded-2xl font-black uppercase text-[12px] tracking-widest hover:text-stone-600 transition-all"
         >
           Clear

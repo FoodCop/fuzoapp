@@ -116,9 +116,8 @@ export type GoogleMapsLike = {
   Animation: { DROP: unknown; BOUNCE: unknown };
   LatLngBounds: new () => LatLngBoundsLike;
   SymbolPath: { CIRCLE: unknown; BACKWARD_CLOSED_ARROW: unknown };
-  DirectionsService: new () => any;
-  DirectionsRenderer: new (options?: any) => any;
   Polyline: new (options?: any) => any;
+  importLibrary?: (library: string) => Promise<any>;
   geometry: {
     poly: {
       isLocationOnEdge: (point: { lat: number; lng: number }, polyline: any, tolerance?: number) => boolean;
