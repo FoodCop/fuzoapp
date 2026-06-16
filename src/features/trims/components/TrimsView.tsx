@@ -19,7 +19,7 @@ import {
 import { UGC_CUISINES, UGC_VIBES, normalizeTag } from '../../../shared/utils/taxonomy';
 import { Badge } from '../../../shared/ui/Badge';
 import { StudioStepper } from '../../../shared/ui/StudioStepper';
-import { readImageFileAsDataUrl, parseAiJson } from '../../../shared/lib/studioHelpers';
+import { readVideoFileAsDataUrl, extractVideoFrameAsDataUrl, parseAiJson } from '../../../shared/lib/studioHelpers';
 import { NeuralReveal } from '../../../shared/ui/NeuralReveal';
 import { normalizeExternalUrl } from '../../../shared/lib/urlHelpers';
 import { GeminiService } from '../../../services/geminiService';
@@ -411,6 +411,7 @@ export const AITrimStudio = ({
   const STUDIO_STEPS = ['Media', 'Identity', 'Story', 'Synthesis', 'Review', 'Finish'];
   const [currentStep, setCurrentStep] = useState(0);
   const [video, setVideo] = useState<string | null>(null);
+  const [videoFrame, setVideoFrame] = useState<string | null>(null);
   const [videoMimeType, setVideoMimeType] = useState('video/mp4');
   const [linkURL, setLinkURL] = useState('');
   const [title, setTitle] = useState('');
@@ -433,18 +434,19 @@ export const AITrimStudio = ({
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 50 * 1024 * 1024) {
-      setError('Video too large. Max 50MB.');
+    if (file.size > 15 * 1024 * 1024) {
+      setError('Video too large. Max 15MB for AI.');
       return;
     }
 
     try {
-      const videoData = await readImageFileAsDataUrl(file);
+      const videoData = await readVideoFileAsDataUrl(file);
+      const frameData = await extractVideoFrameAsDataUrl(file);
       if (!trimMountedRef.current) return;
       setVideo(videoData);
+      setVideoFrame(frameData);
       setVideoMimeType(file.type || 'video/mp4');
       setError(null);
-      setCurrentStep(1);
     } catch {
       if (trimMountedRef.current) setError('Failed to read video file.');
     }
@@ -461,11 +463,15 @@ export const AITrimStudio = ({
     setError(null);
 
     try {
+      const geo = await getUserFeedLocation();
+      const locationContext = geo ? `(User Coordinates: Lat ${geo.lat}, Lng ${geo.lng})` : '';
+      const promptDescription = locationContext ? `${description}\n${locationContext}` : description;
+
       const generated = await requestGeneratedTrimCard({
-        description,
+        description: promptDescription,
         effectiveUrl,
-        video,
-        videoMimeType,
+        video: videoFrame,
+        videoMimeType: videoFrame ? 'image/jpeg' : videoMimeType,
         taxonomy: { cuisines: UGC_CUISINES, vibes: UGC_VIBES }
       });
 
@@ -578,7 +584,7 @@ export const AITrimStudio = ({
                 {isPostingToFeed ? <Loader2 className="animate-spin" /> : feedPostSuccess ? <Check size={20} /> : <Send size={20} />}
                 {isPostingToFeed ? 'Syndicating...' : feedPostSuccess ? 'Posted to Feed' : 'Post to Fuzo Feed'}
               </button>
-              <button onClick={onClose} className="w-full py-6 bg-white text-stone-950 rounded-[2.5rem] font-black uppercase tracking-widest text-sm">Done</button>
+              <button onClick={() => { onClose(); window.location.href = '?view=profile'; }} className="w-full py-6 bg-white text-stone-950 rounded-[2.5rem] font-black uppercase tracking-widest text-sm">Done</button>
             </div>
           </div>
         )}

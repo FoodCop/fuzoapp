@@ -6,7 +6,7 @@
       "Italian", "Mexican", "Chinese", "Japanese", "Indian",
       "Thai", "French", "Greek", "Mediterranean", "American",
       "Middle Eastern", "Korean", "Vietnamese", "Spanish",
-      "Brazilian", "Turkish", "Caribbean", "Ethiopian", "Fusion"
+      "Brazilian", "Turkish", "Caribbean", "Ethiopian", "Fusion", "Custom"
     ],
     "synonyms": {
       "Chinatown": "Chinese",

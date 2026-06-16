@@ -17,8 +17,7 @@
 import React from 'react';
 import { 
   Camera, ChefHat, PlayCircle, X, 
-  Sparkles, Zap, ArrowRight, Image as ImageIcon,
-  MapPin
+  Sparkles, Zap, ArrowRight, Image as ImageIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -49,12 +48,6 @@ export const UnifiedCreationModal = ({ isOpen, onClose, onSelectOption }: Unifie
       title: 'A Discovery',
       icon: Camera,
       color: 'bg-emerald-500',
-    },
-    {
-      id: 'scout',
-      title: 'Pin a Spot',
-      icon: MapPin,
-      color: 'bg-blue-500',
     },
     {
       id: 'import-ai',

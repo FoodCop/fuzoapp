@@ -77,8 +77,8 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json({ limit: '20mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '20mb' }));
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
   const getGeminiApiKey = () => cleanEnv(process.env.GEMINI_API_KEY);
 
@@ -155,7 +155,7 @@ async function startServer() {
       });
     }
 
-    const model = String(req.body?.model || 'gemini-1.5-flash-latest');
+    const model = String(req.body?.model || 'gemini-2.5-flash');
     const contents = req.body?.contents;
     const config = (req.body?.config || {}) as GeminiConfigInput;
 

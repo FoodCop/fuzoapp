@@ -164,6 +164,7 @@ const requestProxy = async (url: string, body: Record<string, unknown>, useSupab
     return {
       success: false,
       error: data?.error || `Gemini proxy failed (${response.status})`,
+      status: response.status,
     };
   }
 
@@ -172,6 +173,7 @@ const requestProxy = async (url: string, body: Record<string, unknown>, useSupab
     return {
       success: false,
       error: 'Gemini returned no text content.',
+      status: response.status
     };
   }
 
@@ -181,7 +183,40 @@ const requestProxy = async (url: string, body: Record<string, unknown>, useSupab
       text,
       raw: data,
     },
+    status: response.status
   };
+};
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const requestProxyWithRetry = async (url: string, body: Record<string, unknown>, useSupabaseAuth: boolean, maxRetries = 3): Promise<GeminiServiceResult & { status?: number }> => {
+  let attempt = 0;
+  
+  while (attempt < maxRetries) {
+    const result = await requestProxy(url, body, useSupabaseAuth) as GeminiServiceResult & { status?: number };
+    
+    if (result.success) {
+      return result;
+    }
+    
+    // Only retry on 503 Service Unavailable or 429 Too Many Requests
+    if (result.status === 503 || result.status === 429) {
+      attempt++;
+      if (attempt >= maxRetries) {
+        return result;
+      }
+      
+      const backoffMs = Math.pow(2, attempt) * 1000 + Math.random() * 500;
+      console.warn(`[Gemini Proxy] Received ${result.status}. Retrying attempt ${attempt}/${maxRetries} in ${Math.round(backoffMs)}ms...`);
+      await delay(backoffMs);
+      continue;
+    }
+    
+    // For other errors, fail immediately without retry
+    return result;
+  }
+  
+  return { success: false, error: 'Max retries exceeded' };
 };
 
 export const GeminiService = {
@@ -191,20 +226,20 @@ export const GeminiService = {
    */
   async generateContent(request: GeminiGenerateRequest): Promise<GeminiServiceResult> {
     const payload = {
-      model: request.model || 'gemini-1.5-flash-latest',
+      model: request.model || 'gemini-2.5-flash',
       contents: normalizeContents(request.contents),
       config: request.config || {},
     };
 
     try {
-      const localResult = await requestProxy(LOCAL_PROXY_URL, payload, false);
+      const localResult = await requestProxyWithRetry(LOCAL_PROXY_URL, payload, false);
       if (localResult.success) {
         return localResult;
       }
 
       let edgeError = '';
       if (hasSupabaseConfig && EDGE_PROXY_URL) {
-        const edgeResult = await requestProxy(EDGE_PROXY_URL, payload, true);
+        const edgeResult = await requestProxyWithRetry(EDGE_PROXY_URL, payload, true);
         if (edgeResult.success) {
           return edgeResult;
         }
@@ -246,7 +281,7 @@ export const GeminiService = {
     const base64Data = imageUrl.includes(',') ? imageUrl.split(',')[1] : imageUrl;
 
     const result = await this.generateContent({
-      model: 'gemini-1.5-flash-latest',
+      model: 'gemini-2.5-flash',
       contents: [
         {
           role: 'user',
@@ -260,7 +295,21 @@ export const GeminiService = {
             }
           ]
         }
-      ]
+      ],
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'object',
+          properties: {
+            restaurant: { type: 'string' },
+            cuisine: { type: 'string' },
+            rating: { type: 'number' },
+            description: { type: 'string' },
+            tags: { type: 'array', items: { type: 'string' } },
+          },
+          required: ['restaurant', 'cuisine', 'rating', 'description', 'tags'],
+        },
+      },
     });
 
     if (!result.success) {
@@ -289,7 +338,7 @@ export const GeminiService = {
     const base64Data = imageUrl.includes(',') ? imageUrl.split(',')[1] : imageUrl;
 
     const result = await this.generateContent({
-      model: 'gemini-1.5-flash-latest',
+      model: 'gemini-2.5-flash',
       contents: [
         {
           role: 'user',
@@ -303,7 +352,21 @@ export const GeminiService = {
             }
           ]
         }
-      ]
+      ],
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            cat: { type: 'string' },
+            description: { type: 'string' },
+            tags: { type: 'array', items: { type: 'string' } },
+            restaurant: { type: 'string' },
+          },
+          required: ['name', 'cat', 'description', 'tags', 'restaurant'],
+        },
+      },
     });
 
     if (!result.success) {
@@ -327,7 +390,7 @@ export const GeminiService = {
     }
 
     const result = await this.generateContent({
-      model: 'gemini-1.5-flash-latest',
+      model: 'gemini-2.5-flash',
       contents: [{ role: 'user', parts }],
       config: {
         responseMimeType: 'application/json',
@@ -373,7 +436,7 @@ export const GeminiService = {
     }
 
     const result = await this.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash',
       contents: [{ role: 'user', parts }],
       config: {
         responseMimeType: 'application/json',

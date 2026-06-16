@@ -449,6 +449,114 @@ export const SavedItemDetailModal = ({ item, onClose, onSave, onUnsave, onShareR
     triggerClose();
   };
 
+  if (resolvedType === 'video') {
+    return (
+      <div className={`fixed inset-0 z-[140] flex items-end md:items-center justify-center p-0 md:p-8 transition-opacity duration-250 ease-in-out ${isClosing ? 'opacity-0' : 'opacity-100 animate-in fade-in'}`}>
+        <button
+          type="button"
+          aria-label="Close video"
+          className="absolute inset-0 bg-stone-900/95 backdrop-blur-xl"
+          onClick={triggerClose}
+        />
+        <dialog
+          open
+          className={`relative bg-black w-full h-[100dvh] md:h-auto md:max-w-2xl md:max-h-[90dvh] md:rounded-[3rem] shadow-2xl overflow-hidden flex flex-col transition-all duration-250 ${
+            isClosing 
+              ? 'opacity-0 scale-90 translate-y-8' 
+              : 'opacity-100 scale-100 translate-y-0 animate-in slide-in-from-bottom-8 md:zoom-in'
+          }`}
+          style={{
+            transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
+            transition: isDragging ? 'none' : 'transform 220ms ease-out',
+          }}
+        >
+          {/* Close Button */}
+          <button
+            type="button"
+            onClick={triggerClose}
+            className="absolute top-6 right-6 z-50 p-3 bg-stone-900/50 text-white rounded-full backdrop-blur-xl border border-white/20 hover:bg-stone-900/80 transition-colors shadow-lg flex items-center justify-center cursor-pointer"
+          >
+            <X size={20} strokeWidth={2.5} />
+          </button>
+
+          <button
+            type="button"
+            aria-label="Swipe down to close"
+            className="absolute top-0 inset-x-0 z-50 flex justify-center pt-3 pb-4 md:hidden"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            <div className="w-14 h-1.5 rounded-full bg-white/30" />
+          </button>
+
+          <div className="relative flex-grow bg-black w-full h-[100dvh] md:h-[80vh] flex flex-col justify-center">
+            {youtubeId ? (
+              <iframe
+                src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1`}
+                title={title}
+                className="w-full h-full border-none"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            ) : (
+              <div className="relative w-full h-full flex flex-col items-center justify-center">
+                <img src={imageSrc} alt={title} className="absolute inset-0 w-full h-full object-cover opacity-40 blur-sm" />
+                <div className="absolute inset-0 bg-gradient-to-t from-stone-900 via-stone-900/40 to-stone-900/80" />
+                <div className="relative z-10 flex flex-col items-center p-8 text-center">
+                  <div className="w-24 h-24 mb-8 bg-stone-800 rounded-[2rem] border-2 border-stone-700 flex items-center justify-center overflow-hidden shadow-2xl rotate-3">
+                    <img src={imageSrc} className="w-full h-full object-cover" alt="Trim thumbnail" />
+                  </div>
+                  <h3 className="text-2xl font-black uppercase tracking-widest text-emerald-400 mb-4">Neural Trim Saved</h3>
+                  <p className="text-sm font-bold text-stone-300 max-w-sm leading-relaxed mb-6">
+                    To optimize storage, Fuzo only stores the AI synthesis and keyframe for your local uploads. 
+                    <br/><br/>
+                    The original video file was not uploaded to our servers.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Overlay Gradient for Text */}
+            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/80 to-transparent pt-32 pb-8 px-6 md:px-8 pointer-events-none">
+              <div className="pointer-events-auto space-y-4">
+                <div className="space-y-2">
+                  <div className="flex gap-2 items-center">
+                    <Badge color="yellow">{category}</Badge>
+                    {keyFoodItem && <span className="px-2.5 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest text-white border border-white/20">{keyFoodItem}</span>}
+                  </div>
+                  <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-white leading-tight">{title}</h3>
+                  <p className="text-sm font-bold text-white/80 line-clamp-3">{trimSummary || summary}</p>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  {onSave && !isAlreadySaved && (
+                    <button onClick={handleSaveClick} className="flex-1 py-4 bg-white/10 backdrop-blur border border-white/20 text-white rounded-[1.5rem] flex items-center justify-center gap-2 active:scale-95 transition-all">
+                      <Bookmark size={18} />
+                      <span className="font-black uppercase tracking-widest text-[12px]">Save</span>
+                    </button>
+                  )}
+                  {onUnsave && isAlreadySaved && (
+                    <button onClick={handleUnsaveClick} className="flex-1 py-4 bg-red-600 hover:bg-red-700 text-white rounded-[1.5rem] flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all">
+                      <X size={18} />
+                      <span className="font-black uppercase tracking-widest text-[12px]">Remove</span>
+                    </button>
+                  )}
+                  {onShareRequest && (
+                    <button onClick={handleShareClick} className="flex-1 py-4 bg-yellow-400 text-stone-900 rounded-[1.5rem] flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all">
+                      <Share2 size={18} />
+                      <span className="font-black uppercase tracking-widest text-[12px]">Share</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </dialog>
+      </div>
+    );
+  }
+
   return (
     <div className={`fixed inset-0 z-[140] flex items-end md:items-center justify-center p-4 pb-8 md:p-8 transition-opacity duration-250 ease-in-out ${isClosing ? 'opacity-0' : 'opacity-100 animate-in fade-in'}`}>
       <button

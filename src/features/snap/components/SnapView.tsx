@@ -33,7 +33,9 @@ import { persistSnapData } from '../services/snapPersistence';
 import { GeminiService } from '../../../services/geminiService';
 import { PlacesService } from '../../../services/placesService';
 import { FeedService } from '../../feed';
+import { getUserFeedLocation } from '../../feed/services/feedLocation';
 import { shouldApplyLatestRequest } from '../../../shared/utils/async';
+import { getGoogleMaps } from '../../scout/types/scoutUi';
 import type { AppItem } from '../../../shared/types/appItem';
 
 
@@ -55,89 +57,103 @@ const extractLocalTags = (description: string): string[] => {
 
 
 /**
- * SECTION: STEP 1 — Location Pin Component
- * A full-screen interactive Google Map with a draggable "Fuzo Pin".
- * Logic: Reverse geocodes the pin location in real-time to provide the user with address feedback.
+ * SECTION: STEP 1 — Identity Component
+ * Captures the restaurant name and primary cuisine classification.
  */
-const LocationPinStep = ({ location, onUpdate, onNext }: { location: any, onUpdate: (lat: number, lng: number) => void, onNext: () => void }) => {
+
+
+
+const LocationPinStep = ({ location, address, onUpdate, onNext }: { location: {lat: number, lng: number} | null, address: string, onUpdate: (data: any) => void, onNext: () => void }) => {
   const mapRef = useRef<HTMLDivElement>(null);
-  const [address, setAddress] = useState('Pinpoint your discovery...');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [mapInstance, setMapInstance] = useState<any>(null);
+  const [marker, setMarker] = useState<any>(null);
+  const mapInitRef = useRef(false);
 
   useEffect(() => {
-    const google = (window as any).google;
-    if (!google || !mapRef.current) return;
+    if (!mapRef.current || mapInitRef.current) return;
+    const google = getGoogleMaps();
+    if (!google) return;
+    mapInitRef.current = true;
 
-    // Center on NYC fallback if no geolocation is available
-    const initialPos = location || { lat: 40.7128, lng: -74.0060 };
-    const map = new google.maps.Map(mapRef.current, {
+    const initialPos = location && location.lat ? location : { lat: 40.7128, lng: -74.0060 };
+    const map = new google.Map(mapRef.current, {
       center: initialPos,
-      zoom: 15,
+      zoom: location ? 16 : 13,
       disableDefaultUI: true,
       styles: [
-        { featureType: "all", elementType: "labels.text.fill", textColor: "#ffffff" },
-        { featureType: "all", elementType: "labels.text.stroke", visibility: "off" },
-        { featureType: "landscape", elementType: "all", fillColor: "#1c1c1c" },
-        { featureType: "poi", elementType: "all", visibility: "off" },
-        { featureType: "road", elementType: "all", fillColor: "#2c2c2c" },
-        { featureType: "water", elementType: "all", fillColor: "#000000" }
+        { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
+        { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
+        { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
+        { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+        { featureType: 'transit', stylers: [{ visibility: 'off' }] },
       ]
     });
+    setMapInstance(map);
 
-    const marker = new google.maps.Marker({
+    const m = new google.Marker({
       position: initialPos,
-      map,
+      map: map,
       draggable: true,
-      animation: google.maps.Animation.DROP,
-      icon: {
-        path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
-        scale: 10,
-        fillColor: '#facc15',
-        fillOpacity: 1,
-        strokeColor: '#ffffff',
-        strokeWeight: 2,
-      }
+      animation: google.Animation.DROP
     });
+    setMarker(m);
 
-    // Sub-Logic: Maps Reverse Geocoding
-    const updateAddress = async (lat: number, lng: number) => {
-      const geocoder = new google.maps.Geocoder();
-      try {
-        const response = await geocoder.geocode({ location: { lat, lng } });
-        if (response.results[0]) {
-          setAddress(response.results[0].formatted_address);
+    m.addListener('dragend', () => {
+      const pos = m.getPosition();
+      onUpdate({ lat: pos.lat(), lng: pos.lng() });
+      
+      const geocoder = new google.Geocoder();
+      geocoder.geocode({ location: { lat: pos.lat(), lng: pos.lng() } }, (results: any, status: any) => {
+        if (status === 'OK' && results[0]) {
+          onUpdate({ address: results[0].formatted_address });
         }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-
-    updateAddress(initialPos.lat, initialPos.lng);
-
-    marker.addListener('dragend', () => {
-      const pos = marker.getPosition();
-      onUpdate(pos.lat(), pos.lng());
-      updateAddress(pos.lat(), pos.lng());
+      });
     });
 
-    map.addListener('click', (e: any) => {
-      marker.setPosition(e.latLng);
-      onUpdate(e.latLng.lat(), e.latLng.lng());
-      updateAddress(e.latLng.lat(), e.latLng.lng());
-    });
+    if (inputRef.current) {
+      const autocomplete = new google.places.Autocomplete(inputRef.current, {
+        fields: ['geometry', 'name', 'formatted_address']
+      });
+      autocomplete.bindTo('bounds', map);
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (!place.geometry || !place.geometry.location) return;
+        
+        map.setCenter(place.geometry.location);
+        map.setZoom(16);
+        m.setPosition(place.geometry.location);
+        
+        onUpdate({ 
+          lat: place.geometry.location.lat(), 
+          lng: place.geometry.location.lng(),
+          restaurant: place.name || '',
+          address: place.formatted_address || ''
+        });
+      });
+    }
   }, []);
 
   return (
-    <div className="absolute inset-0 bg-stone-950 flex flex-col overflow-hidden">
+    <div className="absolute inset-0 bg-stone-950 flex flex-col animate-in slide-in-from-right duration-500">
+      <div className="absolute top-8 left-8 right-8 z-20">
+        <div className="relative">
+          <input 
+            ref={inputRef} 
+            type="text" 
+            placeholder="Search venue or location..." 
+            defaultValue={address} 
+            className="w-full bg-white/95 text-stone-900 px-12 py-4 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.5)] font-bold text-lg outline-none border-2 border-transparent focus:border-yellow-400 transition-all placeholder:text-stone-400" 
+          />
+          <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={24} />
+        </div>
+      </div>
       <div ref={mapRef} className="flex-grow w-full" />
-      <div className="absolute inset-x-0 bottom-0 p-8 pt-12 bg-gradient-to-t from-stone-950 via-stone-950/90 to-transparent pointer-events-none">
-        <div className="max-w-md mx-auto space-y-8 pointer-events-auto">
-          <div className="space-y-4 text-center">
-            <Badge color="yellow">Fuzo Pin</Badge>
-            <h2 className="text-4xl font-black uppercase tracking-tighter text-white">Where was it?</h2>
-            <p className="text-stone-400 font-bold text-xs uppercase tracking-[0.2em] px-4 truncate">{address}</p>
-          </div>
-          <button onClick={onNext} className="w-full py-7 bg-white text-stone-950 rounded-[3rem] font-black uppercase tracking-widest text-sm shadow-2xl hover:scale-[1.02] active:scale-95 transition-all">
-            Next: Identity
+      <div className="absolute bottom-12 left-8 right-8 z-20 pointer-events-none">
+        <div className="flex justify-center pointer-events-auto">
+          <button onClick={onNext} className="w-full max-w-sm py-6 bg-yellow-400 text-stone-950 rounded-[3rem] font-black uppercase tracking-widest text-sm shadow-[0_8px_30px_rgb(250,204,21,0.3)] active:scale-95 transition-transform flex items-center justify-center gap-3">
+            <CheckCircle2 size={20} />
+            Confirm Location
           </button>
         </div>
       </div>
@@ -145,12 +161,11 @@ const LocationPinStep = ({ location, onUpdate, onNext }: { location: any, onUpda
   );
 };
 
-
 /**
  * SECTION: STEP 2 — Identity Component
  * Captures the restaurant name and primary cuisine classification.
  */
-const IdentityStep = ({ restaurant, cuisine, onUpdate, onNext }: { restaurant: string, cuisine: string, onUpdate: (data: any) => void, onNext: () => void }) => {
+const IdentityStep = ({ restaurant, cuisine, customCuisine, onUpdate, onNext }: { restaurant: string, cuisine: string, customCuisine: string, onUpdate: (data: any) => void, onNext: () => void }) => {
   return (
     <div className="absolute inset-0 bg-stone-950 p-8 flex flex-col justify-center animate-in slide-in-from-right duration-500">
       <div className="max-w-md mx-auto w-full space-y-12">
@@ -170,9 +185,14 @@ const IdentityStep = ({ restaurant, cuisine, onUpdate, onNext }: { restaurant: s
                 <button key={c} onClick={() => onUpdate({ cuisine: c })} className={`py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest border-2 transition-all ${cuisine === c ? 'bg-yellow-400 text-stone-950 border-yellow-400' : 'bg-stone-900 text-stone-400 border-white/5'}`}>{c}</button>
               ))}
             </div>
+            {cuisine === 'Custom' && (
+              <div className="pt-3 animate-in fade-in slide-in-from-top-2">
+                <input value={customCuisine} onChange={(e) => onUpdate({ customCuisine: e.target.value })} placeholder="Type custom cuisine..." className="w-full bg-stone-900/50 border-2 border-white/5 px-6 py-4 rounded-2xl font-bold text-white text-sm outline-none focus:border-yellow-400 transition-all placeholder:text-stone-600" />
+              </div>
+            )}
           </div>
         </div>
-        <button onClick={onNext} disabled={!restaurant || !cuisine} className={`w-full py-7 rounded-[3rem] font-black uppercase tracking-widest text-sm shadow-2xl transition-all ${restaurant && cuisine ? 'bg-white text-stone-950 hover:scale-[1.02] active:scale-95' : 'bg-stone-900 text-stone-700 cursor-not-allowed'}`}>
+        <button onClick={onNext} disabled={!restaurant || !cuisine || (cuisine === 'Custom' && !customCuisine)} className={`w-full py-7 rounded-[3rem] font-black uppercase tracking-widest text-sm shadow-2xl transition-all ${restaurant && cuisine && (cuisine !== 'Custom' || customCuisine) ? 'bg-white text-stone-950 hover:scale-[1.02] active:scale-95' : 'bg-stone-900 text-stone-700 cursor-not-allowed'}`}>
           Next: Experience
         </button>
       </div>
@@ -182,7 +202,7 @@ const IdentityStep = ({ restaurant, cuisine, onUpdate, onNext }: { restaurant: s
 
 
 /**
- * SECTION: STEP 3 — Experience Component
+ * SECTION: STEP 2 — Experience Component
  * Captures subjective user feedback (Star Rating) and free-text narrative.
  * Analysis: The description is analyzed by AI in Step 4 to derive secondary tags.
  */
@@ -322,6 +342,7 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
     restaurant: initialData?.restaurant || '',
     address: initialData?.address || '',
     cuisine: initialData?.cuisine || '',
+    customCuisine: '',
     rating: 5,
     description: ''
   });
@@ -360,34 +381,29 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
       
       // Auto-Locate user on Step 0 for location pre-population
       if (!initialData?.lat || !initialData?.lng) {
-        navigator.geolocation.getCurrentPosition(
-          async (pos) => {
+        getUserFeedLocation().then(async (geo) => {
+          if (!snapMountedRef.current || !geo) return;
+          const { lat, lng } = geo;
+          setLocation({ lat, lng });
+          
+          // Sub-Logic: Reverse search nearby spots using Google Places proxy
+          try {
+            const result = await PlacesService.searchNearby(lat, lng, 100);
             if (!snapMountedRef.current) return;
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
-            setLocation({ lat, lng });
-            
-            // Sub-Logic: Reverse search nearby spots using Google Places proxy
-            try {
-              const result = await PlacesService.searchNearby(lat, lng, 100);
-              if (!snapMountedRef.current) return;
-              if (result.success && result.data?.results?.length) {
-                setNearbyPlaces(result.data.results);
-                const place = result.data.results[0];
-                setSnapData((prev: any) => ({
-                  ...prev,
-                  address: place.vicinity || place.formatted_address || prev?.address || '',
-                }));
-              }
-            } catch (err) {
-              // Silent fail for auto-locate
+            if (result.success && result.data?.results?.length) {
+              setNearbyPlaces(result.data.results);
+              const place = result.data.results[0];
+              setSnapData((prev: any) => ({
+                ...prev,
+                address: place.vicinity || place.formatted_address || prev?.address || '',
+              }));
             }
-          },
-          (err) => {
-             if (snapMountedRef.current) console.warn('Location error:', err);
-          },
-          { enableHighAccuracy: true }
-        );
+          } catch (err) {
+            // Silent fail for auto-locate
+          }
+        }).catch((err) => {
+           if (snapMountedRef.current) console.warn('Location error:', err);
+        });
       }
     } else {
       stopCamera();
@@ -408,14 +424,14 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
     if (ctx) {
       ctx.drawImage(videoRef.current, 0, 0);
       setCapturedImage(canvas.toDataURL('image/jpeg', 0.9));
-      setCurrentStep(1);
+      // Stay on step 0 for preview
     }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      await loadUploadedImage(file, setCapturedImage, () => setCurrentStep(1));
+      await loadUploadedImage(file, setCapturedImage, () => {}); // Stay on step 0 for preview
     }
   };
 
@@ -432,7 +448,11 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
       await new Promise(r => setTimeout(r, 1500)); // UX buffer
       if (!shouldApplyLatestRequest(snapMountedRef, requestSeq, snapRequestSeqRef)) return;
       
-      const geminiResult = await GeminiService.analyzeSnap(capturedImage, snapData.description);
+      const geo = location;
+      const locationContext = geo ? `(User Coordinates: Lat ${geo.lat}, Lng ${geo.lng})` : '';
+      const promptDescription = locationContext ? `${snapData.description}\n${locationContext}` : snapData.description;
+      
+      const geminiResult = await GeminiService.analyzeSnap(capturedImage, promptDescription);
       if (!shouldApplyLatestRequest(snapMountedRef, requestSeq, snapRequestSeqRef)) return;
       
       const parsed = parseAiJson(geminiResult) || {};
@@ -478,7 +498,7 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
       itemType: 'photo',
       itemId: `sc-${Date.now()}`,
       name: snapData.restaurant || 'Culinary Snap',
-      cat: snapData.cuisine || 'Culinary',
+      cat: (snapData.cuisine === 'Custom' && snapData.customCuisine) ? snapData.customCuisine : (snapData.cuisine || 'Culinary'),
       img: capturedImage,
       metadata: {
         ...snapData,
@@ -529,37 +549,61 @@ export const SnapStudio = ({ onPost, onClose, initialData }: SnapStudioProps) =>
       <div className="flex-grow relative overflow-hidden">
         {currentStep === 0 && (
           <div className="h-full flex flex-col relative animate-in fade-in duration-500">
-            <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+            {capturedImage ? (
+              <img src={capturedImage} className="w-full h-full object-cover" />
+            ) : (
+              <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+            )}
             <footer className="absolute bottom-12 inset-x-0 flex justify-around items-center z-20 px-8">
-              <label aria-label="Upload from gallery" className="w-16 h-16 bg-white/10 backdrop-blur-3xl rounded-3xl flex items-center justify-center text-white cursor-pointer border border-white/20">
-                <ImageIcon size={28} />
-                <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
-              </label>
-              <button onClick={handleCapture} aria-label="Capture photo" className="w-32 h-32 rounded-full border-[10px] border-white/30 bg-white/10 shadow-2xl backdrop-blur-xl active:scale-90 transition-transform flex items-center justify-center group">
-                <div className="w-20 h-20 bg-white rounded-full" />
-              </button>
-              <button aria-label="Switch camera" className="w-16 h-16 bg-white/10 backdrop-blur-3xl rounded-3xl flex items-center justify-center text-white border border-white/20">
-                <RefreshCw size={28} />
-              </button>
+              {capturedImage ? (
+                <>
+                  <button onClick={() => setCapturedImage(null)} className="px-8 py-5 bg-white/10 text-white rounded-[2rem] font-black uppercase tracking-widest text-xs border border-white/5 backdrop-blur-xl">Retake</button>
+                  <button onClick={() => setCurrentStep(1)} className="px-12 py-5 bg-white text-stone-900 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all">Next</button>
+                </>
+              ) : (
+                <>
+                  <label aria-label="Upload from gallery" className="w-16 h-16 bg-white/10 backdrop-blur-3xl rounded-3xl flex items-center justify-center text-white cursor-pointer border border-white/20">
+                    <ImageIcon size={28} />
+                    <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+                  </label>
+                  <button onClick={handleCapture} aria-label="Capture photo" className="w-32 h-32 rounded-full border-[10px] border-white/30 bg-white/10 shadow-2xl backdrop-blur-xl active:scale-90 transition-transform flex items-center justify-center group">
+                    <div className="w-20 h-20 bg-white rounded-full" />
+                  </button>
+                  <button aria-label="Switch camera" className="w-16 h-16 bg-white/10 backdrop-blur-3xl rounded-3xl flex items-center justify-center text-white border border-white/20">
+                    <RefreshCw size={28} />
+                  </button>
+                </>
+              )}
             </footer>
           </div>
         )}
 
-        {currentStep === 1 && capturedImage && (
-          <LocationPinStep location={location} onUpdate={(lat, lng) => setLocation({ lat, lng })} onNext={() => setCurrentStep(2)} />
+        {currentStep === 1 && (
+          <LocationPinStep 
+            location={location} 
+            address={snapData?.address || ''}
+            onUpdate={(data) => {
+              if (data.lat && data.lng) setLocation({lat: data.lat, lng: data.lng});
+              if (data.restaurant || data.address) setSnapData((prev: any) => ({ ...prev, ...data }));
+            }} 
+            onNext={() => setCurrentStep(2)} 
+          />
         )}
         {currentStep === 2 && (
-          <IdentityStep restaurant={snapData?.restaurant || ''} cuisine={snapData?.cuisine || ''} onUpdate={(data) => setSnapData((prev: any) => ({ ...prev, ...data }))} onNext={() => setCurrentStep(3)} />
+          <IdentityStep restaurant={snapData?.restaurant || ''} cuisine={snapData?.cuisine || ''} customCuisine={snapData?.customCuisine || ''} onUpdate={(data) => setSnapData((prev: any) => ({ ...prev, ...data }))} onNext={() => setCurrentStep(3)} />
         )}
         {currentStep === 3 && (
           <ExperienceStep rating={snapData?.rating || 5} description={snapData?.description || ''} onUpdate={(data) => setSnapData((prev: any) => ({ ...prev, ...data }))} onNext={() => { setCurrentStep(4); handleNeuralAnalysis(); }} />
         )}
         {currentStep === 4 && <NeuralReveal onNext={() => setCurrentStep(5)} />}
         {currentStep === 5 && snapData && (
-          <ReviewStep image={capturedImage!} data={snapData} onEdit={() => setCurrentStep(2)} onLock={() => handleFinish(false)} isUploading={isUploading} />
+          <ReviewStep image={capturedImage!} data={{...snapData, cuisine: snapData.cuisine === 'Custom' && snapData.customCuisine ? snapData.customCuisine : snapData.cuisine}} onEdit={() => setCurrentStep(2)} onLock={() => handleFinish(false)} isUploading={isUploading || isAnalyzing} />
         )}
         {currentStep === 6 && (
-          <SuccessStep isPosting={isPostingToFeed} postSuccess={feedPostSuccess} onPostToFeed={() => handleFinish(true)} onClose={onClose} />
+          <SuccessStep isPosting={isPostingToFeed} postSuccess={feedPostSuccess} onPostToFeed={() => handleFinish(true)} onClose={() => {
+            // Wait to be handled by app level, for now just onClose which might change views
+            onClose();
+          }} />
         )}
       </div>
     </div>

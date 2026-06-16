@@ -1029,7 +1029,7 @@ const BitesSourceStep = ({ image, onUpload, onSkip }: { image: string | null, on
   );
 };
 
-const BitesIdentityStep = ({ title, category, onUpdate, onNext }: { title: string, category: string, onUpdate: (data: any) => void, onNext: () => void }) => {
+const BitesIdentityStep = ({ title, category, customCategory, onUpdate, onNext }: { title: string, category: string, customCategory: string, onUpdate: (data: any) => void, onNext: () => void }) => {
   return (
     <div className="absolute inset-0 bg-stone-950 p-8 flex flex-col justify-center animate-in slide-in-from-right duration-500">
       <div className="max-w-md mx-auto w-full space-y-12">
@@ -1049,9 +1049,14 @@ const BitesIdentityStep = ({ title, category, onUpdate, onNext }: { title: strin
                 <button key={c} onClick={() => onUpdate({ category: c })} className={`py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest border-2 transition-all ${category === c ? 'bg-yellow-400 text-stone-950 border-yellow-400' : 'bg-stone-900 text-stone-400 border-white/5'}`}>{c}</button>
               ))}
             </div>
+            {category === 'Custom' && (
+              <div className="pt-3 animate-in fade-in slide-in-from-top-2">
+                <input value={customCategory} onChange={(e) => onUpdate({ customCategory: e.target.value })} placeholder="Type custom category..." className="w-full bg-stone-900/50 border-2 border-white/5 px-6 py-4 rounded-2xl font-bold text-white text-sm outline-none focus:border-yellow-400 transition-all placeholder:text-stone-600" />
+              </div>
+            )}
           </div>
         </div>
-        <button onClick={onNext} disabled={!title || !category} className={`w-full py-7 rounded-[3rem] font-black uppercase tracking-widest text-sm shadow-2xl transition-all ${title && category ? 'bg-white text-stone-950 hover:scale-[1.02] active:scale-95' : 'bg-stone-900 text-stone-700 cursor-not-allowed'}`}>
+        <button onClick={onNext} disabled={!title || !category || (category === 'Custom' && !customCategory)} className={`w-full py-7 rounded-[3rem] font-black uppercase tracking-widest text-sm shadow-2xl transition-all ${title && category && (category !== 'Custom' || customCategory) ? 'bg-white text-stone-950 hover:scale-[1.02] active:scale-95' : 'bg-stone-900 text-stone-700 cursor-not-allowed'}`}>
           Next: Assembly
         </button>
       </div>
@@ -1167,6 +1172,7 @@ export const AIRecipeStudio = ({
   const [imageMimeType, setImageMimeType] = useState('image/jpeg');
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
+  const [customCategory, setCustomCategory] = useState('');
   const [description, setDescription] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedRecipe, setGeneratedRecipe] = useState<GeneratedRecipeCard | null>(null);
@@ -1227,7 +1233,7 @@ export const AIRecipeStudio = ({
   const buildActionItem = (): BiteActionItem | null => {
     if (!generatedRecipe) return null;
     const finalTitle = generatedRecipe.title || title;
-    const finalCat = generatedRecipe.category || category;
+    const finalCat = (category === 'Custom' && customCategory) ? customCategory : (generatedRecipe.category || category);
     return {
       id: `recipe-ai-${Date.now()}`,
       name: finalTitle,
@@ -1278,8 +1284,9 @@ export const AIRecipeStudio = ({
         {currentStep === 0 && (
           <BitesSourceStep image={image} onUpload={handleImageUpload} onSkip={() => setCurrentStep(1)} />
         )}
+
         {currentStep === 1 && (
-          <BitesIdentityStep title={title} category={category} onUpdate={(d) => { if (d.title !== undefined) setTitle(d.title); if (d.category !== undefined) setCategory(d.category); }} onNext={() => setCurrentStep(2)} />
+          <BitesIdentityStep title={title} category={category} customCategory={customCategory} onUpdate={(d) => { if(d.title !== undefined) setTitle(d.title); if(d.category !== undefined) setCategory(d.category); if(d.customCategory !== undefined) setCustomCategory(d.customCategory); }} onNext={() => setCurrentStep(2)} />
         )}
         {currentStep === 2 && (
           <BitesStoryStep description={description} onUpdate={(d) => { if (d.description !== undefined) setDescription(d.description); }} onNext={() => { setCurrentStep(3); handleGenerate(); }} />
@@ -1301,7 +1308,7 @@ export const AIRecipeStudio = ({
                 {isPostingToFeed ? <Loader2 className="animate-spin" /> : feedPostSuccess ? <Check size={20} /> : <Send size={20} />}
                 {isPostingToFeed ? 'Syndicating...' : feedPostSuccess ? 'Posted' : 'Post to Feed'}
               </button>
-              <button onClick={onClose} className="w-full py-6 bg-white text-emerald-700 rounded-[2.5rem] font-black uppercase tracking-widest text-sm">Done</button>
+              <button onClick={() => { onClose(); window.location.href = '?view=profile'; }} className="w-full py-6 bg-white text-emerald-700 rounded-[2.5rem] font-black uppercase tracking-widest text-sm">Done</button>
             </div>
           </div>
         )}

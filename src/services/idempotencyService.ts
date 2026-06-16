@@ -105,7 +105,7 @@ export class IdempotencyService {
       .eq('user_id', user.id)
       .eq('tenant_id', this.APP_TENANT_ID)
       .gt('expires_at', new Date().toISOString())
-      .single();
+      .maybeSingle();
 
     if (error || !data) {
       return null;
