@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MapPin, Navigation, X, Search, Loader2 } from 'lucide-react';
 import { getGoogleMaps } from '../types/scoutUi';
+import { extractSuggestionText } from '../lib/scoutLogic';
 
 interface ScoutRoutePlannerProps {
   onCalculateRoute: (origin: string, destination: string) => Promise<void>;
@@ -28,22 +29,6 @@ export const ScoutRoutePlanner = ({
   
   const originTimerRef = useRef<any>(null);
   const destTimerRef = useRef<any>(null);
-
-  const extractSuggestionText = (s: any): { text: string; placeId: string } | null => {
-    if (!s) return null;
-    const prediction = s.placePrediction || s.queryPrediction;
-    if (!prediction) return null;
-
-    let text = '';
-    if (prediction.text?.text) text = prediction.text.text;
-    else if (prediction.text?.toString) text = prediction.text.toString();
-    else if (prediction.description) text = prediction.description;
-    
-    const placeId = prediction.placeId || prediction.place_id || '';
-    
-    if (!text) return null;
-    return { text, placeId };
-  };
 
   const fetchSuggestions = useCallback(async (input: string, setter: (s: Array<{ text: string; placeId: string }>) => void) => {
     if (!input || input.length < 2) {

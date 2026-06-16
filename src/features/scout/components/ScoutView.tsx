@@ -39,7 +39,8 @@ import {
   filterPlaces, 
   mergePlaceDetails, 
   shouldApplyLatestRequest,
-  getDistanceInMeters
+  getDistanceInMeters,
+  extractSuggestionText
 } from '../lib/scoutLogic';
 import { getDistanceToPolyline } from '../lib/geometryUtils';
 import { getSearchableDishTypes } from '../../../shared/utils/taxonomy';
@@ -82,7 +83,8 @@ export const ScoutView = ({
   const [currentRoute, setCurrentRoute] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [placeSuggestions, setPlaceSuggestions] = useState<string[]>([]);
+  const [placeSuggestions, setPlaceSuggestions] = useState<Array<{ text: string; placeId: string }>>([]);
+  const searchTimerRef = useRef<any>(null);
 
   // Filters & Pinning State (moved up for dependency access)
   const [filter, setFilter] = useState<ScoutFilter>({
@@ -98,112 +100,58 @@ export const ScoutView = ({
 
 
 
-  // Fetch Place suggestions
-  useEffect(() => {
-    if (!searchQuery || searchQuery.length < 2) {
+  const fetchSuggestions = useCallback(async (input: string) => {
+    if (!input || input.length < 2) {
       setPlaceSuggestions([]);
       return;
     }
+
     const google = getGoogleMaps();
-    if (!google || (!google.places && typeof google.importLibrary !== 'function')) return;
-    
-    let active = true;
-    const request: any = { input: searchQuery };
-    
-    // Completely omitting locationBias for now, as the new SDK is rejecting 
-    // both Circle literals and LatLngBounds instances in this environment.
-    
-    const fetchSuggestions = async () => {
-      try {
-        if (typeof google.importLibrary === 'function') {
-          const placesLib = await google.importLibrary("places") as any;
-          if (placesLib && placesLib.AutocompleteSuggestion) {
-            const response = await placesLib.AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
-            if (!active) return;
-            if (response && response.suggestions) {
-              setPlaceSuggestions(
-                response.suggestions
-                  .map((s: any) => {
-                    if (!s) return null;
-                    
-                    // Try to extract from placePrediction
-                    if (s.placePrediction) {
-                      const textObj = s.placePrediction.text;
-                      if (typeof textObj === 'string') return textObj;
-                      if (textObj && typeof textObj.text === 'string') return textObj.text;
-                      if (typeof s.placePrediction.description === 'string') return s.placePrediction.description;
-                      
-                      // Aggressive fallback for placePrediction
-                      if (textObj && typeof textObj.toString === 'function') return textObj.toString();
-                    }
-                    
-                    // Try to extract from queryPrediction
-                    if (s.queryPrediction) {
-                      const textObj = s.queryPrediction.text;
-                      if (typeof textObj === 'string') return textObj;
-                      if (textObj && typeof textObj.text === 'string') return textObj.text;
-                      if (textObj && typeof textObj.toString === 'function') return textObj.toString();
-                    }
+    if (!google) return;
 
-                    // Look for any string property that looks like a description
-                    if (typeof s.description === 'string') return s.description;
-                    if (typeof s.text === 'string') return s.text;
-                    if (typeof s.name === 'string') return s.name;
-                    if (typeof s.formattedAddress === 'string') return s.formattedAddress;
-
-                    // If it's just a raw string
-                    if (typeof s === 'string') return s;
-
-                    // Ultimate UI visualizer: If we literally can't find the text, 
-                    // render the object's keys in the dropdown so we can see what Google gave us.
-                    try {
-                      const keys = Object.keys(s).join(', ');
-                      if (keys) return `[Keys: ${keys}]`;
-                      
-                      // If it's a class with getters, try getting prototype properties
-                      const proto = Object.getPrototypeOf(s);
-                      if (proto) {
-                        const protoKeys = Object.getOwnPropertyNames(proto).filter(k => k !== 'constructor').join(', ');
-                        if (protoKeys) return `[ProtoKeys: ${protoKeys}]`;
-                      }
-                      
-                      const str = JSON.stringify(s);
-                      if (str !== '{}') return str;
-                    } catch (e) {
-                      return `[Error Parsing Object]`;
-                    }
-
-                    return `[Unknown Suggestion Shape]`;
-                  })
-                  .filter(Boolean)
-                  .slice(0, 4)
-              );
-            } else {
-              setPlaceSuggestions([]);
-            }
-            return;
+    try {
+      if (typeof (google as any).importLibrary === 'function') {
+        const placesLib = await (google as any).importLibrary('places') as any;
+        if (placesLib?.AutocompleteSuggestion) {
+          const response = await placesLib.AutocompleteSuggestion.fetchAutocompleteSuggestions({ input });
+          if (response?.suggestions) {
+            const parsed = response.suggestions
+              .map(extractSuggestionText)
+              .filter((s: any): s is { text: string; placeId: string } => s !== null)
+              .slice(0, 4);
+            setPlaceSuggestions(parsed);
+          } else {
+            setPlaceSuggestions([]);
           }
         }
-      } catch (err) {
-        console.error('Autocomplete API failed:', err);
       }
-    };
-
-    fetchSuggestions();
-    
-    return () => { active = false; };
-  }, [searchQuery, filter.maxDistance]);
+    } catch (err) {
+      console.error('ScoutView autocomplete error:', err);
+    }
+  }, []);
 
   const taxonomySuggestions = useMemo(() => {
     if (!searchQuery) return [];
     const lowerQ = searchQuery.toLowerCase();
     const dishTypes = getSearchableDishTypes();
     // Unique suggestions
-    return Array.from(new Set(dishTypes.filter(d => d.toLowerCase().includes(lowerQ)))).slice(0, 3);
+    return Array.from(new Set(dishTypes.filter(d => d.toLowerCase().includes(lowerQ))))
+      .slice(0, 3)
+      .map(text => ({ text, type: 'taxonomy' as const }));
   }, [searchQuery]);
 
   const suggestions = useMemo(() => {
-    return Array.from(new Set([...taxonomySuggestions, ...placeSuggestions]));
+    const combined: Array<{ text: string; type: 'taxonomy' | 'place'; placeId?: string }> = [
+      ...taxonomySuggestions,
+      ...placeSuggestions.map(p => ({ text: p.text, placeId: p.placeId, type: 'place' as const }))
+    ];
+    // deduplicate by text
+    const seen = new Set<string>();
+    return combined.filter(c => {
+      if (seen.has(c.text)) return false;
+      seen.add(c.text);
+      return true;
+    });
   }, [taxonomySuggestions, placeSuggestions]);
 
   // Snap Studio Integration
@@ -593,7 +541,18 @@ export const ScoutView = ({
       const google = getGoogleMaps();
       if (!google) return;
 
-      const map = new google.Map(mapRef.current!, {
+      let MapClass = google.Map;
+      if (!MapClass && typeof google.importLibrary === 'function') {
+        const mapsLib = await google.importLibrary("maps") as any;
+        MapClass = mapsLib.Map;
+      }
+
+      if (!MapClass) {
+        console.error("Failed to load Google Maps Map class.");
+        return;
+      }
+
+      const map = new MapClass(mapRef.current!, {
         center: { lat: 40.7128, lng: -74.0060 }, // NYC Primary Grid
         zoom: 13,
         disableDefaultUI: true,
@@ -755,71 +714,83 @@ export const ScoutView = ({
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* FLOATING SEARCH & LEGEND                                      */}
       {/* ═══════════════════════════════════════════════════════════════ */}
-      <div className="absolute top-4 left-4 right-20 md:left-6 md:right-auto md:w-[400px] z-10 space-y-2.5">
-        <div className="bg-white rounded-[1.5rem] shadow-md border border-stone-100 flex items-center">
-          <form onSubmit={handleSearch} className="flex-1 flex items-center relative h-12">
-            <div className="w-4" /> {/* Spacer to replace the hamburger icon */}
-            <input 
-              type="text" 
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setShowSuggestions(true);
-              }}
-              onFocus={() => setShowSuggestions(true)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="Search food territory..."
-              className="flex-1 bg-transparent h-full font-medium text-sm outline-none placeholder:text-stone-500"
-            />
-            {searchQuery && (
-              <button 
-                type="button"
-                onClick={() => {
-                  setSearchQuery('');
-                  setShowSuggestions(false);
-                  if (mapInstanceRef.current) fetchPlaces(mapInstanceRef.current);
+      <div className="absolute top-4 left-4 right-20 md:left-6 md:right-auto md:w-[400px] z-30 space-y-2.5">
+        <div className="relative">
+          <div className="bg-white rounded-[1.5rem] shadow-md border border-stone-100 flex items-center">
+            <form onSubmit={handleSearch} className="flex-1 flex items-center h-12">
+              <div className="w-4" /> {/* Spacer to replace the hamburger icon */}
+              <input 
+                type="text" 
+                value={searchQuery}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSearchQuery(val);
+                  setShowSuggestions(true);
+                  
+                  if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+                  searchTimerRef.current = setTimeout(() => {
+                    fetchSuggestions(val);
+                  }, 300);
                 }}
-                className="px-2 h-full flex items-center text-stone-400 hover:text-stone-900"
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                placeholder="Search food territory..."
+                className="flex-1 bg-transparent h-full font-medium text-sm outline-none placeholder:text-stone-500"
+              />
+              {searchQuery && (
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setShowSuggestions(false);
+                    if (mapInstanceRef.current) fetchPlaces(mapInstanceRef.current);
+                  }}
+                  className="px-2 h-full flex items-center text-stone-400 hover:text-stone-900"
+                >
+                  <X size={18} />
+                </button>
+              )}
+              <button 
+                type="submit"
+                className="w-10 h-full flex items-center justify-center text-stone-500 hover:text-blue-600 transition-colors"
               >
-                <X size={18} />
+                <Search size={18} strokeWidth={2.5} />
               </button>
-            )}
-            <button 
-              type="submit"
-              className="w-10 h-full flex items-center justify-center text-stone-500 hover:text-blue-600 transition-colors"
-            >
-              <Search size={18} strokeWidth={2.5} />
-            </button>
+            </form>
             
-            {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-stone-100 overflow-hidden z-20">
-                {suggestions.map((sug, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => {
-                      setSearchQuery(sug);
-                      handleSearch(undefined, sug);
-                    }}
-                    className="w-full text-left px-5 py-3 hover:bg-stone-50 text-sm font-medium text-stone-700 border-b border-stone-50 last:border-0"
-                  >
-                    {sug}
-                  </button>
-                ))}
+            <div className="w-px h-6 bg-stone-200" />
+            
+            <button 
+              onClick={() => setIsRoutePlannerOpen(true)}
+              className="w-12 h-12 flex items-center justify-center text-blue-600 hover:text-blue-700 transition-colors"
+            >
+              <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                <Navigation size={16} />
               </div>
-            )}
-          </form>
-          
-          <div className="w-px h-6 bg-stone-200" />
-          
-          <button 
-            onClick={() => setIsRoutePlannerOpen(true)}
-            className="w-12 h-12 flex items-center justify-center text-blue-600 hover:text-blue-700 transition-colors"
-          >
-            <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
-              <Navigation size={16} />
+            </button>
+          </div>
+
+          {/* Suggestions dropdown — OUTSIDE the rounded container to avoid clipping */}
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-stone-100 overflow-hidden z-30">
+              {suggestions.map((sug, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setSearchQuery(sug.text);
+                    handleSearch(undefined, sug.text);
+                  }}
+                  className="w-full text-left px-5 py-3 hover:bg-stone-50 text-sm font-medium text-stone-700 border-b border-stone-50 last:border-0 flex items-center gap-2"
+                >
+                  {sug.type === 'place' ? <MapPin size={14} className="text-stone-400 shrink-0" /> : <Search size={14} className="text-stone-400 shrink-0" />}
+                  <span className="truncate">{sug.text}</span>
+                </button>
+              ))}
             </div>
-          </button>
+          )}
         </div>
 
 

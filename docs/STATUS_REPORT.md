@@ -90,3 +90,12 @@ Once local validation is completed to your liking tomorrow, we will:
 - **Current**: Investigation ongoing. Implemented developer bypass for local testing (test@fuzo.app / password123).
 - **Next Steps**: Resolve verification, update Google OAuth consent screen, ensure deployed app passes verification.
 
+## 🗺️ Scout Map & Google Maps API Overhaul
+- **Places API Migration**: Successfully upgraded Scout Discovery to support the new async Google Maps `importLibrary` loader and the modern Places API (`fetchAutocompleteSuggestions`). Fixed silent failures caused by legacy synchronous API calls.
+- **Scout UI Overhaul**: 
+  - Discovery list items now display exact calculated distances from the search center instead of generic "NEARBY" labels.
+  - The "About" tab in the Place Modal was rebuilt to match Google Maps, dynamically categorizing Service Options, Accessibility, and Offerings based on precise boolean flags.
+  - Replaced the "Menu" placeholder tab with a "Photos" tab that renders a clean image grid of all available Google Maps photos for the venue.
+  - "Reserve a table" and "Order online" action buttons now render strictly based on API availability flags and deep-link directly to the restaurant's website.
+- **Route Planner & Deprecations**: Completely removed the deprecated `DirectionsRenderer` and replaced it with a custom manual `Polyline` rendering system that draws precise paths from the Routes API v2. Rebuilt the Route Planner's autocomplete with debounced custom dropdowns, completely clearing all deprecation warnings from the console.
+- **Status**: ✅ Completed, committed, and pushed to git.

@@ -211,3 +211,26 @@ export const sortPlaces = (places: ScoutPlace[], sortBy: ScoutFilter['sortBy']):
 export const shouldApplyLatestRequest = (mountedRef: React.MutableRefObject<boolean>, requestSeq: number, requestSeqRef: React.MutableRefObject<number>) => {
     return mountedRef.current && requestSeq === requestSeqRef.current;
 };
+
+export const extractSuggestionText = (s: any): { text: string; placeId: string } | null => {
+  if (!s) return null;
+  const prediction = s.placePrediction || s.queryPrediction;
+  if (!prediction) {
+    // Fallback for cases where it's a raw string or description property
+    let text = s.description || s.text || s.name || s.formattedAddress;
+    if (typeof s === 'string') text = s;
+    if (!text) return null;
+    return { text, placeId: s.placeId || s.place_id || '' };
+  }
+
+  let text = '';
+  if (prediction.text?.text) text = prediction.text.text;
+  else if (prediction.text?.toString) text = prediction.text.toString();
+  else if (prediction.description) text = prediction.description;
+  
+  const placeId = prediction.placeId || prediction.place_id || '';
+  
+  if (!text) return null;
+  return { text, placeId };
+};
+
