@@ -29,6 +29,7 @@ Scout is the only view that breaks the standard content container.
 - **Discovery Panel**: 
   - **Mobile**: A responsive bottom sheet with "Peek" (140px) and "Expanded" (65vh) states.
   - **Desktop**: A glassmorphism side panel (380px) overlaid on the map.
+- **Place Details Modal (`ScoutPlaceModal.tsx`)**: A rich, standalone modal that displays deep information for a selected place, including driving ETAs, photos, and quick actions.
 
 ---
 
@@ -45,6 +46,10 @@ Scout no longer silos data by source. All sources are merged into a single `acti
 ### 2. Search Logic
 - **Nearby (Default)**: Fetches spots near the map center.
 - **Text Search**: Uses `PlacesService.searchByText` when a query is submitted via the Enter key or the Search icon.
+
+### 3. Route Calculation (Google Routes API v2)
+- **Asynchronous Routing**: Scout uses a non-blocking background queue to fetch driving ETAs and polyline routes between the user's location and map pins via the new `Google Routes API v2`.
+- **UI Integration**: The ETAs are displayed asynchronously in the UI and inside the `ScoutPlaceModal`.
 
 ---
 
