@@ -98,4 +98,10 @@ Once local validation is completed to your liking tomorrow, we will:
   - Replaced the "Menu" placeholder tab with a "Photos" tab that renders a clean image grid of all available Google Maps photos for the venue.
   - "Reserve a table" and "Order online" action buttons now render strictly based on API availability flags and deep-link directly to the restaurant's website.
 - **Route Planner & Deprecations**: Completely removed the deprecated `DirectionsRenderer` and replaced it with a custom manual `Polyline` rendering system that draws precise paths from the Routes API v2. Rebuilt the Route Planner's autocomplete with debounced custom dropdowns, completely clearing all deprecation warnings from the console.
-- **Status**: ✅ Completed, committed, and pushed to git.
+- **Status:** ✅ Completed, committed, and pushed to git.
+
+## 🔗 Share A Link Flow (Media Creation Separation)
+- **Decoupled Creation Modes:** Separated the ambiguous "A Video" mode in the Unified Creation Modal into two distinct, clear flows: "A Video" (for local file uploads) and "Share A Link" (for external media imports).
+- **Streamlined Link Extraction:** When users select "Share A Link", the AI Trim Studio mounts in a dedicated `link` mode displaying only the YouTube URL input.
+- **Bypass Automation:** Clicking "Analyze Link" instantly bypasses manual Identity and Story configuration steps, firing off automatic AI extraction. The system parses the YouTube metadata, applies the Fuzo culinary taxonomy (cuisines/vibes), and drops the user straight into the Review & Save screen.
+- **Status:** ✅ Completed, committed, and pushed to git.
