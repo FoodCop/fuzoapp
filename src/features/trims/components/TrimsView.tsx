@@ -232,42 +232,22 @@ const requestGeneratedTrimCard = async ({
       } catch (e) {}
     }
 
-    const taxonomyRule = taxonomy 
-      ? `\nCRITICAL: Use ONLY these cuisine tags: ${taxonomy.cuisines.join(', ')}. Use ONLY these vibes: ${taxonomy.vibes.join(', ')}. Do NOT add "Cuisine" suffix.`
-      : '';
-    const textPrompt = `You are a culinary neural analyst. Build a clean JSON trim card based on this YouTube video metadata.
-${taxonomyRule}
-User Context: ${description}
-YouTube Title: ${title}
-YouTube Description: ${videoDesc}
-URL: ${effectiveUrl}
-Target: YouTube Content Extraction
-Required fields: title, summary, keyFoodItem, location (city/neighborhood), cuisineTags (array), caption.`;
-
-    try {
-      const text = await GeminiService.analyzeTrim(textPrompt, TRIM_RESPONSE_SCHEMA, null, 'text/plain');
-      const parsed = parseAiJson(text);
-      if (parsed?.title) {
-        return {
-          ...parsed,
-          sourceUrl: parsed.sourceUrl || effectiveUrl,
-          thumbnailUrl: parsed.thumbnailUrl || thumbnail || undefined,
-        };
-      }
-    } catch (e) {
-      console.warn("Text-only Gemini extraction failed, returning generic metadata.", e);
-    }
+    // Auto-tag based on keywords if taxonomy is provided
+    const textToAnalyze = `${title} ${videoDesc}`.toLowerCase();
+    const matchedCuisines = taxonomy?.cuisines 
+      ? taxonomy.cuisines.filter((c: string) => textToAnalyze.includes(c.toLowerCase()))
+      : [];
 
     return {
       title,
       author,
-      caption: description || title,
+      caption: description || videoDesc.substring(0, 150) || title,
       likes: '1.0k',
       sourceUrl: effectiveUrl,
-      summary: title,
+      summary: videoDesc.substring(0, 200) || title,
       keyFoodItem: 'Unknown',
       location: 'Global',
-      cuisineTags: [],
+      cuisineTags: matchedCuisines.length > 0 ? matchedCuisines : [],
       thumbnailUrl: thumbnail || undefined,
       nutrition: {
         calories: 0,

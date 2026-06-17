@@ -103,5 +103,5 @@ Once local validation is completed to your liking tomorrow, we will:
 ## 🔗 Share A Link Flow (Media Creation Separation)
 - **Decoupled Creation Modes:** Separated the ambiguous "A Video" mode in the Unified Creation Modal into two distinct, clear flows: "A Video" (for local file uploads) and "Share A Link" (for external media imports).
 - **Streamlined Link Extraction:** When users select "Share A Link", the AI Trim Studio mounts in a dedicated `link` mode displaying only the YouTube URL input.
-- **Bypass Automation:** Clicking "Analyze Link" instantly bypasses manual Identity and Story configuration steps, firing off automatic AI extraction. The system parses the YouTube metadata, applies the Fuzo culinary taxonomy (cuisines/vibes), and drops the user straight into the Review & Save screen.
+- **Bypass Automation (Zero-LLM):** Clicking "Analyze Link" instantly bypasses manual Identity and Story configuration steps, and completely bypasses the Gemini LLM. The system parses the YouTube metadata (oEmbed/API), applies the Fuzo culinary taxonomy (cuisines/vibes) via direct local heuristics, and drops the user straight into the Review & Save screen instantly without network rate-limit vulnerabilities.
 - **Status:** ✅ Completed, committed, and pushed to git.
