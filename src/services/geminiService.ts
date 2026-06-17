@@ -65,6 +65,7 @@ interface GeminiServiceResult {
     raw: unknown;
   };
   error?: string;
+  status?: number;
 }
 
 /**
