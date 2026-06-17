@@ -54,10 +54,11 @@ The project is strictly separated into two domains:
 
 ## 🔑 Key Mechanisms to Know
 
-1. **The Recipe Engine**: Fuzo uses a bespoke, zero-latency client-side search engine. Recipes are loaded from `curatedRecipes.json` and filtered instantly without backend trips.
-2. **Proxy Functions**: External API calls (like Google Maps) are routed through our secure Supabase Edge Functions (`supabase/functions/make-server-5976446e`) to protect API keys.
-3. **Social Connectivity**: Meta/Instagram OAuth is deeply integrated via `MetaService.ts` for pulling Instagram grids into user profiles.
-4. **Chat & Realtime**: The platform features a comprehensive real-time chat and notification system powered by Supabase Realtime websockets.
+1. **The Recipe Engine (Zero Latency)**: We have completely decoupled from Spoonacular. Fuzo uses a bespoke, zero-latency client-side search engine. Recipes are loaded from `curatedRecipes.json` and filtered instantly without backend trips.
+2. **Zero-LLM Link Extraction**: External media imports (like YouTube via "Share a Link") now completely bypass Gemini and AI APIs. We use local metadata extraction (via proxy/oEmbed) and local heuristics for taxonomy tagging, creating a rate-limit proof pipeline.
+3. **Proxy Functions**: External API calls (like Google Maps/Places) are routed through our secure Supabase Edge Functions (`supabase/functions/`) to protect API keys.
+4. **Social Connectivity**: Meta/Instagram OAuth is deeply integrated via `MetaService.ts` for pulling Instagram grids into user profiles.
+5. **Chat & Realtime**: The platform features a comprehensive real-time chat and notification system powered by Supabase Realtime websockets.
 
 ---
 

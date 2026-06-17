@@ -10,17 +10,17 @@ The FUZO V2 ecosystem follows a synchronized 4-layer stack designed for rapid in
 ```mermaid
 graph LR
     subgraph "Ingestion (Studios)"
-        A[Camera/Voice/YouTube] --> B{AI Studio}
+        A[Camera/Voice] --> B{AI Studio}
+        A2[YouTube/URL] --> B2{Link Studio (Zero-LLM)}
     end
 
-    subgraph "Neural Synthesis (Gemini)"
-        B --> C[Visual Vibe Extraction]
-        B --> D[Recipe Parsing]
-        B --> E[Utility Hacks Extraction]
+    subgraph "Neural Synthesis & Heuristics"
+        B --> C[Gemini AI: Visual/Text Extraction]
+        B2 --> C2[Local Heuristics: Metadata Match]
     end
 
     subgraph "Persistence (Supabase)"
-        C & D & E --> F[Postgres / Metadata]
+        C & C2 --> F[Postgres / Metadata]
         F --> G[Real-time Presence]
     end
 

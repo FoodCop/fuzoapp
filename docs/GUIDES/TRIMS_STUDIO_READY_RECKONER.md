@@ -22,7 +22,7 @@ The Trims Studio supports two distinct entry pipelines:
 | Pipeline | Source Type       | Logic                                                |
 |:---------|:------------------|:-----------------------------------------------------|
 | **Local** | Vertical Video    | Direct upload and base64 parsing for Gemini analysis |
-| **Neural**| YouTube URL       | URL normalization and metadata extraction via Gemini |
+| **Link**  | YouTube URL       | **Zero-LLM Pipeline**: URL normalization, proxy metadata extraction, and local heuristics for taxonomy tagging (Bypasses Gemini). |
 
 ### Wizard Steps
 
@@ -31,11 +31,11 @@ The Trims Studio uses a standardized **6-step wizard** orchestrated by `AITrimSt
 | Step | Name         | Component Logic                                      |
 |:----:|:-------------|:-----------------------------------------------------|
 |  0   | **Media**    | `TrimsMediaStep`: Video upload or YouTube URL input |
-|  1   | **Identity** | `TrimsIdentityStep`: Title and category mapping      |
-|  2   | **Story**    | `TrimsStoryStep`: AI-guiding description             |
-|  3   | **Reveal**   | `NeuralReveal`: Immersive AI synthesis animation    |
+|  1   | **Identity** | `TrimsIdentityStep`: Title and category mapping *(Bypassed for Links)* |
+|  2   | **Story**    | `TrimsStoryStep`: AI-guiding description *(Bypassed for Links)* |
+|  3   | **Reveal**   | `NeuralReveal`: Immersive AI synthesis animation *(Bypassed for Links)* |
 |  4   | **Review**   | `TrimsReviewStep`: Trim Card preview & confirmation |
-|  5   | **Success**  | Final CTAs & feed syndication                        |
+|  5   | **Success**  | Final CTAs & feed syndication |
 
 ---
 
@@ -44,8 +44,8 @@ The Trims Studio uses a standardized **6-step wizard** orchestrated by `AITrimSt
 The `requestGeneratedTrimCard` utility (internal to `TrimsView.tsx`) orchestrates the AI call.
 
 ### Multi-Modal Inputs
-- **YouTube**: Sends the URL as context for Gemini to "watch" and summarize.
-- **Upload**: Sends binary video data (base64) for direct frame/context analysis.
+- **Video Upload**: Sends binary video data (base64) to Google Gemini 2.5 Flash for deep frame/context analysis.
+- **YouTube Link (Zero-LLM)**: Completely bypasses the Gemini LLM. Fetches metadata via oEmbed and proxy, applies local heuristics against `taxonomy.ts` to assign `cuisineTags`, and returns instantly to avoid rate limits.
 
 ### System Instructions
 The AI is instructed to act as a "Social Media Video Strategist" extracting:
