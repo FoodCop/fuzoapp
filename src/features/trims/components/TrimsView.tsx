@@ -193,6 +193,43 @@ const requestGeneratedTrimCard = async ({
     return buildMockTrimCard(description);
   }
 
+  if (hasYoutubeUrl) {
+    let title = 'YouTube Trim';
+    let author = 'FUZO Studio';
+    let thumbnail = '';
+    
+    try {
+      const oEmbed = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(effectiveUrl)}&format=json`);
+      if (oEmbed.ok) {
+        const oEmbedJson = await oEmbed.json();
+        title = typeof oEmbedJson?.title === 'string' ? oEmbedJson.title : title;
+        author = typeof oEmbedJson?.author_name === 'string' ? oEmbedJson.author_name : author;
+        thumbnail = typeof oEmbedJson?.thumbnail_url === 'string' ? oEmbedJson.thumbnail_url : thumbnail;
+      }
+    } catch (e) {
+      // Silently continue
+    }
+    
+    return {
+      title,
+      author,
+      caption: description || title,
+      likes: '1.0k',
+      sourceUrl: effectiveUrl,
+      summary: title,
+      keyFoodItem: 'Unknown',
+      location: 'Global',
+      cuisineTags: [],
+      thumbnailUrl: thumbnail,
+      nutrition: {
+        calories: 0,
+        protein: 0,
+        fat: 0,
+        carbs: 0
+      }
+    };
+  }
+
   const oEmbedContext = await fetchYouTubeOEmbedContext(effectiveUrl);
   const prompt = buildTrimPrompt({
     description,
@@ -211,7 +248,7 @@ const requestGeneratedTrimCard = async ({
 
   return {
     ...parsed,
-    sourceUrl: parsed.sourceUrl || (hasYoutubeUrl ? effectiveUrl : undefined),
+    sourceUrl: parsed.sourceUrl || undefined,
     thumbnailUrl: parsed.thumbnailUrl || undefined,
   };
 };

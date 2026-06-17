@@ -192,31 +192,31 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const requestProxyWithRetry = async (url: string, body: Record<string, unknown>, useSupabaseAuth: boolean, maxRetries = 3): Promise<GeminiServiceResult & { status?: number }> => {
   let attempt = 0;
-  
+
   while (attempt < maxRetries) {
     const result = await requestProxy(url, body, useSupabaseAuth) as GeminiServiceResult & { status?: number };
-    
+
     if (result.success) {
       return result;
     }
-    
+
     // Only retry on 503 Service Unavailable or 429 Too Many Requests
     if (result.status === 503 || result.status === 429) {
       attempt++;
       if (attempt >= maxRetries) {
         return result;
       }
-      
+
       const backoffMs = Math.pow(2, attempt) * 1000 + Math.random() * 500;
       console.warn(`[Gemini Proxy] Received ${result.status}. Retrying attempt ${attempt}/${maxRetries} in ${Math.round(backoffMs)}ms...`);
       await delay(backoffMs);
       continue;
     }
-    
+
     // For other errors, fail immediately without retry
     return result;
   }
-  
+
   return { success: false, error: 'Max retries exceeded' };
 };
 
@@ -288,7 +288,7 @@ export const GeminiService = {
           role: 'user',
           parts: [
             { text: prompt },
-            { 
+            {
               inlineData: {
                 mimeType,
                 data: base64Data
@@ -345,7 +345,7 @@ export const GeminiService = {
           role: 'user',
           parts: [
             { text: prompt },
-            { 
+            {
               inlineData: {
                 mimeType,
                 data: base64Data
