@@ -250,6 +250,7 @@ const App = () => {
   const [showUnifiedCreation, setShowUnifiedCreation] = useState(false);
   const [showAIBitesStudio, setShowAIBitesStudio] = useState(false);
   const [showAITrimStudio, setShowAITrimStudio] = useState(false);
+  const [trimStudioInitialMode, setTrimStudioInitialMode] = useState<'video' | 'link'>('video');
   const [showAIImportStudio, setShowAIImportStudio] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [savedItems, setSavedItems] = useState<AppItem[]>(FALLBACK_SAVED_ITEMS);
@@ -1176,7 +1177,14 @@ const App = () => {
             onSelectOption={(option) => {
               if (option === 'snap') setShowSnap(true);
               else if (option === 'bites-ai') setShowAIBitesStudio(true);
-              else if (option === 'trim-ai') setShowAITrimStudio(true);
+              else if (option === 'trim-ai') {
+                setTrimStudioInitialMode('video');
+                setShowAITrimStudio(true);
+              }
+              else if (option === 'link-ai') {
+                setTrimStudioInitialMode('link');
+                setShowAITrimStudio(true);
+              }
               else if (option === 'import-ai') setShowAIImportStudio(true);
               else if (option === 'scout') setTab('scout');
             }}
@@ -1202,6 +1210,7 @@ const App = () => {
 
           {showAITrimStudio && (
             <AITrimStudio 
+              initialMode={trimStudioInitialMode}
               onClose={() => setShowAITrimStudio(false)} 
               onSave={handleSave} 
               onShareRequest={setActiveShareItem}

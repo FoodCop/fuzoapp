@@ -196,6 +196,11 @@ type GeneratedTrimCard = {
   };
 };
 
+const extractYouTubeVideoId = (url: string) => {
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
+  return match ? match[1] : null;
+};
+
 const requestGeneratedTrimCard = async ({
   description,
   effectiveUrl,
@@ -216,22 +221,74 @@ const requestGeneratedTrimCard = async ({
   }
 
   if (hasYoutubeUrl) {
+    const videoId = extractYouTubeVideoId(effectiveUrl);
     let title = 'YouTube Trim';
     let author = 'FUZO Studio';
     let thumbnail = '';
-    
+    let videoDesc = '';
+
+    if (videoId) {
+      try {
+        const detailsResult = await YouTubeService.getVideoDetails(videoId);
+        if (detailsResult.success && detailsResult.data?.items?.length > 0) {
+          const item = detailsResult.data.items[0];
+          title = item.snippet?.title || title;
+          author = item.snippet?.channelTitle || author;
+          thumbnail = item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.medium?.url || thumbnail;
+          videoDesc = item.snippet?.description || '';
+        }
+      } catch (e) {
+        // Silently continue
+      }
+    }
+
+    if (!title || title === 'YouTube Trim') {
+      try {
+        const oEmbed = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(effectiveUrl)}&format=json`);
+        if (oEmbed.ok) {
+          const oEmbedJson = await oEmbed.json();
+          title = typeof oEmbedJson?.title === 'string' ? oEmbedJson.title : title;
+          author = typeof oEmbedJson?.author_name === 'string' ? oEmbedJson.author_name : author;
+          thumbnail = typeof oEmbedJson?.thumbnail_url === 'string' ? oEmbedJson.thumbnail_url : thumbnail;
+        }
+      } catch (e) {}
+    }
+
+    const taxonomyRule = taxonomy 
+      ? `\nCRITICAL: Use ONLY these cuisine tags: ${taxonomy.cuisines.join(', ')}. Use ONLY these vibes: ${taxonomy.vibes.join(', ')}. Do NOT add "Cuisine" suffix.`
+      : '';
+    const textPrompt = `You are a culinary neural analyst. Build a clean JSON trim card based on this YouTube video metadata.
+${taxonomyRule}
+User Context: ${description}
+YouTube Title: ${title}
+YouTube Description: ${videoDesc}
+URL: ${effectiveUrl}
+Target: YouTube Content Extraction
+Required fields: title, summary, keyFoodItem, location (city/neighborhood), cuisineTags (array), caption.`;
+
     try {
-      const oEmbed = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(effectiveUrl)}&format=json`);
-      if (oEmbed.ok) {
-        const oEmbedJson = await oEmbed.json();
-        title = typeof oEmbedJson?.title === 'string' ? oEmbedJson.title : title;
-        author = typeof oEmbedJson?.author_name === 'string' ? oEmbedJson.author_name : author;
-        thumbnail = typeof oEmbedJson?.thumbnail_url === 'string' ? oEmbedJson.thumbnail_url : thumbnail;
+      const response = await GeminiService.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [{ role: 'user', parts: [{ text: textPrompt }] }],
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: TRIM_RESPONSE_SCHEMA,
+        },
+      });
+      if (response.success && response.data?.text) {
+        const parsed = parseAiJson(response.data.text);
+        if (parsed?.title) {
+          return {
+            ...parsed,
+            sourceUrl: parsed.sourceUrl || effectiveUrl,
+            thumbnailUrl: parsed.thumbnailUrl || thumbnail || undefined,
+          };
+        }
       }
     } catch (e) {
-      // Silently continue
+      console.warn("Text-only Gemini extraction failed, returning generic metadata.", e);
     }
-    
+
     return {
       title,
       author,
@@ -242,7 +299,7 @@ const requestGeneratedTrimCard = async ({
       keyFoodItem: 'Unknown',
       location: 'Global',
       cuisineTags: [],
-      thumbnailUrl: thumbnail,
+      thumbnailUrl: thumbnail || undefined,
       nutrition: {
         calories: 0,
         protein: 0,

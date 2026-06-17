@@ -174,6 +174,11 @@ type GeneratedTrimCard = {
   };
 };
 
+const extractYouTubeVideoId = (url: string) => {
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
+  return match ? match[1] : null;
+};
+
 const requestGeneratedTrimCard = async ({
   description,
   effectiveUrl,
@@ -194,22 +199,65 @@ const requestGeneratedTrimCard = async ({
   }
 
   if (hasYoutubeUrl) {
+    const videoId = extractYouTubeVideoId(effectiveUrl);
     let title = 'YouTube Trim';
     let author = 'FUZO Studio';
     let thumbnail = '';
-    
+    let videoDesc = '';
+
+    if (videoId) {
+      try {
+        const detailsResult = await YouTubeService.getVideoDetails(videoId);
+        if (detailsResult.success && detailsResult.data?.items?.length > 0) {
+          const item = detailsResult.data.items[0];
+          title = item.snippet?.title || title;
+          author = item.snippet?.channelTitle || author;
+          thumbnail = item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.medium?.url || thumbnail;
+          videoDesc = item.snippet?.description || '';
+        }
+      } catch (e) {
+        // Silently continue
+      }
+    }
+
+    if (!title || title === 'YouTube Trim') {
+      try {
+        const oEmbed = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(effectiveUrl)}&format=json`);
+        if (oEmbed.ok) {
+          const oEmbedJson = await oEmbed.json();
+          title = typeof oEmbedJson?.title === 'string' ? oEmbedJson.title : title;
+          author = typeof oEmbedJson?.author_name === 'string' ? oEmbedJson.author_name : author;
+          thumbnail = typeof oEmbedJson?.thumbnail_url === 'string' ? oEmbedJson.thumbnail_url : thumbnail;
+        }
+      } catch (e) {}
+    }
+
+    const taxonomyRule = taxonomy 
+      ? `\nCRITICAL: Use ONLY these cuisine tags: ${taxonomy.cuisines.join(', ')}. Use ONLY these vibes: ${taxonomy.vibes.join(', ')}. Do NOT add "Cuisine" suffix.`
+      : '';
+    const textPrompt = `You are a culinary neural analyst. Build a clean JSON trim card based on this YouTube video metadata.
+${taxonomyRule}
+User Context: ${description}
+YouTube Title: ${title}
+YouTube Description: ${videoDesc}
+URL: ${effectiveUrl}
+Target: YouTube Content Extraction
+Required fields: title, summary, keyFoodItem, location (city/neighborhood), cuisineTags (array), caption.`;
+
     try {
-      const oEmbed = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(effectiveUrl)}&format=json`);
-      if (oEmbed.ok) {
-        const oEmbedJson = await oEmbed.json();
-        title = typeof oEmbedJson?.title === 'string' ? oEmbedJson.title : title;
-        author = typeof oEmbedJson?.author_name === 'string' ? oEmbedJson.author_name : author;
-        thumbnail = typeof oEmbedJson?.thumbnail_url === 'string' ? oEmbedJson.thumbnail_url : thumbnail;
+      const text = await GeminiService.analyzeTrim(textPrompt, TRIM_RESPONSE_SCHEMA, null, 'text/plain');
+      const parsed = parseAiJson(text);
+      if (parsed?.title) {
+        return {
+          ...parsed,
+          sourceUrl: parsed.sourceUrl || effectiveUrl,
+          thumbnailUrl: parsed.thumbnailUrl || thumbnail || undefined,
+        };
       }
     } catch (e) {
-      // Silently continue
+      console.warn("Text-only Gemini extraction failed, returning generic metadata.", e);
     }
-    
+
     return {
       title,
       author,
@@ -220,7 +268,7 @@ const requestGeneratedTrimCard = async ({
       keyFoodItem: 'Unknown',
       location: 'Global',
       cuisineTags: [],
-      thumbnailUrl: thumbnail,
+      thumbnailUrl: thumbnail || undefined,
       nutrition: {
         calories: 0,
         protein: 0,
@@ -270,17 +318,19 @@ const toOptionalString = (value: unknown) => (typeof value === 'string' ? value 
 // ---------------------------------------------------------------------------
 
 const TrimsMediaStep = ({
+  mode,
   video, 
   linkURL, 
   onVideoUpload, 
   onUrlChange, 
   onNext 
 }: { 
+  mode: 'video' | 'link',
   video: string | null, 
   linkURL: string, 
   onVideoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void, 
   onUrlChange: (url: string) => void,
-  onNext: () => void 
+  onNext: (skipToGenerate?: boolean) => void 
 }) => {
   return (
     <div className="absolute inset-0 bg-stone-950 p-8 flex flex-col justify-center animate-in fade-in duration-500 overflow-y-auto">
@@ -288,53 +338,55 @@ const TrimsMediaStep = ({
         <div className="space-y-4">
           <Badge color="yellow">Step 1</Badge>
           <h2 className="text-5xl font-black uppercase tracking-tighter italic text-white leading-none">Neural Feed</h2>
-          <p className="text-stone-400 font-bold uppercase tracking-widest text-[10px]">Upload vertical video or paste YouTube URL</p>
+          <p className="text-stone-400 font-bold uppercase tracking-widest text-[10px]">
+            {mode === 'video' ? 'Upload vertical video' : 'Paste YouTube URL'}
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          {/* Video Upload */}
-          <div className="space-y-4">
-            <label className="text-[10px] font-black uppercase tracking-widest text-stone-500">Vertical Trim</label>
-            <div className="relative aspect-[9/16] bg-stone-900 rounded-[3rem] border-4 border-dashed border-stone-800 overflow-hidden group hover:border-emerald-400/50 transition-all">
-              {video ? (
-                <video src={video} className="w-full h-full object-cover" autoPlay loop muted />
-              ) : (
-                <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer">
-                  <PlayCircle size={48} className="text-stone-700 group-hover:text-emerald-400 transition-colors mb-4" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-stone-600 px-8">Upload Trim</span>
-                  <input type="file" accept="video/*" className="hidden" onChange={onVideoUpload} />
-                </label>
-              )}
+        <div className="flex justify-center">
+          {mode === 'video' ? (
+            <div className="space-y-4 w-full max-w-md">
+              <label className="text-[10px] font-black uppercase tracking-widest text-stone-500">Vertical Trim</label>
+              <div className="relative aspect-[9/16] bg-stone-900 rounded-[3rem] border-4 border-dashed border-stone-800 overflow-hidden group hover:border-emerald-400/50 transition-all">
+                {video ? (
+                  <video src={video} className="w-full h-full object-cover" autoPlay loop muted />
+                ) : (
+                  <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer">
+                    <PlayCircle size={48} className="text-stone-700 group-hover:text-emerald-400 transition-colors mb-4" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-stone-600 px-8">Upload Trim</span>
+                    <input type="file" accept="video/*" className="hidden" onChange={onVideoUpload} />
+                  </label>
+                )}
+              </div>
             </div>
-          </div>
-
-          {/* YouTube Link */}
-          <div className="space-y-8 flex flex-col justify-center">
-            <div className="space-y-4">
-              <label className="text-[10px] font-black uppercase tracking-widest text-stone-500 text-left block ml-4">YouTube Intelligence</label>
-              <input
-                value={linkURL}
-                onChange={(e) => onUrlChange(e.target.value)}
-                placeholder="Paste YouTube link..."
-                className="w-full bg-stone-900 border-4 border-stone-800 rounded-[2rem] px-8 py-6 font-bold text-sm text-white outline-none focus:border-emerald-400 transition-all shadow-inner"
-              />
+          ) : (
+            <div className="space-y-8 flex flex-col justify-center w-full max-w-xl">
+              <div className="space-y-4">
+                <label className="text-[10px] font-black uppercase tracking-widest text-stone-500 text-left block ml-4">YouTube Intelligence</label>
+                <input
+                  value={linkURL}
+                  onChange={(e) => onUrlChange(e.target.value)}
+                  placeholder="Paste YouTube link..."
+                  className="w-full bg-stone-900 border-4 border-stone-800 rounded-[2rem] px-8 py-6 font-bold text-sm text-white outline-none focus:border-emerald-400 transition-all shadow-inner"
+                />
+              </div>
+              <div className="p-8 bg-stone-900/50 rounded-[2.5rem] border-2 border-stone-800 text-left space-y-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Neural Capability</p>
+                <p className="text-xs font-bold text-stone-400 leading-relaxed">
+                  AI analyzes YouTube frames to extract culinary data, nutrition, and key ingredients automatically.
+                </p>
+              </div>
             </div>
-            <div className="p-8 bg-stone-900/50 rounded-[2.5rem] border-2 border-stone-800 text-left space-y-4">
-              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Neural Capability</p>
-              <p className="text-xs font-bold text-stone-400 leading-relaxed">
-                AI analyzes YouTube frames to extract culinary data, nutrition, and key ingredients automatically.
-              </p>
-            </div>
-          </div>
+          )}
         </div>
 
         <div className="flex justify-center pt-8">
           <button
-            disabled={!video && !isYouTubeUrl(linkURL)}
-            onClick={onNext}
+            disabled={(mode === 'video' && !video) || (mode === 'link' && !isYouTubeUrl(linkURL))}
+            onClick={() => onNext(mode === 'link')}
             className="px-12 py-6 bg-white text-stone-900 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
           >
-            Configure Context
+            {mode === 'link' ? 'Analyze Link' : 'Configure Context'}
           </button>
         </div>
       </div>
@@ -437,10 +489,12 @@ const TrimsReviewStep = ({ video, data, onEdit, onLock, isUploading }: { video: 
  * 4. Synthesis: Gemini neural assembly of the card.
  */
 export const AITrimStudio = ({
+  initialMode = 'video',
   onSave,
   onShareRequest,
   onClose,
 }: {
+  initialMode?: 'video' | 'link';
   onSave: (item: AppItem) => void;
   onShareRequest: (item: AppItem) => void;
   onClose: () => void;
@@ -596,7 +650,7 @@ export const AITrimStudio = ({
 
       <div className="flex-grow relative overflow-hidden">
         {currentStep === 0 && (
-          <TrimsMediaStep video={video} linkURL={linkURL} onVideoUpload={handleVideoUpload} onUrlChange={setLinkURL} onNext={() => setCurrentStep(1)} />
+          <TrimsMediaStep mode={initialMode} video={video} linkURL={linkURL} onVideoUpload={handleVideoUpload} onUrlChange={setLinkURL} onNext={(skip) => skip ? handleGenerate() : setCurrentStep(1)} />
         )}
         {currentStep === 1 && (
           <TrimsIdentityStep title={title} author={author} onUpdate={(d) => { if(d.title !== undefined) setTitle(d.title); if(d.author !== undefined) setAuthor(d.author); }} onNext={() => setCurrentStep(2)} />

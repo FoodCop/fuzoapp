@@ -17,14 +17,14 @@
 import React from 'react';
 import { 
   Camera, ChefHat, PlayCircle, X, 
-  Sparkles, Zap, ArrowRight, Image as ImageIcon
+  Sparkles, Zap, ArrowRight, Image as ImageIcon, Link
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface UnifiedCreationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectOption: (option: 'snap' | 'bites-ai' | 'trim-ai' | 'import-ai' | 'scout') => void;
+  onSelectOption: (option: 'snap' | 'bites-ai' | 'trim-ai' | 'import-ai' | 'scout' | 'link-ai') => void;
 }
 
 export const UnifiedCreationModal = ({ isOpen, onClose, onSelectOption }: UnifiedCreationModalProps) => {
@@ -48,6 +48,13 @@ export const UnifiedCreationModal = ({ isOpen, onClose, onSelectOption }: Unifie
       title: 'A Discovery',
       icon: Camera,
       color: 'bg-emerald-500',
+    },
+    {
+      id: 'link-ai',
+      title: 'Share A Link',
+      icon: Link,
+      color: 'bg-sky-500',
+      isAi: true
     },
     {
       id: 'import-ai',
