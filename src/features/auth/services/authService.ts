@@ -92,6 +92,35 @@ export const AuthService = {
   },
 
   /**
+   * SECTION: Incremental Auth
+   * Triggered to sync Facebook and Instagram handles
+   */
+  async signInForMetaSync() {
+    if (!supabase) {
+      throw new Error('Supabase is not configured');
+    }
+
+    const baseRedirect = getOAuthRedirectUrl();
+    const separator = baseRedirect.includes('?') ? '&' : '?';
+    const redirectTo = `${baseRedirect}${separator}meta_sync=true`;
+    
+    authDebugLog('meta_sync_signin_start', { redirectTo });
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'facebook',
+      options: {
+        redirectTo,
+        scopes: 'public_profile,instagram_basic,pages_show_list',
+      },
+    });
+
+    if (error) {
+      authDebugLog('meta_sync_signin_error', { error: error.message });
+      throw error;
+    }
+  },
+
+  /**
    * SECTION: Session Management
    * Terminates the active Supabase session and clears persistence keys.
    */

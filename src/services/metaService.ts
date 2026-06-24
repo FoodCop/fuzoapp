@@ -50,37 +50,63 @@ export const MetaService = {
   },
 
   /**
-   * SECTION: Profile Data Synchronization
-   * Updates the FUZO profile with data from the connected social account.
+   * SECTION: Profile Data Extraction
+   * Extracts Facebook and Instagram handles using the Graph API and user's provider token.
    */
-  async syncMetaProfile(userId: string, provider: 'facebook' | 'instagram'): Promise<MetaSyncResult> {
-    const client = supabase;
-    if (!client) return { success: false, error: 'Supabase unavailable' };
+  async getMetaHandles(providerToken: string): Promise<MetaSyncResult> {
+    try {
+      const response = await fetch(
+        `https://graph.facebook.com/v19.0/me?fields=id,name,link,instagram_business_account{username}&access_token=${providerToken}`
+      );
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        return { success: false, error: data.error.message };
+      }
+      
+      return { success: true, data };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Unknown Meta API error' };
+    }
+  },
 
-    // This logic assumes the OAuth handshake has already populated the identity metadata
-    const { data: { user }, error: userError } = await client.auth.getUser();
-    
-    if (userError || !user) {
-      return { success: false, error: userError?.message || 'User not found' };
+  /**
+   * SECTION: oEmbed Context
+   * Fetches metadata for an Instagram Reel or Facebook Video/Post using the Graph API oEmbed endpoints.
+   */
+  async fetchMetaOEmbedContext(url: string): Promise<string> {
+    const token = import.meta.env.VITE_META_APP_TOKEN;
+    if (!token) return '';
+
+    let endpoint = '';
+    if (url.includes('instagram.com') || url.includes('instagr.am')) {
+      endpoint = 'instagram_oembed';
+    } else if (url.includes('facebook.com') || url.includes('fb.watch')) {
+      // Use oembed_video for videos/reels, else fallback to oembed_post
+      if (url.includes('/video') || url.includes('/watch') || url.includes('fb.watch') || url.includes('/reel/')) {
+        endpoint = 'oembed_video';
+      } else {
+        endpoint = 'oembed_post';
+      }
     }
 
-    const metadata = user.user_metadata || {};
-    const profileUpdate: any = {};
+    if (!endpoint) return '';
 
-    if (provider === 'facebook') {
-      if (metadata.full_name) profileUpdate.name = metadata.full_name;
-      if (metadata.avatar_url) profileUpdate.avatar_url = metadata.avatar_url;
+    try {
+      const response = await fetch(
+        `https://graph.facebook.com/v19.0/${endpoint}?url=${encodeURIComponent(url)}&access_token=${token}`
+      );
+      
+      const data = await response.json();
+      if (data.error) return '';
+
+      const title = data.title || '';
+      const author = data.author_name || '';
+      const thumbnail = data.thumbnail_url || '';
+      return `oEmbed title: ${title}\noEmbed author: ${author}\noEmbed thumbnail: ${thumbnail}`;
+    } catch {
+      return '';
     }
-
-    const { error: updateError } = await client
-      .from('profiles')
-      .update(profileUpdate)
-      .eq('id', userId);
-
-    if (updateError) {
-      return { success: false, error: updateError.message };
-    }
-
-    return { success: true };
   }
 };

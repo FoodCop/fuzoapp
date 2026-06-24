@@ -29,11 +29,13 @@ import { BITE_FALLBACK_RECIPES } from '../constants/fallbackRecipes';
 import { createBiteRecipeActions, getBiteKeyNutrients, normalizeRecipeList } from '../lib/bitesHelpers';
 import type { BiteActionItem, BiteRecipe, BiteRecipeInput } from '../types/bites';
 import { GeminiService } from '../../../services/geminiService';
+import { MetaService } from '../../../services/metaService';
 import { shouldApplyLatestRequest } from '../../../shared/utils/async';
 import { supabase, hasSupabaseConfig } from '../../../services/supabaseClient';
 import type { AppItem } from '../../../shared/types/appItem';
 import type { ChatInboxItem } from '../../chat/types/chatUi';
 import type { IconComponent } from '../../../shared/types/ui';
+import { YouTubeService } from '../../../services/youtubeService';
 
 // Lightweight motion shims (same as index.tsx)
 type LightweightMotionProps = { children?: React.ReactNode;[key: string]: unknown; };
@@ -49,6 +51,14 @@ const isYouTubeUrl = (value: string) => {
   if (!trimmed) return false;
   return /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i.test(trimmed);
 };
+
+const isMetaUrl = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  return /^(https?:\/\/)?(www\.)?(facebook\.com|fb\.watch|instagram\.com|instagr\.am)\//i.test(trimmed);
+};
+
+const isSupportedMediaUrl = (value: string) => isYouTubeUrl(value) || isMetaUrl(value);
 
 const filterFriendsByQuery = (friends: ChatInboxItem[], query: string) => {
   const normalized = query.trim().toLowerCase();
@@ -133,7 +143,7 @@ const buildTrimPrompt = ({
 ${taxonomyRule}
 Context: ${description}
 URL: ${effectiveUrl}
-${hasYoutubeUrl ? 'Target: YouTube Content Extraction' : 'Target: Vertical Media Analysis'}
+${(hasYoutubeUrl || isMetaUrl(effectiveUrl)) ? 'Target: Social Content Extraction' : 'Target: Vertical Media Analysis'}
 ${oEmbedContext ? `Metadata: ${JSON.stringify(oEmbedContext)}` : ''}
 Required fields: title, summary, keyFoodItem, location (city/neighborhood), cuisineTags (array), caption.`;
 };
@@ -215,8 +225,9 @@ const requestGeneratedTrimCard = async ({
   taxonomy?: any;
 }): Promise<GeneratedTrimCard> => {
   const hasYoutubeUrl = isYouTubeUrl(effectiveUrl);
+  const hasMetaUrl = isMetaUrl(effectiveUrl);
 
-  if (/#mock\b/i.test(description) && !hasYoutubeUrl) {
+  if (/#mock\b/i.test(description) && !hasYoutubeUrl && !hasMetaUrl) {
     return buildMockTrimCard(description);
   }
 
@@ -309,7 +320,13 @@ Required fields: title, summary, keyFoodItem, location (city/neighborhood), cuis
     };
   }
 
-  const oEmbedContext = await fetchYouTubeOEmbedContext(effectiveUrl);
+  let oEmbedContext = '';
+  if (hasYoutubeUrl) {
+    oEmbedContext = await fetchYouTubeOEmbedContext(effectiveUrl);
+  } else if (hasMetaUrl) {
+    oEmbedContext = await MetaService.fetchMetaOEmbedContext(effectiveUrl);
+  }
+  
   const prompt = buildTrimPrompt({
     description,
     effectiveUrl,

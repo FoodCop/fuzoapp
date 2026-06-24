@@ -2,6 +2,7 @@ import { supabase } from '../../../services/supabaseClient';
 import { buildDefaultSettingsProfile, mapProfileToSettingsUpdate, mergeSettingsFromRow } from '../lib/settingsMappers';
 import type { AuthContextUser, PublicUserProfile, PublicUserRow, SettingsProfile, UserSettingsRow } from '../types/settings';
 import { YouTubeService } from '../../../services/youtubeService';
+import { MetaService } from '../../../services/metaService';
 
 interface SettingsServiceResult<T> {
   success: boolean;
@@ -215,6 +216,43 @@ export const SettingsService = {
       data: { 
         youtube: ytResult.data.handle || ytResult.data.url,
         title: ytResult.data.title
+      }
+    };
+  },
+
+  async syncMetaWithFacebook(): Promise<SettingsServiceResult<{ facebook: string; instagram: string; title: string }>> {
+    const client = supabase;
+    if (!client) return { success: false, error: 'Supabase is not configured' };
+
+    const { data: sessionData, error: sessionError } = await client.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      return { success: false, error: 'No active session found.' };
+    }
+
+    const providerToken = sessionData.session.provider_token;
+    if (!providerToken) {
+      return { success: false, error: 'No Facebook account linked or session expired. Please sign in with Facebook again.' };
+    }
+
+    const metaResult = await MetaService.getMetaHandles(providerToken);
+    if (!metaResult.success || !metaResult.data) {
+      return { success: false, error: metaResult.error || 'Failed to identify Meta account.' };
+    }
+
+    const facebook = metaResult.data.link || `https://facebook.com/${metaResult.data.id}`;
+    let instagram = '';
+    
+    // Attempt to extract Instagram handle if business account is linked
+    if (metaResult.data.instagram_business_account?.username) {
+       instagram = `https://instagram.com/${metaResult.data.instagram_business_account.username}`;
+    }
+
+    return {
+      success: true,
+      data: { 
+        facebook,
+        instagram,
+        title: metaResult.data.name
       }
     };
   },

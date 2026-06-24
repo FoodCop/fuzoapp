@@ -82,6 +82,12 @@ export const SettingsView = ({
   const [youtubeConnected, setYoutubeConnected] = useState(!!profile.youtube);
   const [detectedChannelTitle, setDetectedChannelTitle] = useState('');
   const [showYoutubeSyncModal, setShowYoutubeSyncModal] = useState(false);
+
+  const [syncingMeta, setSyncingMeta] = useState(false);
+  const [metaConnected, setMetaConnected] = useState(!!profile.facebook || !!profile.instagram);
+  const [detectedMetaTitle, setDetectedMetaTitle] = useState('');
+  const [showMetaSyncModal, setShowMetaSyncModal] = useState(false);
+
   const [hasAutodetected, setHasAutodetected] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [modalState, setModalState] = useState<{
@@ -131,6 +137,9 @@ export const SettingsView = ({
         if (result.data.youtube) {
           setYoutubeConnected(true);
         }
+        if (result.data.facebook || result.data.instagram) {
+          setMetaConnected(true);
+        }
       }
 
       setIsDirty(false);
@@ -146,6 +155,59 @@ export const SettingsView = ({
       cancelled = true;
     };
   }, [authUser, defaults]);
+
+  
+  // SECTION: Meta Sync Completion
+  useEffect(() => {
+    let pendingMetaSync = false;
+    try {
+      pendingMetaSync = globalThis.sessionStorage.getItem('fuzo_meta_sync_pending') === 'true';
+    } catch (e) {
+      // Ignore
+    }
+
+    if (pendingMetaSync && !loadingSettings && authUser?.id) {
+      try {
+        globalThis.sessionStorage.removeItem('fuzo_meta_sync_pending');
+      } catch (e) {}
+      
+      setShowMetaSyncModal(true);
+      completeMetaSync();
+    }
+  }, [loadingSettings, authUser?.id]);
+
+  const handleSyncMeta = async () => {
+    try {
+      globalThis.sessionStorage.setItem('fuzo_meta_sync_pending', 'true');
+      await AuthService.signInForMetaSync();
+    } catch (error) {
+      setSettingsError(error instanceof Error ? error.message : 'Unable to initiate Meta sync.');
+    }
+  };
+
+  const completeMetaSync = async () => {
+    if (syncingMeta) return;
+
+    setSyncingMeta(true);
+    setMetaConnected(false);
+    setSettingsError('');
+    setSettingsMessage('Syncing with Meta...');
+
+    const result = await SettingsService.syncMetaWithFacebook();
+
+    if (result.success && result.data) {
+      if (result.data.facebook) updateProfileField('facebook', result.data.facebook);
+      if (result.data.instagram) updateProfileField('instagram', result.data.instagram);
+      setDetectedMetaTitle(result.data.title);
+      setMetaConnected(true);
+      setSettingsMessage(`Connected to ${result.data.title || 'Meta account'}!`);
+    } else {
+      setSettingsError(result.error || 'Failed to sync Meta account.');
+      setSettingsMessage('');
+    }
+
+    setSyncingMeta(false);
+  };
 
   // SECTION: YouTube Sync Completion
   useEffect(() => {
@@ -309,6 +371,7 @@ export const SettingsView = ({
 
   const handleSyncYoutube = async () => {
     try {
+      globalThis.sessionStorage.setItem('fuzo_youtube_sync_pending', 'true');
       await AuthService.signInForYouTubeSync();
     } catch (error) {
       setSettingsError(error instanceof Error ? error.message : 'Unable to initiate YouTube sync.');
@@ -516,13 +579,51 @@ export const SettingsView = ({
           icon={InstagramMark}
           label="Instagram"
           value={profile.instagram || 'Not set'}
-          onClick={() => editField('instagram', 'Instagram')}
+          onClick={() => setShowMetaSyncModal(true)}
+          action={
+            <div className="flex items-center gap-3">
+              {metaConnected && profile.instagram && (
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
+                  <CheckCircle2 size={12} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Verified</span>
+                </div>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowMetaSyncModal(true);
+                }}
+                className="px-3 py-1.5 bg-stone-100 text-stone-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-stone-900 hover:text-white transition-all"
+              >
+                {metaConnected && profile.instagram ? 'Resync' : 'Sync'}
+              </button>
+            </div>
+          }
         />
         <SettingsItem
           icon={FacebookMark}
           label="Facebook"
           value={profile.facebook || 'Not set'}
-          onClick={() => editField('facebook', 'Facebook')}
+          onClick={() => setShowMetaSyncModal(true)}
+          action={
+            <div className="flex items-center gap-3">
+              {metaConnected && profile.facebook && (
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
+                  <CheckCircle2 size={12} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Verified</span>
+                </div>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowMetaSyncModal(true);
+                }}
+                className="px-3 py-1.5 bg-stone-100 text-stone-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-stone-900 hover:text-white transition-all"
+              >
+                {metaConnected && profile.facebook ? 'Resync' : 'Sync'}
+              </button>
+            </div>
+          }
         />
         <SettingsItem
           icon={Music2}
@@ -635,6 +736,115 @@ export const SettingsView = ({
         currentValue={profile[modalState.field] || ''}
         title={modalState.title}
       />
+
+      
+      {/* SECTION: Meta Sync Modal */}
+      <AnimatePresence>
+        {showMetaSyncModal && (
+          <div className="fixed inset-0 z-[600] flex items-center justify-center p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !syncingMeta && setShowMetaSyncModal(false)}
+              className="absolute inset-0 bg-stone-900/60 backdrop-blur-xl"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-sm bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
+            >
+              <div className="p-10 text-center">
+                <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center text-blue-600 mx-auto mb-6">
+                  {metaConnected ? (
+                    <CheckCircle2 size={40} className="text-emerald-500" />
+                  ) : (
+                    <div className="flex gap-2">
+                      <FacebookMark size={24} className="fill-blue-600" />
+                      <InstagramMark size={24} />
+                    </div>
+                  )}
+                </div>
+                <h3 className="text-2xl font-black uppercase tracking-tighter text-stone-900 mb-2">
+                  {metaConnected ? 'Meta Connected' : 'Sync Meta'}
+                </h3>
+                <p className="text-sm font-bold text-stone-500 leading-relaxed mb-8">
+                  {metaConnected 
+                    ? `We've successfully identified your Meta account: ${detectedMetaTitle}. Save your settings to keep this link.`
+                    : 'Connect your Facebook/Instagram account to automatically identify and verify your handles.'
+                  }
+                </p>
+
+                <div className="space-y-3">
+                  {!metaConnected ? (
+                    <button
+                      onClick={handleSyncMeta}
+                      disabled={syncingMeta}
+                      className="w-full py-4 bg-stone-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                    >
+                      {syncingMeta ? (
+                        <>
+                          <RefreshCw size={14} className="animate-spin" />
+                          Syncing...
+                        </>
+                      ) : (
+                        <>
+                          <FacebookMark size={14} className="fill-white" />
+                          Sync with Meta
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowMetaSyncModal(false)}
+                      className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all"
+                    >
+                      <CheckCircle2 size={14} />
+                      Perfect, thanks!
+                    </button>
+                  )}
+                  
+                  {!metaConnected && (
+                    <button
+                      onClick={() => setShowMetaSyncModal(false)}
+                      disabled={syncingMeta}
+                      className="w-full py-4 bg-stone-50 text-stone-400 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-stone-100 transition-colors"
+                    >
+                      Maybe Later
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Manual Entry Fallback */}
+              {!metaConnected && (
+                <div className="p-6 bg-stone-50 border-t border-stone-100 flex justify-center gap-4 text-center">
+                  <button 
+                    onClick={() => {
+                      setShowMetaSyncModal(false);
+                      editField('facebook', 'Facebook');
+                    }}
+                    className="text-[10px] font-black uppercase tracking-widest text-stone-400 hover:text-stone-900 transition-colors"
+                  >
+                    FB Manually
+                  </button>
+                  <span className="text-stone-300">|</span>
+                  <button 
+                    onClick={() => {
+                      setShowMetaSyncModal(false);
+                      editField('instagram', 'Instagram');
+                    }}
+                    className="text-[10px] font-black uppercase tracking-widest text-stone-400 hover:text-stone-900 transition-colors"
+                  >
+                    IG Manually
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* SECTION: YouTube Sync Modal */}
       <AnimatePresence>
