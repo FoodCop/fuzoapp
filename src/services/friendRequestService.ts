@@ -17,11 +17,7 @@ export interface FriendRequestRelationship {
   request: FriendRequestRecord | null;
 }
 
-interface FriendRequestServiceResult<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
+import type { ServiceResult } from '../shared/types/serviceResult';
 
 const asRecord = (value: unknown): Record<string, unknown> => {
   return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
@@ -72,7 +68,7 @@ const resolveRelationship = (
 };
 
 export const FriendRequestService = {
-  async getRelationship(currentUserId: string, otherUserId: string): Promise<FriendRequestServiceResult<FriendRequestRelationship>> {
+  async getRelationship(currentUserId: string, otherUserId: string): Promise<ServiceResult<FriendRequestRelationship>> {
     const client = supabase;
     if (!client) {
       return { success: false, error: 'Supabase is not configured' };
@@ -106,7 +102,7 @@ export const FriendRequestService = {
     };
   },
 
-  async sendRequest(currentUserId: string, otherUserId: string): Promise<FriendRequestServiceResult<FriendRequestRecord>> {
+  async sendRequest(currentUserId: string, otherUserId: string): Promise<ServiceResult<FriendRequestRecord>> {
     const client = supabase;
     if (!client) {
       return { success: false, error: 'Supabase is not configured' };
@@ -140,7 +136,7 @@ export const FriendRequestService = {
     };
   },
 
-  async acceptRequest(requestId: string): Promise<FriendRequestServiceResult<FriendRequestRecord>> {
+  async acceptRequest(requestId: string): Promise<ServiceResult<FriendRequestRecord>> {
     const client = supabase;
     if (!client) {
       return { success: false, error: 'Supabase is not configured' };
@@ -168,7 +164,7 @@ export const FriendRequestService = {
     };
   },
 
-  async declineRequest(requestId: string): Promise<FriendRequestServiceResult<FriendRequestRecord>> {
+  async declineRequest(requestId: string): Promise<ServiceResult<FriendRequestRecord>> {
     const client = supabase;
     if (!client) {
       return { success: false, error: 'Supabase is not configured' };
@@ -196,7 +192,7 @@ export const FriendRequestService = {
     };
   },
 
-  async cancelRequest(requestId: string): Promise<FriendRequestServiceResult<null>> {
+  async cancelRequest(requestId: string): Promise<ServiceResult<null>> {
     const client = supabase;
     if (!client) {
       return { success: false, error: 'Supabase is not configured' };

@@ -19,9 +19,9 @@ export interface InstagramMedia {
   timestamp: string;
 }
 
-export interface MetaSyncResult {
+export interface MetaSyncResult<T = unknown> {
   success: boolean;
-  data?: any;
+  data?: T;
   error?: string;
 }
 
@@ -75,6 +75,8 @@ export const MetaService = {
    * SECTION: oEmbed Context
    * Fetches metadata for an Instagram Reel or Facebook Video/Post using the Graph API oEmbed endpoints.
    */
+  // TODO: Move VITE_META_APP_TOKEN to a server-side proxy to avoid client-side exposure.
+  // Currently kept as-is because Meta oEmbed requires a token and there is no edge function yet.
   async fetchMetaOEmbedContext(url: string): Promise<string> {
     const token = import.meta.env.VITE_META_APP_TOKEN;
     if (!token) return '';

@@ -7,7 +7,7 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 const API_KEY = process.env.VITE_SPOONACULAR_API_KEY || process.env.SPOONACULAR_API_KEY;
-const OUTPUT_PATH = path.resolve(process.cwd(), 'src/services/curatedRecipes.json');
+const OUTPUT_PATH = path.resolve(process.cwd(), 'scripts/data/curatedRecipes.json');
 
 // Core Scrape Configurations
 const MEAL_TYPES = ['breakfast', 'main course', 'dessert', 'snack', 'salad', 'soup', 'side dish', 'appetizer', 'fingerfood', 'bread'];

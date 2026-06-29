@@ -239,12 +239,22 @@ export const SettingsService = {
       return { success: false, error: metaResult.error || 'Failed to identify Meta account.' };
     }
 
-    const facebook = metaResult.data.link || `https://facebook.com/${metaResult.data.id}`;
+    interface MetaResponse {
+      id: string;
+      link?: string;
+      name?: string;
+      instagram_business_account?: {
+        username: string;
+      };
+    }
+    const data = metaResult.data as MetaResponse;
+
+    const facebook = data.link || `https://facebook.com/${data.id}`;
     let instagram = '';
     
     // Attempt to extract Instagram handle if business account is linked
-    if (metaResult.data.instagram_business_account?.username) {
-       instagram = `https://instagram.com/${metaResult.data.instagram_business_account.username}`;
+    if (data.instagram_business_account?.username) {
+       instagram = `https://instagram.com/${data.instagram_business_account.username}`;
     }
 
     return {
@@ -252,7 +262,7 @@ export const SettingsService = {
       data: { 
         facebook,
         instagram,
-        title: metaResult.data.name
+        title: data.name
       }
     };
   },

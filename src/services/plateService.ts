@@ -46,7 +46,7 @@ export interface RemovePlateParams {
   itemType: PlateItemType;
 }
 
-interface PlateServiceResult<T> {
+interface ServiceResult<T> {
   success: boolean;
   data?: T;
   error?: string;
@@ -58,7 +58,7 @@ export const PlateService = {
    * SECTION: Data Retrieval Logic
    * Fetches the user's personal collection from the `saved_items` table.
    */
-  async listSavedItems(): Promise<PlateServiceResult<SavedPlateItem[]>> {
+  async listSavedItems(): Promise<ServiceResult<SavedPlateItem[]>> {
     const client = supabase;
     if (!client) {
       return { success: false, error: 'Supabase is not configured' };
@@ -86,7 +86,7 @@ export const PlateService = {
     };
   },
 
-  async listSavedItemsByUserId(userId: string): Promise<PlateServiceResult<SavedPlateItem[]>> {
+  async listSavedItemsByUserId(userId: string): Promise<ServiceResult<SavedPlateItem[]>> {
     const client = supabase;
     if (!client) {
       return { success: false, error: 'Supabase is not configured' };
@@ -120,7 +120,7 @@ export const PlateService = {
    * - Uses `IdempotencyService` to track and lock the write operation.
    * - Performs a Postgres `upsert` on the unique conflict of (tenant, user, type, id).
    */
-  async saveToPlate(params: SavePlateParams): Promise<PlateServiceResult<SavedPlateItem>> {
+  async saveToPlate(params: SavePlateParams): Promise<ServiceResult<SavedPlateItem>> {
     const client = supabase;
     if (!client) {
       return { success: false, error: 'Supabase is not configured' };
@@ -181,7 +181,7 @@ export const PlateService = {
    * SECTION: Cleanup Logic
    * Removes a specific item from the user's personal collection.
    */
-  async removeFromPlate(params: RemovePlateParams): Promise<PlateServiceResult<null>> {
+  async removeFromPlate(params: RemovePlateParams): Promise<ServiceResult<null>> {
     const client = supabase;
     if (!client) {
       return { success: false, error: 'Supabase is not configured' };

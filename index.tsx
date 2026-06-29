@@ -718,26 +718,15 @@ const App = () => {
 
     updatePresence(true);
 
+    // Visibility-aware heartbeat: skip when tab is hidden to save battery and DB load
     const heartbeat = setInterval(() => {
-      updatePresence(true);
-    }, 60000); // Heartbeat every 1 minute
-
-    const handleUnload = () => {
-      const data = new Blob([JSON.stringify({ 
-        action: 'presence_offline', 
-        userId: authUser.id 
-      })], { type: 'application/json' });
-      // Use sendBeacon for more reliability on close, 
-      // though RPC needs a standard fetch usually.
-      // For now, standard updatePresence(false) on cleanup 
-      // handles normal React navigation.
-    };
-
-    window.addEventListener('beforeunload', handleUnload);
+      if (globalThis.document.visibilityState === 'visible') {
+        updatePresence(true);
+      }
+    }, 60000);
 
     return () => {
       clearInterval(heartbeat);
-      window.removeEventListener('beforeunload', handleUnload);
       updatePresence(false);
     };
   }, [authUser?.id, isAuthenticated]);
@@ -994,6 +983,8 @@ const App = () => {
   const [googleMapsReady, setGoogleMapsReady] = useState(false);
 
   useEffect(() => {
+    if (tab !== 'scout' || googleMapsReady) return;
+
     const initGlobalMaps = async () => {
       try {
         const loader = new Loader({
@@ -1003,13 +994,13 @@ const App = () => {
         });
         await loader.load();
         setGoogleMapsReady(true);
-        console.log('Google Maps globally initialized');
+        console.log('Google Maps globally initialized on-demand');
       } catch (err) {
         console.error('Failed to load Google Maps globally:', err);
       }
     };
     initGlobalMaps();
-  }, []);
+  }, [tab, googleMapsReady]);
 
   const renderApp = (tabId: string) => {
     const commonProps = {

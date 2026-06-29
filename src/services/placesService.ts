@@ -14,31 +14,14 @@
  * 4. Rich Meta Extraction: Fetches ratings, photos, and hours for map markers.
  */
 
-/**
- * SECTION: Configuration & Sanitization
- */
-const cleanEnv = (value: string | undefined) => {
-  if (!value) {
-    return '';
-  }
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabaseClient';
+import type { ServiceResult } from '../shared/types/serviceResult';
 
-  const trimmed = value.trim();
-  const withoutLeading = (trimmed.startsWith('"') || trimmed.startsWith("'")) ? trimmed.slice(1) : trimmed;
-  return (withoutLeading.endsWith('"') || withoutLeading.endsWith("'")) ? withoutLeading.slice(0, -1) : withoutLeading;
-};
-
-const SUPABASE_URL = cleanEnv(import.meta.env.VITE_SUPABASE_URL);
-const SUPABASE_ANON_KEY = cleanEnv(import.meta.env.VITE_SUPABASE_ANON_KEY);
 const EDGE_URL = `${SUPABASE_URL}/functions/v1/make-server-5976446e`;
 
 /**
  * SECTION: Domain Entities & Scout Types
  */
-interface ServiceResult<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
 
 export interface ScoutPlace {
   place_id?: string;

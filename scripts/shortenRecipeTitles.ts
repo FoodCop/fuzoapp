@@ -10,7 +10,7 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const RECIPES_PATH = path.resolve(__dirname, '../src/services/curatedRecipes.json');
+const RECIPES_PATH = path.resolve(__dirname, './data/curatedRecipes.json');
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
 
 interface Recipe {

@@ -10,15 +10,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-/**
- * SECTION: Environment Sanitization
- * Logic: Ensures that VITE_ environment variables are stripped of accidental 
- * quotes or whitespace during the build process.
- */
-const cleanEnv = (value: string | undefined): string => {
-  if (!value) return '';
-  return value.trim().replace(/^["']|["']$/g, '');
-};
+import { cleanEnv } from '../shared/lib/env';
 
 const SUPABASE_URL = cleanEnv(import.meta.env.VITE_SUPABASE_URL);
 const SUPABASE_ANON_KEY = cleanEnv(import.meta.env.VITE_SUPABASE_ANON_KEY);

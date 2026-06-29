@@ -24,7 +24,7 @@ type AuthLikeUser = {
   user_metadata?: Record<string, unknown>;
 };
 
-interface UserProfileServiceResult {
+interface ServiceResult {
   success: boolean;
   error?: string;
 }
@@ -53,7 +53,7 @@ const deriveUsername = (email: string | undefined): string | null => {
  * after a successful login or metabolic change.
  */
 export const UserProfileService = {
-  async ensureCurrentUserProfile(authUser: AuthLikeUser | null): Promise<UserProfileServiceResult> {
+  async ensureCurrentUserProfile(authUser: AuthLikeUser | null): Promise<ServiceResult> {
     if (!authUser?.id) {
       return { success: false, error: 'User not authenticated' };
     }

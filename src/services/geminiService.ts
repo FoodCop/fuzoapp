@@ -17,6 +17,7 @@
  */
 
 import { hasSupabaseConfig, supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from './supabaseClient';
+import type { ServiceResult } from '../shared/types/serviceResult';
 
 /**
  * SECTION: Global Constants & Proxies
@@ -56,17 +57,15 @@ export interface GeminiGenerateRequest {
 }
 
 /**
- * SECTION: Domain Entities & Config Types
+ * SECTION: Domain Aliases
+ * The shared ServiceResult<T> is used with a domain-specific data shape.
  */
-interface GeminiServiceResult {
-  success: boolean;
-  data?: {
-    text: string;
-    raw: unknown;
-  };
-  error?: string;
-  status?: number;
-}
+type GeminiResultData = {
+  text: string;
+  raw: unknown;
+};
+
+type GeminiServiceResult = ServiceResult<GeminiResultData>;
 
 /**
  * SECTION: Response Extraction & Normalization
@@ -383,7 +382,7 @@ export const GeminiService = {
       Generate a clean JSON recipe card.
       Fields: title, category, readyInMinutes, servings, ingredients (array), instructions, nutrition { calories, protein, fat, carbs }, aiTag.`;
 
-    const parts: any[] = [{ text: prompt }];
+    const parts: GeminiPart[] = [{ text: prompt }];
     if (image?.includes(',')) {
       parts.push({
         inlineData: { mimeType, data: image.split(',')[1] }
@@ -428,8 +427,8 @@ export const GeminiService = {
     return result.data?.text || '{}';
   },
 
-  async analyzeTrim(prompt: string, schema: any, video?: string | null, mimeType = 'video/mp4'): Promise<string> {
-    const parts: any[] = [{ text: prompt }];
+  async analyzeTrim(prompt: string, schema: Record<string, unknown>, video?: string | null, mimeType = 'video/mp4'): Promise<string> {
+    const parts: GeminiPart[] = [{ text: prompt }];
     if (video?.includes(',')) {
       parts.push({
         inlineData: { mimeType, data: video.split(',')[1] }

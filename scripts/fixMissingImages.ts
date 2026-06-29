@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const RECIPES_PATH = path.resolve(__dirname, '../src/services/curatedRecipes.json');
+const RECIPES_PATH = path.resolve(__dirname, './data/curatedRecipes.json');
 const DEST_DIR = path.resolve(__dirname, '../public/images/recipes');
 
 interface Recipe {

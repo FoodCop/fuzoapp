@@ -1,24 +1,16 @@
-import axios from 'axios';
+/**
+ * ============================================================================
+ * YOUTUBE SERVICE — Video Discovery & Channel Integration
+ * ============================================================================
+ *
+ * Provides a typed interface to the YouTube Data API v3,
+ * routed through a Supabase Edge Function to protect API credentials.
+ */
 
-const cleanEnv = (value: string | undefined) => {
-  if (!value) {
-    return '';
-  }
+import { SUPABASE_URL, SUPABASE_ANON_KEY, hasSupabaseConfig } from './supabaseClient';
+import type { ServiceResult } from '../shared/types/serviceResult';
 
-  const trimmed = value.trim();
-  const withoutLeading = (trimmed.startsWith('"') || trimmed.startsWith("'")) ? trimmed.slice(1) : trimmed;
-  return (withoutLeading.endsWith('"') || withoutLeading.endsWith("'")) ? withoutLeading.slice(0, -1) : withoutLeading;
-};
-
-const SUPABASE_URL = cleanEnv(import.meta.env.VITE_SUPABASE_URL);
-const SUPABASE_ANON_KEY = cleanEnv(import.meta.env.VITE_SUPABASE_ANON_KEY);
 const YOUTUBE_PROXY_URL = `${SUPABASE_URL}/functions/v1/youtube-proxy`;
-
-interface ServiceResult<T = unknown> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
 
 interface LocalizedTrimsRequest {
   userHash: string;
@@ -49,104 +41,107 @@ interface YouTubeSearchItem {
   };
 }
 
+interface YouTubeVideoDetails {
+  id: string;
+  snippet?: {
+    title?: string;
+    description?: string;
+    channelTitle?: string;
+    thumbnails?: Record<string, { url?: string }>;
+    publishedAt?: string;
+  };
+  statistics?: {
+    viewCount?: string;
+    likeCount?: string;
+    commentCount?: string;
+  };
+}
+
+/**
+ * Shared headers for all Supabase Edge Function requests.
+ */
+const proxyHeaders = (): Record<string, string> => ({
+  apikey: SUPABASE_ANON_KEY,
+  Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+  'Content-Type': 'application/json',
+});
+
+/**
+ * Shared fetch wrapper with timeout and error handling.
+ * Replaces axios usage — native fetch + AbortController handles the same.
+ */
+async function proxyFetch<T>(url: string, init: RequestInit): Promise<ServiceResult<T>> {
+  if (!hasSupabaseConfig) {
+    return {
+      success: false,
+      error: 'Supabase env vars missing: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY',
+    };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok || data?.success === false) {
+      return { success: false, error: data?.error || `YouTube proxy failed (${response.status})` };
+    }
+
+    return { success: true, data: data.data ?? data };
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return { success: false, error: 'YouTube request timed out (10s)' };
+    }
+    return { success: false, error: error instanceof Error ? error.message : 'Network error' };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export const YouTubeService = {
   async searchVideos(query: string, maxResults = 12): Promise<ServiceResult<{ items: YouTubeSearchItem[] }>> {
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      return {
-        success: false,
-        error: 'Supabase env vars missing: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY',
-      };
-    }
+    const params = new URLSearchParams({
+      action: 'search',
+      q: query,
+      maxResults: String(maxResults),
+      order: 'relevance',
+    });
 
-    try {
-      const response = await axios.get(YOUTUBE_PROXY_URL, {
-        params: {
-          action: 'search',
-          q: query,
-          maxResults,
-          order: 'relevance',
-        },
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        },
-        timeout: 10000,
-      });
-
-      if (!response.data?.success) {
-        return { success: false, error: response.data?.error || 'YouTube proxy request failed' };
-      }
-
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        return {
-          success: false,
-          error: error.response?.data?.error || error.message,
-        };
-      }
-
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Network error',
-      };
-    }
+    return proxyFetch(`${YOUTUBE_PROXY_URL}?${params}`, {
+      method: 'GET',
+      headers: proxyHeaders(),
+    });
   },
 
   async getLocalizedTrimsFeed(payload: LocalizedTrimsRequest): Promise<ServiceResult<LocalizedTrimsResponse>> {
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      return {
-        success: false,
-        error: 'Supabase env vars missing: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY',
-      };
-    }
-
-    try {
-      const response = await axios.post(`${YOUTUBE_PROXY_URL}?action=personalized-trims`, payload, {
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        timeout: 10000,
-      });
-
-      if (!response.data?.success) {
-        return { success: false, error: response.data?.error || 'YouTube personalized trims request failed' };
-      }
-
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        return {
-          success: false,
-          error: error.response?.data?.error || error.message,
-        };
-      }
-
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Network error',
-      };
-    }
+    return proxyFetch(`${YOUTUBE_PROXY_URL}?action=personalized-trims`, {
+      method: 'POST',
+      headers: proxyHeaders(),
+      body: JSON.stringify(payload),
+    });
   },
 
   /**
    * Fetches the user's YouTube channel handle using a Google Access Token.
+   * This goes directly to Google's API (not through proxy) because it uses
+   * the user's OAuth token.
    */
   async getMyChannel(accessToken: string): Promise<ServiceResult<{ handle: string; url: string; title: string }>> {
     try {
-      const response = await axios.get('https://www.googleapis.com/youtube/v3/channels', {
-        params: {
-          part: 'snippet',
-          mine: true,
-        },
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+      const params = new URLSearchParams({ part: 'snippet', mine: 'true' });
+      const response = await fetch(`https://www.googleapis.com/youtube/v3/channels?${params}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
 
-      const items = response.data?.items || [];
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        return { success: false, error: data?.error?.message || `YouTube API failed (${response.status})` };
+      }
+
+      const items = data?.items || [];
       if (items.length === 0) {
         return { success: false, error: 'No YouTube channel found for this Google account.' };
       }
@@ -157,17 +152,8 @@ export const YouTubeService = {
       const channelId = channel.id;
       const url = handle ? `https://youtube.com/${handle}` : `https://youtube.com/channel/${channelId}`;
 
-      return {
-        success: true,
-        data: { handle, url, title },
-      };
+      return { success: true, data: { handle, url, title } };
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        return {
-          success: false,
-          error: error.response?.data?.error?.message || error.message,
-        };
-      }
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to fetch YouTube channel',
@@ -175,45 +161,16 @@ export const YouTubeService = {
     }
   },
 
-  async getVideoDetails(videoId: string): Promise<ServiceResult<any>> {
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      return {
-        success: false,
-        error: 'Supabase env vars missing: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY',
-      };
-    }
+  async getVideoDetails(videoId: string): Promise<ServiceResult<{ items: YouTubeVideoDetails[] }>> {
+    const params = new URLSearchParams({
+      action: 'video-details',
+      videoId,
+    });
 
-    try {
-      const response = await axios.get(YOUTUBE_PROXY_URL, {
-        params: {
-          action: 'video-details',
-          videoId,
-        },
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        },
-        timeout: 10000,
-      });
-
-      if (!response.data?.success) {
-        return { success: false, error: response.data?.error || 'YouTube proxy request failed' };
-      }
-
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        return {
-          success: false,
-          error: error.response?.data?.error || error.message,
-        };
-      }
-
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Network error',
-      };
-    }
+    return proxyFetch(`${YOUTUBE_PROXY_URL}?${params}`, {
+      method: 'GET',
+      headers: proxyHeaders(),
+    });
   },
 };
 
