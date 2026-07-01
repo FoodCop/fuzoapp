@@ -384,11 +384,11 @@ export const ChatView = ({
       
       {/* Left Pane (Inbox List) */}
       <div className={`
-        flex flex-col h-full bg-stone-50 md:border-r border-stone-200
+        flex flex-col h-full bg-white md:border-r border-stone-200
         ${activeId ? 'hidden md:flex' : 'flex'} 
         w-full md:w-96 shrink-0
       `}>
-        <header className="p-6 md:p-8 flex justify-between items-end bg-stone-50/50">
+        <header className="p-6 md:p-8 flex justify-between items-end bg-white">
           <div>
             <h2 className="text-3xl font-black uppercase tracking-tighter">Studio Inbox</h2>
             <div className="flex items-center gap-4 mt-2">
@@ -481,14 +481,14 @@ export const ChatView = ({
               value={friendSearch}
               onChange={(e) => setFriendSearch(e.target.value)}
               placeholder="Search contacts..."
-              className="w-full bg-white border border-stone-100 rounded-2xl pl-12 pr-4 py-3 text-xs font-black uppercase tracking-widest outline-none focus:ring-4 focus:ring-yellow-400/10"
+              className="w-full bg-stone-50 border border-stone-100 rounded-2xl pl-12 pr-4 py-3 text-xs font-black uppercase tracking-widest outline-none focus:ring-4 focus:ring-yellow-400/10 focus:bg-white transition-all"
             />
           </div>
         </div>
 
-        <div className="flex-grow overflow-y-auto px-4 pb-[env(safe-area-inset-bottom)] md:pb-4 space-y-4 hide-scrollbar">
+        <div className="flex-grow overflow-y-auto pb-[env(safe-area-inset-bottom)] md:pb-4 hide-scrollbar">
           {filteredFriends.map(c => (
-            <div key={c.id} className="flex flex-col gap-2 relative">
+            <div key={c.id} className="relative">
               <button
                 type="button"
                 onClick={() => {
@@ -496,8 +496,8 @@ export const ChatView = ({
                     console.warn('Failed to open conversation:', error);
                   });
                 }}
-                className={`w-full bg-white p-5 rounded-[2.5rem] flex items-center gap-4 border shadow-sm cursor-pointer transition-all hover:scale-[1.01] text-left
-                  ${activeId === String(c.id) ? 'ring-4 ring-yellow-400/50 border-yellow-400 sticky z-10' : 'hover:bg-stone-50'}
+                className={`w-full bg-white px-6 py-5 flex items-center gap-4 border-b border-stone-100 cursor-pointer transition-all hover:bg-stone-50 text-left
+                  ${activeId === String(c.id) ? 'bg-stone-50 border-l-4 border-l-yellow-400 pl-5' : ''}
                 `}
               >
                 <div className="relative shrink-0">
