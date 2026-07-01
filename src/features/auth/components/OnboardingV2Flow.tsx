@@ -543,7 +543,7 @@ export const OnboardingV2Flow = ({
                     
                     <div className="space-y-4">
                       <h3 className="text-3xl font-black uppercase tracking-tighter leading-tight">{q.text}</h3>
-                      {q.helper && <p className="text-stone-400 font-bold">{q.helper}</p>}
+                      {('helper' in q) && q.helper && <p className="text-stone-400 font-bold">{q.helper}</p>}
                     </div>
                     
                     {q.type === 'single' && (
