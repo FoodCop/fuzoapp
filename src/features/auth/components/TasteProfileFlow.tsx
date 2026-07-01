@@ -37,17 +37,20 @@ const ONBOARDING_BACKGROUNDS = {
 };
 
 /**
- * SECTION: OnboardingV2Flow Component
+ * SECTION: TasteProfileFlow Component
  * A multi-stage immersive wizard that configures the user's "Culinary DNA".
  * Handles persona selection, custom questionnaire paths, media uploads, and geolocation.
  */
-export const OnboardingV2Flow = ({
-  onComplete,
-  mode = 'live',
-}: {
+
+interface TasteProfileFlowProps {
   onComplete: (payload: OnboardingV2Payload) => void;
-  mode?: 'live' | 'demo';
-}) => {
+  mode?: 'live' | 'demo'; // demo mode bypasses final sync
+}
+
+export const TasteProfileFlow = ({ 
+  onComplete,
+  mode = 'live'
+}: TasteProfileFlowProps) => {
   // --- STATE: Flow Coordination ---
   const [phase, setPhase] = useState<'location' | 'type_selection' | 'path' | 'taste_profile_hub' | 'taste_profile_module'>('location');
   const [userType, setUserType] = useState<UserType | null>(null);
@@ -706,4 +709,4 @@ export const OnboardingV2Flow = ({
     </div>
   );
 };
-export default OnboardingV2Flow;
+export default TasteProfileFlow;

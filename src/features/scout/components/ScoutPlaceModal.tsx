@@ -41,7 +41,7 @@ export const ScoutPlaceModal = ({
       className="absolute top-0 left-0 w-full h-full z-[110] bg-white flex flex-col overflow-y-auto animate-in slide-in-from-bottom md:slide-in-from-left duration-300 md:top-20 md:left-[416px] md:w-[400px] md:h-[calc(100vh-160px)] md:rounded-2xl md:shadow-[0_4px_24px_rgba(0,0,0,0.08)] md:border md:border-stone-100/80"
     >
       {/* HEADER BAR (Floating Close) */}
-      <div className="absolute top-4 right-4 md:left-4 md:right-auto z-20 flex gap-2">
+      <div className="fixed top-12 right-4 md:absolute md:top-4 md:left-4 md:right-auto z-[120] flex gap-2">
         <button 
           onClick={onClose} 
           className="w-10 h-10 bg-white/90 backdrop-blur-md text-stone-900 rounded-full shadow-md flex items-center justify-center hover:bg-white transition-colors border border-stone-200"

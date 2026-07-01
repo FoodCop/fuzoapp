@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../services/supabaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AuthView } from './AuthView';
-import OnboardingV2Flow from './OnboardingV2Flow';
+import TasteProfileFlow from './TasteProfileFlow';
 import type { OnboardingV2Payload } from '../types/onboarding';
 import type { AuthUser } from '../types/auth';
 
@@ -152,7 +152,7 @@ export const AuthOrchestrator: React.FC<AuthOrchestratorProps> = ({
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-[12px] font-black uppercase tracking-widest text-stone-400">Client Preview</p>
-              <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-stone-900">Onboarding V2 Demo</h1>
+              <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-stone-900">Onboarding FINAL DEMO</h1>
             </div>
             <button
               type="button"
@@ -169,7 +169,7 @@ export const AuthOrchestrator: React.FC<AuthOrchestratorProps> = ({
           </div>
         </div>
 
-        <OnboardingV2Flow
+        <TasteProfileFlow
           mode="demo"
           onComplete={(payload) => {
             setDemoPayload(payload);

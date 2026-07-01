@@ -15,7 +15,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   User, Bot, MapPin, Mail, Shield, AlertCircle, Phone, 
   Music2, Pin, Youtube, ChefHat, Flame, Bell, LogOut, Camera,
-  RefreshCw, CheckCircle2 
+  RefreshCw, CheckCircle2, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { AuthUser } from '../../auth/types/auth';
@@ -755,6 +755,13 @@ export const SettingsView = ({
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               className="relative w-full max-w-sm bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
             >
+              <button
+                onClick={() => !syncingMeta && setShowMetaSyncModal(false)}
+                className="absolute top-6 right-6 p-2 bg-stone-50 text-stone-400 rounded-full hover:bg-stone-100 hover:text-stone-900 transition-colors"
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
               <div className="p-10 text-center">
                 <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center text-blue-600 mx-auto mb-6">
                   {metaConnected ? (
@@ -860,9 +867,15 @@ export const SettingsView = ({
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
               className="relative w-full max-w-sm bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
             >
+              <button
+                onClick={() => !syncingYoutube && setShowYoutubeSyncModal(false)}
+                className="absolute top-6 right-6 p-2 bg-stone-50 text-stone-400 rounded-full hover:bg-stone-100 hover:text-stone-900 transition-colors"
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
               <div className="p-10 text-center">
                 <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center text-red-600 mx-auto mb-6">
                   {youtubeConnected ? (

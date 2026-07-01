@@ -474,7 +474,7 @@ export const SavedItemDetailModal = ({ item, onClose, onSave, onUnsave, onShareR
           <button
             type="button"
             onClick={triggerClose}
-            className="absolute top-6 right-6 z-50 p-3 bg-stone-900/50 text-white rounded-full backdrop-blur-xl border border-white/20 hover:bg-stone-900/80 transition-colors shadow-lg flex items-center justify-center cursor-pointer"
+            className="absolute top-12 right-6 md:top-6 z-50 p-3 bg-stone-900/50 text-white rounded-full backdrop-blur-xl border border-white/20 hover:bg-stone-900/80 transition-colors shadow-lg flex items-center justify-center cursor-pointer"
           >
             <X size={20} strokeWidth={2.5} />
           </button>

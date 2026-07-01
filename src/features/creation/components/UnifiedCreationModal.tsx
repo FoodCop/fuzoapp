@@ -83,6 +83,13 @@ export const UnifiedCreationModal = ({ isOpen, onClose, onSelectOption }: Unifie
             exit={{ scale: 0.9, opacity: 0, y: 40 }}
             className="relative w-full max-w-xl bg-white rounded-[3.5rem] shadow-2xl overflow-hidden"
           >
+            <button
+              onClick={onClose}
+              className="absolute top-6 right-6 p-2 bg-stone-50 text-stone-400 rounded-full hover:bg-stone-100 hover:text-stone-900 transition-colors z-10"
+              aria-label="Close"
+            >
+              <X size={20} />
+            </button>
             <div className="p-10 md:p-14 text-center">
               <header className="mb-12 space-y-2">
                 <h2 className="text-4xl font-black uppercase tracking-tighter text-stone-900 leading-none">

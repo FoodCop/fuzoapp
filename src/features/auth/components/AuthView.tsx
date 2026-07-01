@@ -7,7 +7,7 @@ import { SocialButton, type SocialProvider } from '../../../shared/ui/SocialButt
 import { AuthService } from '../services/authService';
 import { getOAuthRedirectUrl, authDebugLog } from '../lib/oauthRedirect';
 import type { AuthUser } from '../types/auth';
-import OnboardingV2Flow from './OnboardingV2Flow';
+import TasteProfileFlow from './TasteProfileFlow';
 import type { OnboardingV2Payload } from '../types/onboarding';
 
 const AUTH_ONBOARDING_DATA = [
@@ -106,7 +106,7 @@ export const AuthView = ({
 
   if (step === 'onboarding') {
     if (useOnboardingV2) {
-      return <OnboardingV2Flow onComplete={onComplete} />;
+      return <TasteProfileFlow onComplete={onComplete} />;
     }
 
     const current = AUTH_ONBOARDING_DATA[onboardingStep];
