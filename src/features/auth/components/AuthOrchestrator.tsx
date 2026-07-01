@@ -82,6 +82,7 @@ export const AuthOrchestrator: React.FC<AuthOrchestratorProps> = ({
         metadataUpdate.profile_type = profileType;
         metadataUpdate.profile_subtype = payload.quizResult || null;
         metadataUpdate.onboarding_v2_answers = payload.answers;
+        metadataUpdate.taste_profile = payload.tasteProfile;
         metadataUpdate.quiz_result = payload.quizResult;
         metadataUpdate.phone = payload.phone || null;
         metadataUpdate.location = payload.locationLabel || null;

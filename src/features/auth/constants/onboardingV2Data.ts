@@ -139,67 +139,63 @@ export const INDIVIDUAL_PATH: OnboardingV2Step[] = [
 ];
 
 /**
- * SECTION: Culinary DNA Quiz
- * A personality-based mapping engine to assign user archetypes.
+ * SECTION: Taste Profile Modules
+ * Replaces the Culinary DNA Quiz with a 5-module Taste Profile Hub.
  */
-export const FOOD_PERSONALITY_QUIZ: OnboardingV2QuizStep = {
-  id: 'personality_quiz',
-  type: 'quiz',
-  title: 'Food Personality',
-  desc: 'Let\'s decode your culinary DNA.',
-  questions: [
-    {
-      id: 'vibe',
-      question: 'What\'s your go-to meal vibe?',
-      options: [
-        { label: '🍕 Comfort & indulgent', value: 'explorer' },
-        { label: '🌮 Bold & spicy', value: 'adventurer' },
-        { label: '🥗 Clean & healthy', value: 'zen' },
-        { label: '🍣 Trendy & aesthetic', value: 'socialite' }
-      ]
-    },
-    {
-      id: 'choice',
-      question: 'How do you choose where to eat?',
-      options: [
-        { label: '⭐ Ratings', value: 'data' },
-        { label: '📸 Social media', value: 'socialite' },
-        { label: '👃 Cravings', value: 'explorer' },
-        { label: '🧠 Health', value: 'zen' }
-      ]
-    },
-    {
-      id: 'excitement',
-      question: 'What excites you most about food?',
-      options: [
-        { label: '🍽 Familiar', value: 'comfort' },
-        { label: '🌍 New cuisines', value: 'adventurer' },
-        { label: '🧘 Balanced', value: 'zen' },
-        { label: '📸 Experience', value: 'socialite' }
-      ]
-    },
-    {
-      id: 'weekend',
-      question: 'Pick a weekend plan:',
-      options: [
-        { label: '🛋 Comfort food', value: 'comfort' },
-        { label: '🚶 Explore spots', value: 'explorer' },
-        { label: '👨‍🍳 Cook', value: 'chef' },
-        { label: '🥗 Healthy café', value: 'zen' }
-      ]
-    },
-    {
-      id: 'adventure',
-      question: 'How adventurous are you?',
-      options: [
-        { label: '❌ Safe', value: 'comfort' },
-        { label: '🙂 Occasional', value: 'explorer' },
-        { label: '😎 Adventurous', value: 'adventurer' },
-        { label: '🔥 Extreme', value: 'wild' }
-      ]
-    }
-  ]
-};
+import type { TasteProfileModule } from '../types/onboarding';
+
+export const TASTE_PROFILE_MODULES: TasteProfileModule[] = [
+  {
+    id: 1, key: 'dining', emoji: '🍽', title: 'Dining Habits', blurb: 'Helps tailor when, where, and how you eat.',
+    questions: [
+      { id: 'q1', type: 'single', text: 'How often do you eat out?', options: ['Daily', '3–5 times a week', '1–2 times a week', 'Few times a month', 'Rarely'] },
+      { id: 'q2', type: 'single', text: 'When do you usually discover new food?', options: ['Breakfast', 'Lunch', 'Dinner', 'Late Night', 'Anytime'] },
+      { id: 'q3', type: 'single', text: 'Who do you usually dine with?', options: ['Alone', 'Partner', 'Friends', 'Family', 'Colleagues'] },
+      { id: 'q4', type: 'single', text: 'What type of dining do you prefer?', options: ['Takeout', 'Delivery', 'Casual Dining', 'Fine Dining', 'Mix of everything'] },
+      { id: 'q5', type: 'single', text: 'How far would you travel for great food?', options: ['Under 5 km', '5-10 km', '10-25 km', '25-50 km', 'Anywhere'] }
+    ]
+  },
+  {
+    id: 2, key: 'discovery', emoji: '🌍', title: 'Discovery & Exploration', blurb: 'Feeds your Adventure Score and Exploration Score.',
+    questions: [
+      { id: 'q1', type: 'single', text: 'How often do you try new cuisines?', options: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'] },
+      { id: 'q2', type: 'multi', max: 3, requireExact: true, text: 'When choosing a restaurant, what matters most?', helper: 'Pick your top 3', options: ['Reviews', 'Food Photos', 'Price', 'Distance', 'Recommendations', 'Ambience', 'Trendiness'] },
+      { id: 'q3', type: 'single', text: 'Which best describes you?', options: ['I stick to favorites', 'I occasionally explore', 'I actively seek new experiences'] },
+      { id: 'q4', type: 'scale', text: 'How likely are you to visit a newly opened restaurant?', helper: '1 = not likely, 5 = very likely' },
+      { id: 'q5', type: 'single', text: 'What excites you most?', options: ['Authentic food', 'Hidden gems', 'Trending spots', 'Premium experiences', 'Local favorites'] }
+    ]
+  },
+  {
+    id: 3, key: 'mood', emoji: '😊', title: 'Mood & Cravings', blurb: 'Powers mood-based food insights.',
+    questions: [
+      { id: 'q1', type: 'multi', max: 3, requireExact: false, text: 'When you’re stressed, what do you crave?', helper: 'Select up to 3', options: ['Pizza', 'Burgers', 'Ice Cream', 'Pasta', 'Fried Food', 'Desserts', 'Soup', 'Noodles'] },
+      { id: 'q2', type: 'single', text: 'When celebrating, you usually choose:', options: ['Steakhouse', 'Sushi', 'Fine Dining', 'BBQ', 'Seafood', 'Family Feast'] },
+      { id: 'q3', type: 'single', text: 'On a rainy day you prefer:', options: ['Comfort food', 'Hot drinks', 'Soup', 'Street food', 'Desserts'] },
+      { id: 'q4', type: 'single', text: 'Your ideal weekend food adventure:', options: ['Food truck', 'Hidden cafe', 'Fine dining', 'Ethnic cuisine', 'Local market'] },
+      { id: 'q5', type: 'single', text: 'If you could eat one category forever:', options: ['Pizza', 'Burgers', 'Asian', 'Indian', 'Mediterranean', 'Desserts'] }
+    ]
+  },
+  {
+    id: 4, key: 'budget', emoji: '💸', title: 'Budget & Experience', blurb: 'Feeds your Luxury Score and Value Score.',
+    questions: [
+      { id: 'q1', type: 'single', text: 'Typical spend per meal?', options: ['Under $15', '$15–30', '$30–50', '$50–100', '$100+'] },
+      { id: 'q2', type: 'single', text: 'What’s more important?', options: ['Price', 'Food Quality', 'Ambience', 'Service'] },
+      { id: 'q3', type: 'single', text: 'How often do you visit premium restaurants?', options: ['Never', 'Rarely', 'Sometimes', 'Often'] },
+      { id: 'q4', type: 'single', text: 'Which dining experience appeals most?', options: ['Quick bites', 'Casual', 'Trendy spots', 'Fine dining', 'Chef experiences'] },
+      { id: 'q5', type: 'single', text: 'What would you spend extra on?', options: ['Better ingredients', 'Better ambience', 'Better service', 'Exclusive dishes'] }
+    ]
+  },
+  {
+    id: 5, key: 'social', emoji: '👥', title: 'Social Food Profile', blurb: 'Feeds your Social Score.',
+    questions: [
+      { id: 'q1', type: 'single', text: 'Eating food is primarily:', options: ['Necessity', 'Hobby', 'Social activity', 'Passion'] },
+      { id: 'q2', type: 'single', text: 'How often do you share food photos?', options: ['Never', 'Occasionally', 'Often', 'Always'] },
+      { id: 'q3', type: 'single', text: 'Do you enjoy recommending food to others?', options: ['No', 'Sometimes', 'Often', 'Absolutely'] },
+      { id: 'q4', type: 'single', text: 'What best describes you?', options: ['Quiet eater', 'Food enthusiast', 'Local guide', 'Food influencer'] },
+      { id: 'q5', type: 'single', text: 'Do you like organizing food outings?', options: ['Never', 'Rarely', 'Sometimes', 'Often'] }
+    ]
+  }
+];
 
 /**
  * SECTION: Chef Path
