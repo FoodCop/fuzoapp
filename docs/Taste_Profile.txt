@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FUZO — Taste Profile (Claymorphism)</title>
+<style>
+  :root{
+    --bg-a:#FFEFE2;
+    --bg-b:#FFE1EC;
+    --bg-c:#FDEFD8;
+    --clay:#FFFBF6;
+    --clay-2:#FFE9D6;
+    --clay-3:#FBE3CF;
+    --ink:#5B4636;
+    --ink-soft:#8A746A;
+    --ink-faint:#B6A496;
+    --shadow-d:rgba(120,80,40,0.28);
+    --shadow-d2:rgba(120,80,40,0.16);
+    --shadow-l:rgba(255,255,255,0.95);
+    --accent:#FF8C69;
+    --accent-dark:#F06B45;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:linear-gradient(160deg, var(--bg-a) 0%, var(--bg-b) 55%, var(--bg-c) 100%);
+    min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit;}
+  :focus-visible{outline:3px solid var(--ink); outline-offset:2px;}
+
+  .stage{width:100%; min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding:30px 16px 56px;}
+  .menu{
+    position:relative; width:100%; max-width:560px;
+    background:linear-gradient(150deg, var(--clay), var(--clay-2));
+    border-radius:34px;
+    box-shadow:16px 16px 34px var(--shadow-d2), -12px -12px 26px var(--shadow-l);
+    overflow:hidden; display:flex; flex-direction:column;
+  }
+  .brandmark{position:absolute; top:22px; right:26px; font-size:11px; letter-spacing:0.18em; font-weight:800; color:var(--ink-faint); z-index:2;}
+
+  .tp-topbar{display:flex; align-items:center; justify-content:space-between; padding:22px 22px 0;}
+  .iconbtn{
+    width:42px; height:42px; border-radius:50%; border:none; cursor:pointer;
+    background:linear-gradient(150deg, var(--clay), var(--clay-2));
+    box-shadow:5px 5px 10px var(--shadow-d2), -4px -4px 9px var(--shadow-l);
+    color:var(--ink); font-size:16px; display:flex; align-items:center; justify-content:center;
+  }
+  .iconbtn:active{box-shadow:inset 3px 3px 7px var(--shadow-d), inset -3px -3px 7px var(--shadow-l);}
+  .iconbtn--text{width:auto; padding:0 16px; border-radius:30px; font-size:13px; font-weight:700; gap:6px;}
+  .tp-topbar__badge{
+    font-size:11.5px; font-weight:800; color:var(--ink-soft);
+    background:var(--clay-3); padding:6px 12px; border-radius:20px;
+    box-shadow:inset 2px 2px 5px var(--shadow-d2), inset -2px -2px 5px var(--shadow-l);
+  }
+
+  .content{padding:14px 24px 8px; flex:1;}
+  .title{font-size:25px; line-height:1.2; margin:8px 0 8px; color:var(--ink); font-weight:800;}
+  .subtitle{font-size:13.5px; line-height:1.5; color:var(--ink-soft); margin:0 0 18px;}
+  .hint{font-size:11.5px; color:var(--ink-faint); margin-top:8px; text-align:center;}
+
+  /* ---- hero ring (overall %) ---- */
+  .hero{text-align:center; margin-bottom:22px;}
+  .hero-ring{position:relative; width:148px; height:148px; margin:0 auto 8px;}
+  .hero-ring__face{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .hero-ring__num{font-size:32px; font-weight:800; color:var(--ink);}
+  .hero-ring__label{font-size:11px; color:var(--ink-soft); margin-top:2px; max-width:90px; line-height:1.3;}
+  .hero__sub{font-size:12.5px; color:var(--ink-soft); font-weight:700;}
+
+  /* ---- tile grid (home tiles) ---- */
+  .tile-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:6px;}
+  .tile{
+    text-align:center; padding:18px 12px 16px; border:none; cursor:pointer;
+    border-radius:26px; background:linear-gradient(150deg, var(--clay), var(--clay-2));
+    box-shadow:8px 8px 18px var(--shadow-d2), -7px -7px 16px var(--shadow-l);
+    transition:transform .12s ease;
+  }
+  .tile:active{transform:scale(.96); box-shadow:inset 4px 4px 9px var(--shadow-d), inset -4px -4px 9px var(--shadow-l);}
+  .tile__ring{position:relative; width:60px; height:60px; margin:0 auto 10px;}
+  .tile__emoji{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:24px;}
+  .tile__title{font-weight:800; font-size:13px; margin-bottom:4px; line-height:1.25; min-height:32px; display:flex; align-items:center; justify-content:center;}
+  .tile__status{font-size:11px; font-weight:800; color:var(--ink-soft);}
+  .tile__status--complete{color:#3F8A5C;}
+  .tile__tag{
+    position:relative; display:inline-block; font-size:9.5px; font-weight:800; color:var(--ink-soft);
+    background:var(--clay-3); padding:2px 8px; border-radius:14px; margin-top:8px;
+    box-shadow:inset 1.5px 1.5px 3px var(--shadow-d2), inset -1.5px -1.5px 3px var(--shadow-l);
+  }
+
+  /* ---- questions ---- */
+  .qblock{margin-bottom:24px;}
+  .qblock__title{font-weight:800; font-size:14.5px; margin-bottom:6px;}
+  .qblock__helper{font-size:11.5px; color:var(--ink-soft); margin-bottom:10px; font-weight:600;}
+  .chips{display:flex; flex-wrap:wrap; gap:10px; margin-bottom:8px;}
+  .chip{
+    border:none; cursor:pointer; padding:11px 16px; border-radius:22px; font-size:13.5px; font-weight:700;
+    color:var(--ink); background:linear-gradient(150deg, var(--clay), var(--clay-2));
+    box-shadow:5px 5px 11px var(--shadow-d2), -4px -4px 10px var(--shadow-l);
+  }
+  .chip--on{
+    color:#fff;
+    background:linear-gradient(150deg, var(--mod-accent, var(--accent)), var(--mod-accent-dark, var(--accent-dark)));
+    box-shadow:inset 3px 3px 7px rgba(0,0,0,0.28), inset -3px -3px 7px rgba(255,255,255,0.25);
+  }
+  .chip--off{
+    border:none; background:var(--clay-3); color:var(--ink-faint); padding:11px 16px; border-radius:22px;
+    font-size:13.5px; font-weight:700; opacity:.55; cursor:not-allowed; box-shadow:none;
+  }
+  .counter{font-size:11.5px; font-weight:700; color:var(--ink-faint); margin-bottom:4px;}
+
+  .scale-row{display:flex; gap:10px; margin-bottom:6px;}
+  .scale-btn{
+    width:44px; height:44px; border-radius:50%; border:none; cursor:pointer; font-weight:800; font-size:14px;
+    color:var(--ink); background:linear-gradient(150deg, var(--clay), var(--clay-2));
+    box-shadow:5px 5px 11px var(--shadow-d2), -4px -4px 10px var(--shadow-l);
+  }
+  .scale-btn--on{
+    color:#fff; background:linear-gradient(150deg, var(--mod-accent, var(--accent)), var(--mod-accent-dark, var(--accent-dark)));
+    box-shadow:inset 3px 3px 7px rgba(0,0,0,0.28), inset -3px -3px 7px rgba(255,255,255,0.25);
+  }
+  .scale-caption{display:flex; justify-content:space-between; font-size:11px; color:var(--ink-faint); max-width:270px; margin-bottom:6px; font-weight:600;}
+
+  /* ---- nav ---- */
+  .nav{display:flex; align-items:center; justify-content:space-between; padding:14px 22px 24px; margin-top:6px; gap:12px;}
+  .btn{border-radius:26px; padding:13px 22px; font-size:14px; font-weight:800; cursor:pointer; border:none;}
+  .btn--primary{
+    flex:1; color:#fff; background:linear-gradient(150deg, var(--mod-accent, var(--accent)), var(--mod-accent-dark, var(--accent-dark)));
+    box-shadow:6px 6px 14px var(--shadow-d2), -5px -5px 12px var(--shadow-l);
+  }
+  .btn--primary:active{box-shadow:inset 3px 3px 8px rgba(0,0,0,0.3), inset -3px -3px 8px rgba(255,255,255,0.2);}
+
+  .tp-restart{text-align:center; padding:2px 0 26px;}
+  .linkbtn{background:none; border:none; color:var(--ink-faint); font-size:12px; font-weight:700; text-decoration:underline; cursor:pointer;}
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--clay);
+    padding:11px 20px; border-radius:26px; font-size:13px; font-weight:600;
+    box-shadow:8px 8px 18px rgba(0,0,0,0.35); z-index:99; opacity:1; transition:opacity .4s;
+  }
+  .toast--out{opacity:0;}
+
+  @media (max-width:420px){
+    .title{font-size:22px;}
+    .tile-grid{gap:10px;}
+    .hero-ring{width:130px; height:130px;}
+  }
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ========================= DATA ========================= */
+const MODULES = [
+  {
+    id:1, key:'dining', emoji:'🍽', title:'Dining Habits', blurb:'Helps tailor when, where, and how you eat.',
+    accent:'#FF8C69', accentDark:'#F06B45',
+    questions:[
+      {id:'q1', type:'single', text:'How often do you eat out?', options:['Daily','3\u20135 times a week','1\u20132 times a week','Few times a month','Rarely']},
+      {id:'q2', type:'single', text:'When do you usually discover new food?', options:['Breakfast','Lunch','Dinner','Late Night','Anytime']},
+      {id:'q3', type:'single', text:'Who do you usually dine with?', options:['Alone','Partner','Friends','Family','Colleagues']},
+      {id:'q4', type:'single', text:'What type of dining do you prefer?', options:['Takeout','Delivery','Casual Dining','Fine Dining','Mix of everything']},
+      {id:'q5', type:'single', text:'How far would you travel for great food?', options:['Under 5 km','5-10 km','10-25 km','25-50 km','Anywhere']}
+    ]
+  },
+  {
+    id:2, key:'discovery', emoji:'🌍', title:'Discovery & Exploration', blurb:'Feeds your Adventure Score and Exploration Score.',
+    accent:'#3FB6A1', accentDark:'#2E9483',
+    questions:[
+      {id:'q1', type:'single', text:'How often do you try new cuisines?', options:['Never','Rarely','Sometimes','Often','Always']},
+      {id:'q2', type:'multi', max:3, requireExact:true, text:'When choosing a restaurant, what matters most?', helper:'Pick your top 3', options:['Reviews','Food Photos','Price','Distance','Recommendations','Ambience','Trendiness']},
+      {id:'q3', type:'single', text:'Which best describes you?', options:['I stick to favorites','I occasionally explore','I actively seek new experiences']},
+      {id:'q4', type:'scale', text:'How likely are you to visit a newly opened restaurant?', helper:'1 = not likely, 5 = very likely'},
+      {id:'q5', type:'single', text:'What excites you most?', options:['Authentic food','Hidden gems','Trending spots','Premium experiences','Local favorites']}
+    ]
+  },
+  {
+    id:3, key:'mood', emoji:'😊', title:'Mood & Cravings', blurb:'Powers mood-based food insights.',
+    accent:'#F2B23E', accentDark:'#D9961E',
+    questions:[
+      {id:'q1', type:'multi', max:3, requireExact:false, text:'When you\u2019re stressed, what do you crave?', helper:'Select up to 3', options:['Pizza','Burgers','Ice Cream','Pasta','Fried Food','Desserts','Soup','Noodles']},
+      {id:'q2', type:'single', text:'When celebrating, you usually choose:', options:['Steakhouse','Sushi','Fine Dining','BBQ','Seafood','Family Feast']},
+      {id:'q3', type:'single', text:'On a rainy day you prefer:', options:['Comfort food','Hot drinks','Soup','Street food','Desserts']},
+      {id:'q4', type:'single', text:'Your ideal weekend food adventure:', options:['Food truck','Hidden cafe','Fine dining','Ethnic cuisine','Local market']},
+      {id:'q5', type:'single', text:'If you could eat one category forever:', options:['Pizza','Burgers','Asian','Indian','Mediterranean','Desserts']}
+    ]
+  },
+  {
+    id:4, key:'budget', emoji:'💸', title:'Budget & Experience', blurb:'Feeds your Luxury Score and Value Score.',
+    accent:'#B07FD4', accentDark:'#9560BC',
+    questions:[
+      {id:'q1', type:'single', text:'Typical spend per meal?', options:['Under $15','$15\u201330','$30\u201350','$50\u2013100','$100+']},
+      {id:'q2', type:'single', text:'What\u2019s more important?', options:['Price','Food Quality','Ambience','Service']},
+      {id:'q3', type:'single', text:'How often do you visit premium restaurants?', options:['Never','Rarely','Sometimes','Often']},
+      {id:'q4', type:'single', text:'Which dining experience appeals most?', options:['Quick bites','Casual','Trendy spots','Fine dining','Chef experiences']},
+      {id:'q5', type:'single', text:'What would you spend extra on?', options:['Better ingredients','Better ambience','Better service','Exclusive dishes']}
+    ]
+  },
+  {
+    id:5, key:'social', emoji:'👥', title:'Social Food Profile', blurb:'Feeds your Social Score.',
+    accent:'#F0739B', accentDark:'#D8537E',
+    questions:[
+      {id:'q1', type:'single', text:'Eating food is primarily:', options:['Necessity','Hobby','Social activity','Passion']},
+      {id:'q2', type:'single', text:'How often do you share food photos?', options:['Never','Occasionally','Often','Always']},
+      {id:'q3', type:'single', text:'Do you enjoy recommending food to others?', options:['No','Sometimes','Often','Absolutely']},
+      {id:'q4', type:'single', text:'What best describes you?', options:['Quiet eater','Food enthusiast','Local guide','Food influencer']},
+      {id:'q5', type:'single', text:'Do you like organizing food outings?', options:['Never','Rarely','Sometimes','Often']}
+    ]
+  }
+];
+const TRACK_COLOR = '#F0DFCB';
+
+/* ========================= STATE ========================= */
+function blankTp(){
+  const o = {};
+  MODULES.forEach(m=>{
+    o[m.key] = {};
+    m.questions.forEach(q=>{ o[m.key][q.id] = q.type==='multi' ? [] : ''; });
+  });
+  return o;
+}
+function initialState(){ return { screen:'HUB', tp: blankTp() }; }
+let state = initialState();
+
+/* ========================= HELPERS ========================= */
+function getByPath(obj, path){ return path.split('.').reduce((o,k)=> (o==null?o:o[k]), obj); }
+function setByPath(obj, path, val){ const parts=path.split('.'); let o=obj; for(let i=0;i<parts.length-1;i++){ o=o[parts[i]]; } o[parts[parts.length-1]]=val; }
+function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escapeAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function showNote(text){
+  const t = document.createElement('div'); t.className='toast'; t.textContent=text;
+  document.body.appendChild(t);
+  setTimeout(()=>t.classList.add('toast--out'), 1700);
+  setTimeout(()=>t.remove(), 2100);
+}
+
+/* ========================= COMPLETION LOGIC ========================= */
+function questionAnswered(modKey, q){
+  const val = state.tp[modKey][q.id];
+  if(q.type==='multi'){
+    if(q.requireExact) return Array.isArray(val) && val.length===q.max;
+    return Array.isArray(val) && val.length>0;
+  }
+  return !!val;
+}
+function moduleAnsweredCount(mod){ return mod.questions.filter(q=>questionAnswered(mod.key,q)).length; }
+function isModuleComplete(mod){ return moduleAnsweredCount(mod)===mod.questions.length; }
+function modulePercent(mod){ return Math.round((moduleAnsweredCount(mod)/mod.questions.length)*100); }
+function overallPercent(){ return MODULES.filter(isModuleComplete).length * 10; }
+function overallFraction(){ return MODULES.filter(isModuleComplete).length / MODULES.length; }
+
+/* ========================= INTERACTION HANDLERS ========================= */
+function toggleChip(btn){
+  const group = btn.dataset.group, value = btn.dataset.value;
+  const maxAttr = btn.dataset.max; const max = maxAttr ? parseInt(maxAttr,10) : null;
+  const arr = getByPath(state, group);
+  const idx = arr.indexOf(value);
+  if(idx>=0){ arr.splice(idx,1); }
+  else{ if(max && arr.length>=max) return; arr.push(value); }
+  render();
+}
+function selectSingle(btn){ setByPath(state, btn.dataset.group, btn.dataset.value); render(); }
+
+/* ========================= RING SVG ========================= */
+function ringSvg(fraction, size, stroke, color){
+  const r = (size - stroke)/2;
+  const c = 2*Math.PI*r;
+  const offset = c*(1-Math.max(0,Math.min(1,fraction)));
+  const center = size/2;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    <circle cx="${center}" cy="${center}" r="${r}" stroke="${TRACK_COLOR}" stroke-width="${stroke}" fill="none" />
+    <circle cx="${center}" cy="${center}" r="${r}" stroke="${color}" stroke-width="${stroke}" fill="none"
+      stroke-dasharray="${c}" stroke-dashoffset="${offset}" stroke-linecap="round"
+      transform="rotate(-90 ${center} ${center})" style="transition:stroke-dashoffset .4s ease" />
+  </svg>`;
+}
+
+/* ========================= RENDER BITS ========================= */
+function scaleControl(groupPath, value, accent){
+  const opts = ['1','2','3','4','5'];
+  return `<div class="scale-row">${opts.map(o=>`<button type="button" class="scale-btn ${value===o?'scale-btn--on':''}" data-action="select-single" data-group="${groupPath}" data-value="${o}">${o}</button>`).join('')}</div>
+    <div class="scale-caption"><span>Not likely</span><span>Very likely</span></div>`;
+}
+function questionBlock(modKey, q, idx){
+  let control = '';
+  if(q.type==='single'){
+    const val = state.tp[modKey][q.id];
+    control = `<div class="chips">${q.options.map(o=>`<button type="button" class="chip ${val===o?'chip--on':''}" data-action="select-single" data-group="tp.${modKey}.${q.id}" data-value="${escapeAttr(o)}">${escapeHtml(o)}</button>`).join('')}</div>`;
+  } else if(q.type==='multi'){
+    const arr = state.tp[modKey][q.id];
+    const atMax = arr.length>=q.max;
+    const chipsHtml = q.options.map(o=>{
+      const on = arr.includes(o);
+      if(!on && atMax) return `<span class="chip chip--off">${escapeHtml(o)}</span>`;
+      return `<button type="button" class="chip ${on?'chip--on':''}" data-action="toggle-chip" data-group="tp.${modKey}.${q.id}" data-value="${escapeAttr(o)}" data-max="${q.max}">${on?'\u2713 ':''}${escapeHtml(o)}</button>`;
+    }).join('');
+    const counterText = q.requireExact ? `${arr.length} of ${q.max} selected \u2014 pick exactly ${q.max}` : `${arr.length} / ${q.max} selected`;
+    control = `<div class="chips">${chipsHtml}</div><div class="counter">${counterText}</div>`;
+  } else if(q.type==='scale'){
+    control = scaleControl(`tp.${modKey}.${q.id}`, state.tp[modKey][q.id]);
+  }
+  return `<div class="qblock">
+    <div class="qblock__title">${idx+1}. ${escapeHtml(q.text)}</div>
+    ${q.helper ? `<div class="qblock__helper">${escapeHtml(q.helper)}</div>` : ''}
+    ${control}
+  </div>`;
+}
+
+/* ========================= SCREENS ========================= */
+function screenHub(){
+  const pct = overallPercent();
+  const completedCount = MODULES.filter(isModuleComplete).length;
+  const heroRing = ringSvg(overallFraction(), 148, 14, 'var(--accent)');
+  const tiles = MODULES.map(mod=>{
+    const p = modulePercent(mod);
+    const complete = isModuleComplete(mod);
+    const answered = moduleAnsweredCount(mod), total = mod.questions.length;
+    const statusText = complete ? 'Complete \u2713' : (answered>0 ? `${p}% done` : 'Not started');
+    return `<button type="button" class="tile" data-action="open-module" data-mod="${mod.id}">
+      <div class="tile__ring">${ringSvg(p/100, 60, 7, mod.accent)}<span class="tile__emoji">${mod.emoji}</span></div>
+      <div class="tile__title">${escapeHtml(mod.title)}</div>
+      <div class="tile__status ${complete?'tile__status--complete':''}">${statusText}</div>
+      <div class="tile__tag">+10%</div>
+    </button>`;
+  }).join('');
+  return `<div class="stage"><div class="menu">
+    <span class="brandmark">FUZO</span>
+    <div class="tp-topbar"><button type="button" class="iconbtn iconbtn--text" data-action="noop-profile">\u2190 Profile</button><span></span></div>
+    <div class="content">
+      <h1 class="title">Taste Profile</h1>
+      <p class="subtitle">Five short modules \u2014 do them in any order, skip around, come back anytime.</p>
+      <div class="hero">
+        <div class="hero-ring">${heroRing}<div class="hero-ring__face"><div class="hero-ring__num">${pct}%</div><div class="hero-ring__label">added to your profile</div></div></div>
+        <div class="hero__sub">${completedCount}/5 modules complete</div>
+      </div>
+      <div class="tile-grid">${tiles}</div>
+      <div class="hint">This section can add up to 50% to your overall profile completion.</div>
+    </div>
+    <div class="tp-restart"><button type="button" class="linkbtn" data-action="reset-tp">\u21ba Reset taste profile answers</button></div>
+  </div></div>`;
+}
+
+function screenModule(modId){
+  const mod = MODULES[modId-1];
+  const answered = moduleAnsweredCount(mod), total = mod.questions.length;
+  const complete = answered===total;
+  const p = modulePercent(mod);
+  const body = mod.questions.map((q,i)=>questionBlock(mod.key,q,i)).join('');
+  return `<div class="stage"><div class="menu" style="--mod-accent:${mod.accent}; --mod-accent-dark:${mod.accentDark}">
+    <span class="brandmark">FUZO</span>
+    <div class="tp-topbar">
+      <button type="button" class="iconbtn iconbtn--text" data-action="to-hub">\u2190 Taste Profile</button>
+      <span class="tp-topbar__badge">${complete ? 'Complete \u2713' : `${p}% done`}</span>
+    </div>
+    <div class="content">
+      <h1 class="title">${mod.emoji} ${escapeHtml(mod.title)}</h1>
+      <p class="subtitle">${escapeHtml(mod.blurb)} \u00b7 <strong>+10%</strong> to your taste profile when complete.</p>
+      ${body}
+    </div>
+    <div class="nav">
+      <button type="button" class="iconbtn" data-action="to-hub" aria-label="Back">\u2190</button>
+      <button type="button" class="btn btn--primary" data-action="to-hub">Save & Return</button>
+    </div>
+  </div></div>`;
+}
+
+/* ========================= ROUTER ========================= */
+function screenHtml(s){
+  if(s==='HUB') return screenHub();
+  if(s && s.indexOf('MOD_')===0) return screenModule(parseInt(s.split('_')[1],10));
+  return screenHub();
+}
+function render(){ document.getElementById('app').innerHTML = screenHtml(state.screen); }
+
+/* ========================= EVENTS ========================= */
+document.getElementById('app').addEventListener('click', function(e){
+  const btn = e.target.closest('[data-action]');
+  if(!btn) return;
+  switch(btn.dataset.action){
+    case 'toggle-chip': toggleChip(btn); break;
+    case 'select-single': selectSingle(btn); break;
+    case 'open-module': state.screen = 'MOD_' + btn.dataset.mod; render(); window.scrollTo(0,0); break;
+    case 'to-hub': state.screen = 'HUB'; render(); window.scrollTo(0,0); break;
+    case 'reset-tp': state.tp = blankTp(); render(); break;
+    case 'noop-profile': showNote('This would link back to the full profile page in the real app.'); break;
+  }
+});
+
+render();
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 # Developer Guide: Onboarding Ready Reckoner
 
-This guide serves as the technical reference for the **Multi-Path Onboarding System** — an immersive 7-step wizard designed to determine the user's culinary archetype and initialize their digital plate.
+This guide serves as the technical reference for the **Multi-Path Onboarding System** — an immersive wizard designed to initialize the user's digital plate, culminating in the comprehensive 5-module Taste Profile Hub.
 
 ---
 
@@ -8,20 +8,28 @@ This guide serves as the technical reference for the **Multi-Path Onboarding Sys
 The onboarding engine is modularized within `src/features/auth/`.
 
 - **Main Orchestrator**: `src/features/auth/components/OnboardingV2Flow.tsx`
-- **Content Map**: `src/features/auth/constants/onboardingV2Data.ts`
+- **Content Map**: `src/features/auth/constants/onboardingV2Data.ts` (Legacy individual path elements)
 - **Logic Trigger**: `src/features/auth/components/AuthOrchestrator.tsx`
 
 ---
 
 ## 🧭 System Architecture
 
-The onboarding system operates on a "Dynamic Branching" model. Users are funneled through different questions based on their initial identity selection.
+The onboarding system operates on a "Dynamic Branching" model followed by a non-linear Hub.
 
-### 1. The Decision Engine
-Users select from 4 primary categories (`Individual`, `Chef`, `Restaurant`, `Culinary Team`). This choice dictates the `phase` sequence and the specific `OnboardingV2Step[]` array loaded from the constant map.
+### 1. The Initial Setup Phase
+Before making any identity choices, the system immediately captures essential record-keeping data:
+- **Phone Number** & **Location / Country of Origin**.
+- This ensures critical data is captured early in case the user skips the remainder of the flow.
 
-### 2. The Personality Quiz
-The **Culinary DNA Quiz** is a shared module called towards the end of the `Individual` path. It uses weighted answers to assign a specialized badge (e.g., "Flavor Explorer 🌶").
+### 2. The Decision Engine
+Users select from 4 primary categories (`Individual`, `Chef`, `Restaurant`, `Culinary Team`). This choice dictates the `path` sequence. Currently, the `Individual` path branches into the Taste Profile Hub.
+
+### 3. The Taste Profile Hub
+Replaced the old linear "Flavor Quiz" with a 5-module non-linear hub:
+- **Dining**, **Discovery**, **Mood**, **Budget**, **Social** (5 questions each).
+- Users can complete these modules in any order.
+- The hub architecture aggregates the answers into a comprehensive `taste_profile` JSON object.
 
 ---
 
@@ -29,17 +37,21 @@ The **Culinary DNA Quiz** is a shared module called towards the end of the `Indi
 
 ```mermaid
 graph TD
-    A[Identity Selection] --> B{Path Choice}
-    B -- Individual --> C[Individual Path]
-    B -- Chef/Rest/Team --> D[Professional Path]
+    A[Initial Setup: Phone & Location] --> B{Identity Selection}
+    B -- Individual --> C[Taste Profile Hub]
+    B -- Chef/Rest/Team --> D[Professional Setup]
     
-    C --> E[Flavor Quiz]
-    D --> F[Setup Phase]
+    C --> E[Dining Module]
+    C --> F[Discovery Module]
+    C --> G[Mood Module]
+    C --> H[Budget Module]
+    C --> I[Social Module]
     
-    E --> G[Location Detection]
-    F --> G
-    
-    G --> H[Finalize & DB Sync]
+    E --> J[Finalize & DB Sync]
+    F --> J
+    G --> J
+    H --> J
+    I --> J
 ```
 
 ---
@@ -50,29 +62,18 @@ Onboarding completion triggers a multi-field update to the `public.users` table 
 
 | Supabase Column | Map Source | Description |
 | :--- | :--- | :--- |
+| `phone` | `payload.phone` | Contact number captured in Phase 1. |
+| `location` | `payload.location` | Location string / origin. |
 | `profile_type` | `payload.userType` | 'Individual', 'Chef', etc. |
-| `profile_subtype` | `payload.quizResult` | The generated badge title. |
-| `cuisine_preferences`| `payload.answers.cuisines`| JSONB array of culinary tags. |
-| `dietary_preferences`| `payload.answers.dietary` | JSONB array of restrictions. |
+| `onboarding_v2_metadata`| `payload.taste_profile`| JSONB object holding all 25 answers across the 5 modules. |
 | `onboarding_completed`| `true` | Unlocks the main application. |
 
 ---
 
 ## 🛠️ Maintenance & Content Updates
 
-### Adding a Step
-1. Define the new step in `onboardingV2Data.ts` (e.g., in the `INDIVIDUAL_PATH` array).
-2. Ensure the `id` property matches a valid field in the `OnboardingV2Payload` if data needs to be saved.
-
-### Modifying the Quiz
-To adjust the results for the Culinary DNA quiz, edit the `FINALIZATION` logic in `OnboardingV2Flow.tsx` (found in the `handleComplete` function).
-
----
-
-## 🧪 Testing & Demo Mode
-The app supports a standalone "Demo Mode" for the onboarding flow that bypasses database writes.
-- **Access**: Navigate to `/app?view=onboarding-demo`.
-- **Logic**: In this mode, the `OnboardingV2Flow` component receives `mode="demo"` and simply displays the JSON payload on finish instead of syncing.
+### Modifying the Hub Modules
+To add or change questions in the Taste Profile, update the `TASTE_PROFILE_MODULES` constant within `OnboardingV2Flow.tsx`. Ensure the keys in the module array map cleanly to the expected state objects.
 
 ---
 
@@ -80,4 +81,4 @@ The app supports a standalone "Demo Mode" for the onboarding flow that bypasses 
 > **Asset Integrity**: Onboarding background transitions are synchronized with the 2000ms "Visual Heritage" cross-fade. Ensure any custom images added to `ONBOARDING_BACKGROUNDS` are 1920x1080 or larger.
 
 > [!TIP]
-> **Location Fallback**: Geolocation is requested on the final step. If the user denies permission, the system gracefully falls back to NYC as the default discovery anchor.
+> **Location Fallback**: Geolocation and phone entry are now front-loaded. If the user decides to skip the Taste Profile hub later, the platform still retains their geographic baseline for discovery.

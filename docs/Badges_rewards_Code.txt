@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FUZO — Rewards & Progression</title>
+<style>
+  :root{
+    --bg-a:#FFEFE2; --bg-b:#FFE1EC; --bg-c:#FDEFD8;
+    --clay:#FFFBF6; --clay-2:#FFE9D6; --clay-3:#FBE3CF;
+    --ink:#5B4636; --ink-soft:#8A746A; --ink-faint:#B6A496;
+    --shadow-d:rgba(120,80,40,0.28); --shadow-d2:rgba(120,80,40,0.16); --shadow-l:rgba(255,255,255,0.95);
+    --accent:#FF8C69; --accent-dark:#F06B45;
+    --gold:#E3B23C; --gold-dark:#C8941F;
+    --lock:#CBB9A8;
+    --track:#F0DFCB;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:linear-gradient(160deg, var(--bg-a) 0%, var(--bg-b) 55%, var(--bg-c) 100%);
+    min-height:100vh; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink); -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit;}
+  :focus-visible{outline:3px solid var(--ink); outline-offset:2px;}
+
+  .stage{width:100%; min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding:30px 16px 64px;}
+  .menu{
+    position:relative; width:100%; max-width:580px;
+    background:linear-gradient(150deg, var(--clay), var(--clay-2));
+    border-radius:34px; box-shadow:16px 16px 34px var(--shadow-d2), -12px -12px 26px var(--shadow-l);
+    overflow:hidden; display:flex; flex-direction:column;
+  }
+  .brandmark{position:absolute; top:22px; right:26px; font-size:11px; letter-spacing:0.18em; font-weight:800; color:var(--ink-faint); z-index:2;}
+
+  .topbar{display:flex; align-items:center; justify-content:space-between; padding:22px 22px 0;}
+  .iconbtn{
+    border:none; cursor:pointer; background:linear-gradient(150deg, var(--clay), var(--clay-2));
+    box-shadow:5px 5px 10px var(--shadow-d2), -4px -4px 9px var(--shadow-l); color:var(--ink);
+    border-radius:30px; padding:10px 16px; font-size:13px; font-weight:700;
+  }
+  .iconbtn:active{box-shadow:inset 3px 3px 7px var(--shadow-d), inset -3px -3px 7px var(--shadow-l);}
+
+  .content{padding:14px 22px 8px; flex:1;}
+  .h1{font-size:24px; font-weight:800; margin:8px 0 4px;}
+  .h2{font-size:15px; font-weight:800; margin:0 0 4px;}
+  .muted{font-size:12.5px; color:var(--ink-soft); margin:0 0 14px;}
+  .faint{font-size:11.5px; color:var(--ink-faint);}
+
+  /* ---- header / level card ---- */
+  .level-card{
+    display:flex; align-items:center; gap:16px; padding:18px;
+    background:linear-gradient(150deg, var(--clay), var(--clay-3));
+    border-radius:26px; box-shadow:8px 8px 18px var(--shadow-d2), -7px -7px 16px var(--shadow-l);
+    margin-bottom:18px;
+  }
+  .level-ring{position:relative; width:84px; height:84px; flex:0 0 auto;}
+  .level-ring__face{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .level-ring__num{font-size:20px; font-weight:800;}
+  .level-ring__tag{font-size:9px; color:var(--ink-faint); font-weight:700; letter-spacing:.04em;}
+  .level-info{flex:1; min-width:0;}
+  .level-info__name{font-weight:800; font-size:15px;}
+  .level-info__rank{font-size:12.5px; color:var(--accent-dark); font-weight:800; margin-top:2px;}
+  .level-info__xp{font-size:11.5px; color:var(--ink-soft); margin-top:6px; font-weight:700;}
+  .xp-track{height:8px; border-radius:6px; background:var(--track); margin-top:5px; overflow:hidden; box-shadow:inset 1.5px 1.5px 3px var(--shadow-d2);}
+  .xp-track__fill{height:100%; background:linear-gradient(90deg,var(--gold),var(--accent)); transition:width .4s ease;}
+
+  /* ---- role switcher ---- */
+  .role-row{display:flex; gap:8px; overflow-x:auto; padding-bottom:6px; margin-bottom:18px; -webkit-overflow-scrolling:touch;}
+  .role-row::-webkit-scrollbar{display:none;}
+  .role-chip{
+    flex:0 0 auto; border:none; cursor:pointer; padding:9px 15px; border-radius:20px; font-size:12.5px; font-weight:800;
+    color:var(--ink); background:linear-gradient(150deg, var(--clay), var(--clay-2));
+    box-shadow:4px 4px 9px var(--shadow-d2), -3px -3px 8px var(--shadow-l); white-space:nowrap;
+  }
+  .role-chip--on{
+    color:#fff; background:linear-gradient(150deg, var(--role-accent, var(--accent)), var(--role-accent-dark, var(--accent-dark)));
+    box-shadow:inset 3px 3px 7px rgba(0,0,0,0.25), inset -3px -3px 7px rgba(255,255,255,0.2);
+  }
+
+  /* ---- section card shell ---- */
+  .section{margin-bottom:22px;}
+  .section__head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px;}
+
+  /* ---- badge list ---- */
+  .badge-card{
+    display:flex; gap:14px; padding:15px; border-radius:22px; margin-bottom:12px;
+    background:linear-gradient(150deg, var(--clay), var(--clay-2));
+    box-shadow:7px 7px 16px var(--shadow-d2), -6px -6px 14px var(--shadow-l);
+  }
+  .badge-card--earned{background:linear-gradient(150deg, #FFFBF6, #FFEFD2);}
+  .badge-card--locked .badge-card__emoji-wrap{filter:grayscale(.55) opacity(.7);}
+  .badge-card__emoji-wrap{
+    flex:0 0 auto; width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:24px; background:var(--clay-3);
+    box-shadow:inset 2px 2px 5px var(--shadow-d2), inset -2px -2px 5px var(--shadow-l);
+  }
+  .badge-card__body{flex:1; min-width:0;}
+  .badge-card__top{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:3px;}
+  .badge-card__title{font-weight:800; font-size:14px;}
+  .badge-card__state{font-size:10.5px; font-weight:800; padding:3px 9px; border-radius:14px; white-space:nowrap;}
+  .badge-card__state--earned{background:#E2F0CE; color:#4C7A1E;}
+  .badge-card__state--locked{background:var(--clay-3); color:var(--ink-faint);}
+  .req{font-size:11.5px; color:var(--ink-soft); margin:5px 0 2px; display:flex; justify-content:space-between; gap:8px;}
+  .req__bar{height:5px; border-radius:4px; background:var(--track); overflow:hidden; margin-bottom:6px;}
+  .req__fill{height:100%; background:linear-gradient(90deg,var(--role-accent, var(--accent)), var(--role-accent-dark, var(--accent-dark))); transition:width .4s ease;}
+  .req--done{color:#4C7A1E; font-weight:700;}
+  .badge-card__reward{font-size:11px; color:var(--ink-faint); margin-top:6px; font-style:italic;}
+  .manual-toggle{
+    margin-top:8px; display:inline-flex; align-items:center; gap:7px; font-size:11px; font-weight:700; color:var(--ink-soft);
+    background:var(--clay-3); padding:5px 10px; border-radius:14px; cursor:pointer; border:none;
+  }
+  .manual-toggle__dot{width:9px; height:9px; border-radius:50%; background:var(--lock);}
+  .manual-toggle--on .manual-toggle__dot{background:#4C7A1E;}
+
+  /* ---- achievement grid ---- */
+  .ach-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .ach-card{
+    text-align:center; padding:14px 8px 12px; border-radius:20px;
+    background:linear-gradient(150deg, var(--clay), var(--clay-2));
+    box-shadow:6px 6px 14px var(--shadow-d2), -5px -5px 12px var(--shadow-l);
+  }
+  .ach-card--locked{opacity:.78;}
+  .ach-card--future{opacity:.55;}
+  .ach-ring{position:relative; width:50px; height:50px; margin:0 auto 6px;}
+  .ach-ring__emoji{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:20px;}
+  .ach-card__title{font-size:11.5px; font-weight:800; line-height:1.25; min-height:28px;}
+  .ach-card__sub{font-size:10px; color:var(--ink-faint); margin-top:3px; font-weight:700;}
+
+  /* ---- simulator drawer ---- */
+  .sim-toggle{
+    width:100%; text-align:left; border:none; cursor:pointer; padding:14px 16px; border-radius:20px;
+    background:linear-gradient(150deg, var(--clay), var(--clay-3));
+    box-shadow:6px 6px 14px var(--shadow-d2), -5px -5px 12px var(--shadow-l);
+    font-weight:800; font-size:13px; color:var(--ink); display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:14px;
+  }
+  .sim-panel{margin-bottom:18px;}
+  .sim-group{margin-bottom:14px;}
+  .sim-group__label{font-size:11px; font-weight:800; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.05em; margin-bottom:7px;}
+  .sim-btns{display:flex; flex-wrap:wrap; gap:7px;}
+  .sim-btn{
+    border:none; cursor:pointer; padding:8px 12px; border-radius:16px; font-size:11.5px; font-weight:700;
+    color:var(--ink); background:var(--clay-3);
+    box-shadow:3px 3px 7px var(--shadow-d2), -3px -3px 7px var(--shadow-l);
+  }
+  .sim-btn:active{box-shadow:inset 2px 2px 5px var(--shadow-d2), inset -2px -2px 5px var(--shadow-l);}
+  .sim-btn--xp{color:#fff; background:linear-gradient(150deg, var(--gold), var(--gold-dark));}
+
+  .reset-row{text-align:center; padding:4px 0 26px;}
+  .linkbtn{background:none; border:none; color:var(--ink-faint); font-size:12px; font-weight:700; text-decoration:underline; cursor:pointer;}
+
+  /* ---- celebration toast ---- */
+  .celebrate{
+    position:fixed; top:24px; left:50%; transform:translateX(-50%) translateY(-30px); opacity:0;
+    background:linear-gradient(150deg, var(--clay), #FFF1D6); color:var(--ink); padding:14px 22px; border-radius:22px;
+    box-shadow:10px 10px 22px rgba(0,0,0,0.3), -6px -6px 14px rgba(255,255,255,0.6); z-index:99;
+    font-size:13.5px; font-weight:800; text-align:center; transition:transform .35s ease, opacity .35s ease; max-width:88%;
+  }
+  .celebrate--in{transform:translateX(-50%) translateY(0); opacity:1;}
+  .celebrate__emoji{font-size:26px; display:block; margin-bottom:2px;}
+
+  @media (max-width:420px){ .ach-grid{grid-template-columns:1fr 1fr;} .h1{font-size:21px;} }
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="celebrate-root"></div>
+
+<script>
+/* ========================= XP ACTIONS ========================= */
+const XP_ACTIONS = [
+  {key:'visitRestaurant', label:'Visit restaurant', xp:20, effect:{restaurantsVisited:1}},
+  {key:'saveRestaurant', label:'Save place', xp:5, effect:{placesSaved:1}},
+  {key:'writeReview', label:'Write review', xp:30, effect:{reviewsWritten:1}},
+  {key:'uploadPhoto', label:'Upload photo', xp:15, effect:{photosUploaded:1}},
+  {key:'uploadVideo', label:'Upload video', xp:25, effect:{videosUploaded:1}},
+  {key:'uploadRecipe', label:'Upload recipe', xp:40, effect:{recipesUploaded:1}},
+  {key:'pinLocation', label:'Pin location', xp:10, effect:{locationsPinned:1}},
+  {key:'receiveLike', label:'Receive like', xp:2, effect:{likesReceived:1}},
+  {key:'receiveBookmark', label:'Receive bookmark', xp:5, effect:{bookmarksReceived:1}},
+  {key:'followCreator', label:'Follow creator', xp:2, effect:{followsGiven:1}},
+  {key:'receiveFollower', label:'Receive follower', xp:5, effect:{followers:1}}
+];
+
+/* Non-XP stat bumps needed for badge / achievement tracking */
+const OTHER_ACTIONS = [
+  {key:'exploreCuisine', label:'Explore new cuisine', effect:{cuisinesExplored:1}},
+  {key:'exploreNeighborhood', label:'Explore neighborhood', effect:{neighborhoodsExplored:1}},
+  {key:'visitHiddenGem', label:'Visit hidden gem', effect:{hiddenGemsVisited:1}},
+  {key:'travelKm', label:'Travel 10km for food', effect:{kmTraveled:10}},
+  {key:'exploreCity', label:'Explore new city', effect:{citiesExplored:1}},
+  {key:'visitCountry', label:'Visit new country', effect:{countriesVisited:1}},
+  {key:'passMonth', label:'+1 month active', effect:{monthsActive:1}},
+  {key:'publishPost', label:'Publish blog post', effect:{posts:1}},
+  {key:'gainProfileVisit', label:'+10 profile visits', effect:{profileVisits:10}},
+  {key:'gainPostLikes', label:'+50 likes on posts', effect:{likesOnPosts:50}},
+  {key:'gainHelpfulVote', label:'Receive helpful vote', effect:{helpfulVotes:1}},
+  {key:'bumpReviewLength', label:'Write longer review', effect:{reviewAvgLength:20}},
+  {key:'postTravelStory', label:'Post travel story', effect:{travelStoriesPosted:1}},
+  {key:'publishTutorial', label:'Publish tutorial', effect:{tutorialsPublished:1}},
+  {key:'visitCafe', label:'Visit a cafe', effect:{cafesVisited:1}},
+  {key:'tryPizza', label:'Try a pizza place', effect:{pizzaPlaces:1}},
+  {key:'eatSushi', label:'Eat sushi', effect:{sushiTimes:1}},
+  {key:'visitBurger', label:'Visit burger spot', effect:{burgerVisits:1}},
+  {key:'reviewSpicy', label:'Review spicy dish', effect:{spicyReviews:1}},
+  {key:'shareDessert', label:'Share dessert', effect:{dessertsShared:1}},
+  {key:'visitVegan', label:'Visit vegan spot', effect:{veganVisits:1}},
+  {key:'streetFoodCheckin', label:'Street food check-in', effect:{streetFoodCheckins:1}}
+];
+
+const MANUAL_FLAGS = [
+  {key:'tasteProfileComplete', label:'Mark Taste Profile complete'},
+  {key:'topReviewerInCity', label:'Mark "Top reviewer in city"'},
+  {key:'invitationOrQualityBlogger', label:'Mark FUZO invite / quality (Blogger)'},
+  {key:'communityRecognitionTravel', label:'Mark community recognition (Travel)'},
+  {key:'highEngagementRecipe', label:'Mark high engagement (Recipe)'},
+  {key:'invitationOrQualityInstructor', label:'Mark FUZO invite / quality (Instructor)'}
+];
+
+/* ========================= ROLES & BADGE TRACKS ========================= */
+const ROLES = [
+  {
+    key:'explorer', label:'Food Explorer', rankName:'Explorer Rank', accent:'#FF8C69', accentDark:'#F06B45',
+    badges:[
+      {emoji:'🍽', title:'Curious Bite', reward:'Explorer Badge I', reqs:[
+        {label:'Visit 5 restaurants', stat:'restaurantsVisited', target:5},
+        {label:'Save 5 places', stat:'placesSaved', target:5}
+      ]},
+      {emoji:'🧭', title:'Local Explorer', reward:'New badge color unlocked', reqs:[
+        {label:'Visit 10 restaurants', stat:'restaurantsVisited', target:10},
+        {label:'Pin 3 locations', stat:'locationsPinned', target:3},
+        {label:'Explore 5 cuisines', stat:'cuisinesExplored', target:5}
+      ]},
+      {emoji:'🌎', title:'Taste Explorer', reward:'Exclusive profile frame', reqs:[
+        {label:'Visit 20 restaurants', stat:'restaurantsVisited', target:20},
+        {label:'Explore 10 cuisines', stat:'cuisinesExplored', target:10},
+        {label:'Save 20 places', stat:'placesSaved', target:20}
+      ]},
+      {emoji:'🏆', title:'City Food Hunter', reward:'Map pin style unlock', reqs:[
+        {label:'Visit 35 restaurants', stat:'restaurantsVisited', target:35},
+        {label:'Explore 5 neighborhoods', stat:'neighborhoodsExplored', target:5},
+        {label:'Visit 3 hidden gems', stat:'hiddenGemsVisited', target:3}
+      ]},
+      {emoji:'🌍', title:'Culinary Adventurer', reward:'+100 XP bonus', reqs:[
+        {label:'Visit 50 restaurants', stat:'restaurantsVisited', target:50},
+        {label:'Explore 15 cuisines', stat:'cuisinesExplored', target:15},
+        {label:'Travel 30km+ for food', stat:'kmTraveled', target:30}
+      ]},
+      {emoji:'👑', title:'FUZO Food Explorer', reward:'Exclusive profile theme', reqs:[
+        {label:'Visit 100 restaurants', stat:'restaurantsVisited', target:100},
+        {label:'Explore 25 cuisines', stat:'cuisinesExplored', target:25},
+        {label:'Complete Taste Profile', stat:'tasteProfileComplete', target:true},
+        {label:'Active 3+ months', stat:'monthsActive', target:3}
+      ]}
+    ]
+  },
+  {
+    key:'reviewer', label:'Food Reviewer', rankName:'Critic Rank', accent:'#3FB6A1', accentDark:'#2E9483',
+    badges:[
+      {emoji:'✍', title:'First Impression', reward:'New achievement card', reqs:[
+        {label:'Write 3 reviews', stat:'reviewsWritten', target:3}
+      ]},
+      {emoji:'⭐', title:'Trusted Reviewer', reward:'New badge color unlocked', reqs:[
+        {label:'Write 10 reviews', stat:'reviewsWritten', target:10},
+        {label:'Receive 20 helpful votes', stat:'helpfulVotes', target:20}
+      ]},
+      {emoji:'🍴', title:'Local Critic', reward:'Exclusive profile frame', reqs:[
+        {label:'Review 25 restaurants', stat:'reviewsWritten', target:25},
+        {label:'Avg review length > 100 chars', stat:'reviewAvgLength', target:100}
+      ]},
+      {emoji:'🏅', title:'Community Reviewer', reward:'+100 XP bonus', reqs:[
+        {label:'50 reviews', stat:'reviewsWritten', target:50},
+        {label:'100 helpful votes', stat:'helpfulVotes', target:100}
+      ]},
+      {emoji:'🏆', title:'Master Critic', reward:'Exclusive profile theme', reqs:[
+        {label:'100 reviews', stat:'reviewsWritten', target:100},
+        {label:'250 helpful votes', stat:'helpfulVotes', target:250}
+      ]},
+      {emoji:'👑', title:'FUZO Elite Critic', reward:'Featured in local discovery', reqs:[
+        {label:'200 reviews', stat:'reviewsWritten', target:200},
+        {label:'Top reviewer in city', stat:'topReviewerInCity', target:true}
+      ]}
+    ]
+  },
+  {
+    key:'blogger', label:'Food Blogger', rankName:'Blogger Rank', accent:'#F2B23E', accentDark:'#D9961E',
+    badges:[
+      {emoji:'📷', title:'First Post', reward:'New achievement card', reqs:[
+        {label:'Publish 3 posts', stat:'posts', target:3}
+      ]},
+      {emoji:'📝', title:'Storyteller', reward:'New badge color unlocked', reqs:[
+        {label:'10 posts', stat:'posts', target:10},
+        {label:'100 profile visits', stat:'profileVisits', target:100}
+      ]},
+      {emoji:'🌟', title:'Rising Blogger', reward:'Exclusive profile frame', reqs:[
+        {label:'25 posts', stat:'posts', target:25},
+        {label:'500 likes', stat:'likesOnPosts', target:500}
+      ]},
+      {emoji:'🔥', title:'Community Voice', reward:'+100 XP bonus', reqs:[
+        {label:'50 posts', stat:'posts', target:50},
+        {label:'1,500 likes', stat:'likesOnPosts', target:1500}
+      ]},
+      {emoji:'🏆', title:'Influencer', reward:'Exclusive profile theme', reqs:[
+        {label:'100 posts', stat:'posts', target:100},
+        {label:'5,000 likes', stat:'likesOnPosts', target:5000}
+      ]},
+      {emoji:'👑', title:'FUZO Featured Creator', reward:'Featured in local discovery', reqs:[
+        {label:'FUZO invitation or quality threshold', stat:'invitationOrQualityBlogger', target:true}
+      ]}
+    ]
+  },
+  {
+    key:'travel', label:'Food Travel Blogger', rankName:'Travel Rank', accent:'#5E8FE0', accentDark:'#4570C4',
+    badges:[
+      {emoji:'🚗', title:'Local Food Traveler', reward:'New achievement card', reqs:[
+        {label:'Visit 5 neighborhoods', stat:'neighborhoodsExplored', target:5}
+      ]},
+      {emoji:'🗺', title:'City Explorer', reward:'New badge color unlocked', reqs:[
+        {label:'Explore 10 neighborhoods', stat:'neighborhoodsExplored', target:10},
+        {label:'Post 10 travel stories', stat:'travelStoriesPosted', target:10}
+      ]},
+      {emoji:'✈', title:'Regional Explorer', reward:'Exclusive profile frame', reqs:[
+        {label:'Explore 5 cities', stat:'citiesExplored', target:5}
+      ]},
+      {emoji:'🌎', title:'Country Explorer', reward:'+100 XP bonus', reqs:[
+        {label:'Explore 10 cities', stat:'citiesExplored', target:10}
+      ]},
+      {emoji:'🏅', title:'International Food Traveler', reward:'Exclusive profile theme', reqs:[
+        {label:'Visit restaurants in 3 countries', stat:'countriesVisited', target:3}
+      ]},
+      {emoji:'👑', title:'FUZO Travel Ambassador', reward:'Featured in local discovery', reqs:[
+        {label:'Community recognition', stat:'communityRecognitionTravel', target:true}
+      ]}
+    ]
+  },
+  {
+    key:'recipe', label:'Recipe Creator', rankName:'Recipe Rank', accent:'#B07FD4', accentDark:'#9560BC',
+    badges:[
+      {emoji:'🥄', title:'Home Cook', reward:'New achievement card', reqs:[
+        {label:'Upload 3 recipes', stat:'recipesUploaded', target:3}
+      ]},
+      {emoji:'📖', title:'Recipe Builder', reward:'New badge color unlocked', reqs:[
+        {label:'10 recipes', stat:'recipesUploaded', target:10}
+      ]},
+      {emoji:'👨\u200d🍳', title:'Kitchen Expert', reward:'Exclusive profile frame', reqs:[
+        {label:'25 recipes', stat:'recipesUploaded', target:25}
+      ]},
+      {emoji:'🔥', title:'Signature Creator', reward:'+100 XP bonus', reqs:[
+        {label:'50 recipes', stat:'recipesUploaded', target:50}
+      ]},
+      {emoji:'🏆', title:'Culinary Creator', reward:'Exclusive profile theme', reqs:[
+        {label:'100 recipes', stat:'recipesUploaded', target:100}
+      ]},
+      {emoji:'👑', title:'FUZO Master Chef', reward:'Featured in local discovery', reqs:[
+        {label:'200 recipes', stat:'recipesUploaded', target:200},
+        {label:'High engagement', stat:'highEngagementRecipe', target:true}
+      ]}
+    ]
+  },
+  {
+    key:'instructor', label:'Cooking Instructor', rankName:'Instructor Rank', accent:'#F0739B', accentDark:'#D8537E',
+    badges:[
+      {emoji:'🎓', title:'Mentor', reward:'New achievement card', reqs:[
+        {label:'Publish 3 tutorials', stat:'tutorialsPublished', target:3}
+      ]},
+      {emoji:'🍳', title:'Teacher', reward:'New badge color unlocked', reqs:[
+        {label:'10 tutorials', stat:'tutorialsPublished', target:10}
+      ]},
+      {emoji:'🏫', title:'Instructor', reward:'Exclusive profile frame', reqs:[
+        {label:'25 tutorials', stat:'tutorialsPublished', target:25}
+      ]},
+      {emoji:'👨\u200d🍳', title:'Culinary Coach', reward:'+100 XP bonus', reqs:[
+        {label:'50 tutorials', stat:'tutorialsPublished', target:50}
+      ]},
+      {emoji:'🏆', title:'Master Instructor', reward:'Exclusive profile theme', reqs:[
+        {label:'100 tutorials', stat:'tutorialsPublished', target:100}
+      ]},
+      {emoji:'👑', title:'FUZO Academy Mentor', reward:'Featured in local discovery', reqs:[
+        {label:'FUZO invitation or quality threshold', stat:'invitationOrQualityInstructor', target:true}
+      ]}
+    ]
+  }
+];
+
+/* ========================= ACHIEVEMENT MILESTONES ========================= */
+const ACHIEVEMENTS = [
+  {emoji:'☕', title:'Coffee Lover', stat:'cafesVisited', target:10},
+  {emoji:'🍕', title:'Pizza Fan', stat:'pizzaPlaces', target:10},
+  {emoji:'🍣', title:'Sushi Scout', stat:'sushiTimes', target:10},
+  {emoji:'🍔', title:'Burger Buff', stat:'burgerVisits', target:15},
+  {emoji:'🌶', title:'Spice Warrior', stat:'spicyReviews', target:10},
+  {emoji:'🍰', title:'Dessert Lover', stat:'dessertsShared', target:20},
+  {emoji:'🌱', title:'Plant Powered', stat:'veganVisits', target:10},
+  {emoji:'🌮', title:'Street Food Hunter', stat:'streetFoodCheckins', target:15},
+  {emoji:'🌍', title:'World Explorer', stat:'cuisinesExplored', target:20},
+  {emoji:'💎', title:'Hidden Gem Hunter', stat:'hiddenGemsVisited', target:15},
+  {emoji:'📸', title:'Food Photographer', stat:'photosUploaded', target:100},
+  {emoji:'🎥', title:'Video Creator', stat:'videosUploaded', target:50},
+  {emoji:'❤️', title:'Community Favorite', stat:'likesReceived', target:1000},
+  {emoji:'🤝', title:'Food Companion', stat:null, target:null, future:true}
+];
+
+const XP_PER_LEVEL = 300;
+const ROMAN = ['0','I','II','III','IV','V','VI'];
+
+/* ========================= STATE ========================= */
+function initialStats(){
+  return {
+    restaurantsVisited:0, placesSaved:0, locationsPinned:0, cuisinesExplored:0,
+    reviewsWritten:0, photosUploaded:0, videosUploaded:0, recipesUploaded:0,
+    likesReceived:0, followers:0, helpfulVotes:0, bookmarksReceived:0, followsGiven:0,
+    neighborhoodsExplored:0, hiddenGemsVisited:0, citiesExplored:0, countriesVisited:0,
+    kmTraveled:0, monthsActive:0, posts:0, profileVisits:0, likesOnPosts:0,
+    travelStoriesPosted:0, tutorialsPublished:0, reviewAvgLength:0,
+    cafesVisited:0, pizzaPlaces:0, sushiTimes:0, burgerVisits:0, spicyReviews:0,
+    dessertsShared:0, veganVisits:0, streetFoodCheckins:0,
+    tasteProfileComplete:false, topReviewerInCity:false,
+    invitationOrQualityBlogger:false, communityRecognitionTravel:false,
+    highEngagementRecipe:false, invitationOrQualityInstructor:false
+  };
+}
+function initialState(){
+  return { xp:0, stats:initialStats(), activeRole:'explorer', earnedBefore:{}, simOpen:false };
+}
+let state = initialState();
+
+/* ========================= HELPERS ========================= */
+function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function clamp01(n){ return Math.max(0, Math.min(1, n)); }
+
+/* ========================= PROGRESSION LOGIC ========================= */
+function getLevel(xp){ return Math.floor(xp / XP_PER_LEVEL) + 1; }
+function getLevelProgress(xp){ return (xp % XP_PER_LEVEL) / XP_PER_LEVEL; }
+
+function reqProgress(req){
+  const val = state.stats[req.stat];
+  if(req.target === true) return val === true ? 1 : 0;
+  return clamp01((val || 0) / req.target);
+}
+function reqDone(req){ return reqProgress(req) >= 1; }
+function badgeProgress(badge){
+  const sum = badge.reqs.reduce((s,r)=>s+reqProgress(r), 0);
+  return sum / badge.reqs.length;
+}
+function isBadgeEarned(badge){ return badge.reqs.every(reqDone); }
+function roleEarnedCount(role){ return role.badges.filter(isBadgeEarned).length; }
+function roleRankLabel(role){
+  const count = roleEarnedCount(role);
+  return count === 0 ? `${role.rankName} \u2014 Unranked` : `${role.rankName} ${ROMAN[count]}`;
+}
+
+function allEarnedKeys(){
+  const keys = {};
+  ROLES.forEach(role=>{
+    role.badges.forEach((b,i)=>{ if(isBadgeEarned(b)) keys[role.key+':'+i] = true; });
+  });
+  ACHIEVEMENTS.forEach((a,i)=>{
+    if(!a.future && (state.stats[a.stat]||0) >= a.target) keys['ach:'+i] = true;
+  });
+  return keys;
+}
+
+/* ========================= CELEBRATION ========================= */
+function celebrate(title, rewardText){
+  const root = document.getElementById('celebrate-root');
+  const el = document.createElement('div');
+  el.className = 'celebrate';
+  el.innerHTML = `<span class="celebrate__emoji">\u{1F389}</span>${escapeHtml(title)} unlocked!<br /><span class="faint">${escapeHtml(rewardText||'')}</span>`;
+  root.appendChild(el);
+  requestAnimationFrame(()=> el.classList.add('celebrate--in'));
+  setTimeout(()=>{ el.classList.remove('celebrate--in'); }, 2600);
+  setTimeout(()=> el.remove(), 3000);
+}
+function checkNewUnlocks(){
+  const now = allEarnedKeys();
+  const newlyEarned = [];
+  Object.keys(now).forEach(k=>{
+    if(!state.earnedBefore[k]){
+      if(k.indexOf('ach:')===0){
+        const a = ACHIEVEMENTS[parseInt(k.split(':')[1],10)];
+        newlyEarned.push({title:a.title, reward:'Achievement unlocked'});
+      } else {
+        const [roleKey, idx] = k.split(':');
+        const role = ROLES.find(r=>r.key===roleKey);
+        const b = role.badges[parseInt(idx,10)];
+        newlyEarned.push({title:b.title, reward:b.reward});
+      }
+    }
+  });
+  state.earnedBefore = now;
+  if(newlyEarned.length){
+    newlyEarned.forEach((n,i)=> setTimeout(()=>celebrate(n.title, n.reward), i*900));
+  }
+}
+
+/* ========================= ACTIONS ========================= */
+function applyEffect(effect){
+  Object.keys(effect).forEach(k=>{ state.stats[k] = (state.stats[k]||0) + effect[k]; });
+}
+function simulateXpAction(key){
+  const action = XP_ACTIONS.find(a=>a.key===key);
+  if(!action) return;
+  state.xp += action.xp;
+  applyEffect(action.effect);
+  checkNewUnlocks();
+  render();
+}
+function simulateOtherAction(key){
+  const action = OTHER_ACTIONS.find(a=>a.key===key);
+  if(!action) return;
+  applyEffect(action.effect);
+  checkNewUnlocks();
+  render();
+}
+function toggleManualFlag(key){
+  state.stats[key] = !state.stats[key];
+  checkNewUnlocks();
+  render();
+}
+function setActiveRole(key){ state.activeRole = key; render(); }
+function toggleSim(){ state.simOpen = !state.simOpen; render(); }
+function doReset(){ state = initialState(); render(); }
+
+/* ========================= RING SVG ========================= */
+function ringSvg(fraction, size, stroke, color, trackColor){
+  const r = (size - stroke)/2, c = 2*Math.PI*r;
+  const offset = c*(1-clamp01(fraction));
+  const center = size/2;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    <circle cx="${center}" cy="${center}" r="${r}" stroke="${trackColor||'var(--track)'}" stroke-width="${stroke}" fill="none" />
+    <circle cx="${center}" cy="${center}" r="${r}" stroke="${color}" stroke-width="${stroke}" fill="none"
+      stroke-dasharray="${c}" stroke-dashoffset="${offset}" stroke-linecap="round"
+      transform="rotate(-90 ${center} ${center})" style="transition:stroke-dashoffset .4s ease" />
+  </svg>`;
+}
+
+/* ========================= RENDER: HEADER ========================= */
+function renderHeader(){
+  const xp = state.xp, level = getLevel(xp), pct = getLevelProgress(xp);
+  const role = ROLES.find(r=>r.key===state.activeRole);
+  return `<div class="level-card">
+    <div class="level-ring">${ringSvg(pct, 84, 9, 'var(--gold)')}
+      <div class="level-ring__face"><div class="level-ring__num">${level}</div><div class="level-ring__tag">LEVEL</div></div>
+    </div>
+    <div class="level-info">
+      <div class="level-info__name">Your FUZO Progress</div>
+      <div class="level-info__rank">${escapeHtml(roleRankLabel(role))}</div>
+      <div class="level-info__xp">Taste Score: ${xp.toLocaleString()} XP \u00b7 ${(xp % XP_PER_LEVEL)}/${XP_PER_LEVEL} to next level</div>
+      <div class="xp-track"><div class="xp-track__fill" style="width:${pct*100}%"></div></div>
+    </div>
+  </div>`;
+}
+
+/* ========================= RENDER: ROLE SWITCHER ========================= */
+function renderRoleRow(){
+  return `<div class="role-row">${ROLES.map(r=>`
+    <button type="button" class="role-chip ${state.activeRole===r.key?'role-chip--on':''}"
+      style="--role-accent:${r.accent}; --role-accent-dark:${r.accentDark}"
+      data-action="set-role" data-role="${r.key}">${escapeHtml(r.label)}</button>
+  `).join('')}</div>`;
+}
+
+/* ========================= RENDER: BADGE TRACK ========================= */
+function renderBadgeTrack(){
+  const role = ROLES.find(r=>r.key===state.activeRole);
+  const earned = roleEarnedCount(role);
+  const cards = role.badges.map((b,i)=>{
+    const done = isBadgeEarned(b);
+    const reqsHtml = b.reqs.map(r=>{
+      const p = reqProgress(r);
+      const isBool = r.target === true;
+      const valText = isBool ? (state.stats[r.stat] ? 'Done' : 'Not yet') : `${Math.min(state.stats[r.stat]||0, r.target)}/${r.target}`;
+      let manualBtn = '';
+      if(isBool && MANUAL_FLAGS.some(f=>f.key===r.stat)){
+        manualBtn = `<button type="button" class="manual-toggle ${state.stats[r.stat]?'manual-toggle--on':''}" data-action="toggle-flag" data-flag="${r.stat}">
+          <span class="manual-toggle__dot"></span>${state.stats[r.stat] ? 'Marked complete' : 'Mark complete (demo)'}</button>`;
+      }
+      return `<div class="req ${p>=1?'req--done':''}"><span>${p>=1?'\u2713 ':''}${escapeHtml(r.label)}</span><span>${valText}</span></div>
+        <div class="req__bar" style="--role-accent:${role.accent}; --role-accent-dark:${role.accentDark}"><div class="req__fill" style="width:${p*100}%; --role-accent:${role.accent}; --role-accent-dark:${role.accentDark}"></div></div>
+        ${manualBtn}`;
+    }).join('');
+    return `<div class="badge-card ${done?'badge-card--earned':'badge-card--locked'}">
+      <div class="badge-card__emoji-wrap">${b.emoji}</div>
+      <div class="badge-card__body">
+        <div class="badge-card__top"><span class="badge-card__title">${i+1}. ${escapeHtml(b.title)}</span>
+          <span class="badge-card__state ${done?'badge-card__state--earned':'badge-card__state--locked'}">${done?'Earned \u2713':'Locked'}</span>
+        </div>
+        ${reqsHtml}
+        <div class="badge-card__reward">\u{1F381} Reward: ${escapeHtml(b.reward)}</div>
+      </div>
+    </div>`;
+  }).join('');
+  return `<div class="section">
+    <div class="section__head"><span class="h2">${escapeHtml(role.label)} Badges</span><span class="faint">${earned}/6 earned</span></div>
+    ${cards}
+  </div>`;
+}
+
+/* ========================= RENDER: ACHIEVEMENTS ========================= */
+function renderAchievements(){
+  const cards = ACHIEVEMENTS.map(a=>{
+    if(a.future){
+      return `<div class="ach-card ach-card--future">
+        <div class="ach-ring">${ringSvg(0, 50, 6, 'var(--lock)')}<span class="ach-ring__emoji">${a.emoji}</span></div>
+        <div class="ach-card__title">${escapeHtml(a.title)}</div>
+        <div class="ach-card__sub">Coming soon</div>
+      </div>`;
+    }
+    const val = state.stats[a.stat]||0;
+    const p = clamp01(val/a.target);
+    const done = val >= a.target;
+    return `<div class="ach-card ${done?'':'ach-card--locked'}">
+      <div class="ach-ring">${ringSvg(p, 50, 6, done?'#4C7A1E':'var(--accent)')}<span class="ach-ring__emoji">${a.emoji}</span></div>
+      <div class="ach-card__title">${escapeHtml(a.title)}</div>
+      <div class="ach-card__sub">${done? 'Unlocked \u2713' : Math.min(val,a.target)+'/'+a.target}</div>
+    </div>`;
+  }).join('');
+  const earnedCount = ACHIEVEMENTS.filter(a=>!a.future && (state.stats[a.stat]||0)>=a.target).length;
+  return `<div class="section">
+    <div class="section__head"><span class="h2">Achievement Milestones</span><span class="faint">${earnedCount}/${ACHIEVEMENTS.length-1} unlocked</span></div>
+    <div class="ach-grid">${cards}</div>
+  </div>`;
+}
+
+/* ========================= RENDER: SIMULATOR ========================= */
+function renderSimulator(){
+  if(!state.simOpen){
+    return `<button type="button" class="sim-toggle" data-action="toggle-sim"><span>\u{1F9EA} Demo: simulate activity</span><span>+</span></button>`;
+  }
+  const xpBtns = XP_ACTIONS.map(a=>`<button type="button" class="sim-btn sim-btn--xp" data-action="sim-xp" data-key="${a.key}">${escapeHtml(a.label)} (+${a.xp}xp)</button>`).join('');
+  const otherBtns = OTHER_ACTIONS.map(a=>`<button type="button" class="sim-btn" data-action="sim-other" data-key="${a.key}">${escapeHtml(a.label)}</button>`).join('');
+  const flagBtns = MANUAL_FLAGS.map(f=>`<button type="button" class="sim-btn ${state.stats[f.key]?'sim-btn--xp':''}" data-action="toggle-flag" data-flag="${f.key}">${escapeHtml(f.label)}</button>`).join('');
+  return `<button type="button" class="sim-toggle" data-action="toggle-sim"><span>\u{1F9EA} Demo: simulate activity</span><span>\u2212</span></button>
+    <div class="sim-panel">
+      <div class="sim-group"><div class="sim-group__label">XP actions</div><div class="sim-btns">${xpBtns}</div></div>
+      <div class="sim-group"><div class="sim-group__label">Other activity (no XP, feeds badges)</div><div class="sim-btns">${otherBtns}</div></div>
+      <div class="sim-group"><div class="sim-group__label">Manual / judgment flags (demo only)</div><div class="sim-btns">${flagBtns}</div></div>
+    </div>`;
+}
+
+/* ========================= ROOT RENDER ========================= */
+function render(){
+  document.getElementById('app').innerHTML = `<div class="stage"><div class="menu">
+    <span class="brandmark">FUZO</span>
+    <div class="topbar"><button type="button" class="iconbtn" data-action="noop-profile">\u2190 Profile</button><span></span></div>
+    <div class="content">
+      <h1 class="h1">Rewards & Progression</h1>
+      <p class="muted">Your universal level grows from everything you do. Your rank badge grows from your chosen role.</p>
+      ${renderHeader()}
+      ${renderRoleRow()}
+      ${renderBadgeTrack()}
+      ${renderAchievements()}
+      ${renderSimulator()}
+    </div>
+    <div class="reset-row"><button type="button" class="linkbtn" data-action="reset">\u21ba Reset demo progress</button></div>
+  </div></div>`;
+}
+
+/* ========================= EVENTS ========================= */
+document.getElementById('app').addEventListener('click', function(e){
+  const btn = e.target.closest('[data-action]');
+  if(!btn) return;
+  switch(btn.dataset.action){
+    case 'set-role': setActiveRole(btn.dataset.role); break;
+    case 'sim-xp': simulateXpAction(btn.dataset.key); break;
+    case 'sim-other': simulateOtherAction(btn.dataset.key); break;
+    case 'toggle-flag': toggleManualFlag(btn.dataset.flag); break;
+    case 'toggle-sim': toggleSim(); break;
+    case 'reset': doReset(); break;
+    case 'noop-profile': break;
+  }
+});
+
+render();
+</script>
+</body>
+</html>

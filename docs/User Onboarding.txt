@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FUZO — Onboarding Prototype</title>
+<style>
+  :root{
+    --ink:#1F1410;
+    --paper:#FBF3E7;
+    --paper-dim:#F1E6D3;
+    --chili:#E8472B;
+    --chili-dark:#C4361F;
+    --turmeric:#F2A93B;
+    --lime:#9CB833;
+    --ink-soft:#6B5A4E;
+    --ink-soft2:#8A7A6E;
+    --line:#E2D2B8;
+    --white:#FFFDF9;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 20% 0%, rgba(232,71,43,0.10), transparent 45%),
+      radial-gradient(circle at 90% 100%, rgba(242,169,59,0.08), transparent 45%),
+      var(--ink);
+    min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  .serif{font-family:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;}
+  .mono{font-family:"SF Mono","Roboto Mono",Menlo,Consolas,monospace;}
+  button{font-family:inherit;}
+  :focus-visible{outline:2.5px solid var(--turmeric); outline-offset:2px;}
+
+  .stage{
+    width:100%;
+    min-height:100vh;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:28px 16px 48px;
+  }
+  .menu{
+    position:relative;
+    width:100%;
+    max-width:560px;
+    background:var(--paper);
+    border-radius:20px;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04);
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+  .brandmark{
+    position:absolute; top:18px; right:22px;
+    font-size:11px; letter-spacing:0.18em; font-weight:700;
+    color:var(--ink-soft2); z-index:2;
+  }
+
+  /* ---- step header ---- */
+  .menu__header{
+    display:flex; align-items:center; gap:14px;
+    padding:24px 24px 16px;
+  }
+  .stamp{
+    flex:0 0 auto;
+    width:38px;height:38px;border-radius:50%;
+    background:var(--chili); color:var(--white);
+    display:flex;align-items:center;justify-content:center;
+    font-family:"SF Mono","Roboto Mono",monospace;
+    font-weight:700; font-size:15px;
+    box-shadow:0 4px 10px rgba(232,71,43,0.35);
+  }
+  .menu__headtext{flex:1; min-width:0;}
+  .eyebrow{
+    font-family:"SF Mono","Roboto Mono",monospace;
+    font-size:11px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--ink-soft2); margin-bottom:6px;
+  }
+  .track{height:4px;border-radius:3px;background:var(--line);overflow:hidden;}
+  .track__fill{height:100%;background:linear-gradient(90deg,var(--turmeric),var(--chili));transition:width .35s ease;}
+
+  /* ---- content ---- */
+  .content{padding:6px 24px 8px; flex:1;}
+  .title{font-size:26px; line-height:1.18; margin:6px 0 8px; color:var(--ink);}
+  .subtitle{font-size:14.5px; line-height:1.5; color:var(--ink-soft); margin:0 0 20px;}
+  .label{
+    font-family:"SF Mono","Roboto Mono",monospace; font-size:11px;
+    letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-soft2);
+    margin:18px 0 8px;
+  }
+  .label:first-child{margin-top:0;}
+  .hr{border:none;border-top:1.5px dashed var(--line); margin:22px 0;}
+
+  /* ---- fields ---- */
+  .field{display:block; margin-bottom:14px;}
+  .field-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .field__label{display:block; font-size:12.5px; color:var(--ink-soft); margin-bottom:5px; font-weight:600;}
+  input[type=text], input[type=email], input[type=password], input[type=tel], textarea{
+    width:100%; padding:11px 13px; border-radius:10px;
+    border:1.5px solid var(--line); background:var(--white);
+    font-size:14.5px; color:var(--ink); font-family:inherit;
+  }
+  textarea{min-height:80px; resize:vertical;}
+  input::placeholder, textarea::placeholder{color:#B8A78F;}
+
+  .photo-row{display:flex; align-items:center; gap:14px; margin-top:8px;}
+  .photo-upload{
+    width:54px;height:54px;border-radius:50%; flex:0 0 auto;
+    border:1.5px dashed var(--line); background:var(--white);
+    color:var(--ink-soft2); font-size:20px; cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .photo-upload--on{border-style:solid; border-color:var(--lime); color:var(--lime); background:#F4F7E8;}
+  .hint{font-size:12.5px; color:var(--ink-soft2); margin-top:2px;}
+
+  /* ---- chips ---- */
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;}
+  .chip{
+    border:1.5px solid var(--line); background:var(--white); color:var(--ink);
+    padding:8px 14px; border-radius:30px; font-size:13.5px; cursor:pointer;
+    transition:background .15s, color .15s, border-color .15s;
+  }
+  .chip--on{background:var(--chili); border-color:var(--chili); color:var(--white); font-weight:600;}
+  .chip--off{
+    border:1.5px solid var(--line); background:transparent; color:var(--ink-soft2);
+    padding:8px 14px; border-radius:30px; font-size:13.5px; opacity:.45; cursor:not-allowed;
+  }
+  .custom-row{display:flex; gap:8px; margin:4px 0 10px;}
+  .custom-row input{flex:1;}
+  .btn-add{
+    border:1.5px solid var(--ink); background:var(--ink); color:var(--paper);
+    border-radius:10px; padding:0 16px; font-size:13.5px; font-weight:600; cursor:pointer;
+    white-space:nowrap;
+  }
+  .counter{font-family:"SF Mono","Roboto Mono",monospace; font-size:11.5px; color:var(--ink-soft2); margin-bottom:4px;}
+
+  /* ---- single-select cards ---- */
+  .cards{display:flex; flex-direction:column; gap:10px;}
+  .card-opt{
+    display:flex; flex-direction:column; align-items:flex-start; gap:3px;
+    text-align:left; width:100%;
+    border:1.5px solid var(--line); border-left:4px solid var(--line);
+    background:var(--white); border-radius:14px; padding:14px 16px; cursor:pointer;
+  }
+  .card-opt--on{border-color:var(--chili); border-left-color:var(--chili); background:var(--paper-dim);}
+  .card-opt__emoji{font-size:22px;}
+  .card-opt__title{font-weight:700; font-size:15px; color:var(--ink);}
+  .card-opt__desc{font-size:12.5px; color:var(--ink-soft2);}
+
+  /* ---- quiz ---- */
+  .quiz-q{margin-bottom:18px;}
+  .quiz-q__title{font-weight:700; font-size:14px; margin-bottom:8px;}
+  .quiz-q__opts{display:flex; flex-wrap:wrap; gap:8px;}
+
+  /* ---- switches ---- */
+  .switch-row{display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-bottom:1px solid var(--line);}
+  .switch-row:last-child{border-bottom:none;}
+  .switch-row__label{font-size:14px; font-weight:600;}
+  .switch{
+    width:42px;height:24px;border-radius:30px; border:none; cursor:pointer;
+    background:var(--line); position:relative; flex:0 0 auto;
+  }
+  .switch--on{background:var(--lime);}
+  .switch__knob{
+    position:absolute; top:3px; left:3px; width:18px;height:18px;border-radius:50%;
+    background:var(--white); transition:left .15s ease; box-shadow:0 1px 3px rgba(0,0,0,0.3);
+  }
+  .switch--on .switch__knob{left:21px;}
+
+  /* ---- upload zones ---- */
+  .upload-zone{border:1.5px dashed var(--line); border-radius:12px; padding:12px 14px; margin-bottom:12px; background:var(--white);}
+  .upload-zone__head{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
+  .upload-zone__head>span{font-weight:700; font-size:13.5px;}
+  .file-tags{display:flex; flex-wrap:wrap; gap:6px;}
+  .file-tag{
+    background:var(--paper-dim); border:1px solid var(--line); border-radius:8px;
+    padding:4px 8px; font-size:12px; color:var(--ink-soft); display:inline-flex; align-items:center; gap:6px;
+  }
+  .file-tag button{border:none; background:none; cursor:pointer; color:var(--ink-soft2); font-size:11px; padding:0;}
+
+  /* ---- preview ---- */
+  .preview-block{background:var(--white); border:1.5px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px;}
+  .preview-row{display:flex; gap:10px; padding:7px 0; border-bottom:1px dashed var(--line); font-size:13.5px;}
+  .preview-row:last-child{border-bottom:none;}
+  .preview-row__label{flex:0 0 130px; color:var(--ink-soft2); font-weight:600;}
+  .preview-row__value{flex:1; color:var(--ink);}
+
+  /* ---- result badge ---- */
+  .result-badge{text-align:center; padding:26px 16px; background:var(--white); border:1.5px solid var(--line); border-radius:16px; margin-bottom:16px;}
+  .result-badge__emoji{font-size:44px;}
+  .result-badge__title{font-family:"Iowan Old Style",Georgia,serif; font-size:22px; font-weight:700; margin:6px 0;}
+  .result-badge__desc{font-size:13.5px; color:var(--ink-soft); max-width:340px; margin:0 auto;}
+
+  /* ---- nav ---- */
+  .nav{
+    display:flex; align-items:center; justify-content:space-between;
+    border-top:2px dashed var(--line); padding:16px 24px; margin-top:8px;
+    background:var(--paper);
+  }
+  .nav__right{display:flex; gap:10px; align-items:center;}
+  .btn{border-radius:30px; padding:11px 20px; font-size:14px; font-weight:700; cursor:pointer; border:none;}
+  .btn--primary{background:var(--chili); color:var(--white);}
+  .btn--primary:hover{background:var(--chili-dark);}
+  .btn--primary[disabled]{background:var(--line); color:var(--ink-soft2); cursor:not-allowed;}
+  .btn--ghost{background:transparent; color:var(--ink-soft); padding:11px 6px;}
+  .btn--text{background:transparent; color:var(--ink-soft2); text-decoration:underline; padding:11px 4px; font-weight:600;}
+  .btn--wide{width:100%;}
+
+  /* ---- intro ---- */
+  .stage--intro{align-items:center;}
+  .menu--intro{padding:48px 30px 38px; text-align:center; gap:0;}
+  .intro-mark{
+    font-family:"SF Mono","Roboto Mono",monospace; font-weight:800; letter-spacing:0.2em;
+    color:var(--chili); font-size:14px; margin-bottom:18px;
+  }
+  .intro-title{font-family:"Iowan Old Style",Georgia,serif; font-size:34px; margin:0 0 14px; color:var(--ink);}
+  .intro-sub{font-size:14.5px; color:var(--ink-soft); line-height:1.6; max-width:380px; margin:0 auto 30px;}
+  .intro-cta{display:flex; flex-direction:column; gap:10px;}
+
+  /* ---- dashboard ---- */
+  .dash-head{padding:34px 24px 6px; text-align:center;}
+  .dash-head__eyebrow{font-family:"SF Mono","Roboto Mono",monospace; font-size:11px; letter-spacing:0.16em; color:var(--lime); text-transform:uppercase; margin-bottom:8px;}
+  .dash-head__title{font-family:"Iowan Old Style",Georgia,serif; font-size:24px; margin:0 0 6px;}
+  .dash-head__sub{font-size:13.5px; color:var(--ink-soft); margin-bottom:6px;}
+  .dash-body{padding:10px 24px 28px;}
+  .stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px;}
+  .stat-card{background:var(--white); border:1.5px solid var(--line); border-radius:12px; padding:14px;}
+  .stat-card__num{font-family:"SF Mono","Roboto Mono",monospace; font-size:20px; font-weight:700; color:var(--chili);}
+  .stat-card__label{font-size:12px; color:var(--ink-soft2); margin-top:2px;}
+  .feed-section{margin-bottom:16px;}
+  .feed-section__title{font-weight:700; font-size:14px; margin-bottom:8px;}
+  .feed-card{background:var(--white); border:1.5px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:8px;}
+  .feed-card__title{font-weight:700; font-size:13.5px;}
+  .feed-card__sub{font-size:12px; color:var(--ink-soft2); margin-top:2px;}
+  .dash-restart{text-align:center; margin-top:8px;}
+
+  /* ---- toast ---- */
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:var(--ink); color:var(--paper); padding:10px 18px; border-radius:30px;
+    font-size:13px; box-shadow:0 10px 25px rgba(0,0,0,0.4); z-index:99; opacity:1; transition:opacity .4s;
+  }
+  .toast--out{opacity:0;}
+
+  @media (max-width:480px){
+    .field-grid{grid-template-columns:1fr;}
+    .title{font-size:22px;}
+    .intro-title{font-size:28px;}
+    .stat-grid{grid-template-columns:1fr 1fr;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ========================= DATA ========================= */
+const FLAVORS = ['Sweet','Spicy','Savory','Tangy','Sour','Bitter','Smoky','Umami','Creamy','Cheesy'];
+const CUISINES = ['Indian','Italian','Chinese','Japanese','Korean','Thai','Mexican','Mediterranean','Caribbean','Middle Eastern'];
+const DIETARY = ['No Restrictions','Vegetarian','Vegan','Halal','Kosher','Jain','Gluten-Free','Dairy-Free'];
+const FOOD_CATEGORIES = ['Breakfast','Lunch','Dinner','Dessert','Bakery','Catering','Meal Prep'];
+const AUDIENCE = ['Families','Students','Professionals','Foodies','Travelers','Health Conscious'];
+const CUSTOMER_MATCH = ['Food Explorers','Families','Professionals','Students','Travelers','Health Conscious Diners'];
+const BUSINESS_IDENTITY = ['Family Friendly','Hidden Gem','Fine Dining','Vegan Friendly','Halal','Local Favorite','Date Night','Late Night','Budget Friendly','Premium Experience'];
+const INTEGRATIONS = ['OpenTable','Website','Online Ordering'];
+
+const A_TYPE_OPTS = [
+  {v:'Food Explorer', e:'🧭', d:'Find new restaurants, dishes, and food experiences.'},
+  {v:'Food Reviewer', e:'✍️', d:'Share honest takes on what you eat.'}
+];
+
+const B_TYPE_OPTS = [
+  {v:'Food Blogger', e:'📝', d:'Reviews, restaurant discovery, food photography.'},
+  {v:'Food Travel Blogger', e:'✈️', d:'Local food, city guides, road trips.'},
+  {v:'Recipe Creator', e:'👩‍🍳', d:'Home cooking, baking, healthy recipes.'},
+  {v:'Cooking Instructor', e:'🎓', d:'Beginner and advanced classes.'},
+  {v:'Nutrition Coach', e:'🥗', d:'Weight loss, sports nutrition, healthy eating.'},
+  {v:'Private Chef', e:'🍽️', d:'Personal dining, event dining.'},
+  {v:'Catering Chef', e:'🎉', d:'Weddings, corporate events, private functions.'}
+];
+
+const C_TYPE_OPTS = [
+  {v:'Restaurant', e:'🍴', d:'A full-service dine-in spot.'},
+  {v:'Cloud Kitchen', e:'☁️', d:'Delivery-only kitchen, no storefront.'},
+  {v:'Café', e:'☕', d:'Coffee, light bites, casual seating.'},
+  {v:'Bakery', e:'🥐', d:'Baked goods and desserts.'},
+  {v:'Food Truck', e:'🚚', d:'Mobile food service.'},
+  {v:'Catering Company', e:'🎊', d:'Events and bulk orders.'},
+  {v:'Meal Prep Business', e:'🍱', d:'Pre-made meals, subscriptions.'},
+  {v:'Specialty Food Business', e:'🌟', d:'Niche or artisan food products.'}
+];
+
+const SPECIALTY_MAP = {
+  'Food Blogger': ['Reviews','Restaurant Discovery','Food Photography'],
+  'Food Travel Blogger': ['Local Food','City Guides','Road Trips'],
+  'Recipe Creator': ['Home Cooking','Baking','Healthy Recipes'],
+  'Cooking Instructor': ['Beginner Classes','Advanced Classes'],
+  'Nutrition Coach': ['Weight Loss','Sports Nutrition','Healthy Eating'],
+  'Private Chef': ['Personal Dining','Event Dining'],
+  'Catering Chef': ['Weddings','Corporate Events','Private Functions']
+};
+
+const QUIZ_QUESTIONS = [
+  {key:'q1', q:'What\u2019s your go-to meal vibe?', opts:['Comfort & indulgent','Bold & spicy','Healthy & balanced','Trendy & aesthetic']},
+  {key:'q2', q:'How do you choose where to eat?', opts:['Reviews','Social media','Cravings','Healthy options']},
+  {key:'q3', q:'What excites you most?', opts:['Familiar favorites','New cuisines','Balanced eating','Food experiences']},
+  {key:'q4', q:'Pick a weekend activity', opts:['Comfort food at home','Explore new restaurants','Cook something new','Visit a healthy cafe']},
+  {key:'q5', q:'How adventurous are you with food?', opts:['Not much','Sometimes','Often',"I'll try anything"]}
+];
+
+const QUIZ_MAP = {
+  q1: {'Comfort & indulgent':'comfort','Bold & spicy':'explorer','Healthy & balanced':'health','Trendy & aesthetic':'trend'},
+  q2: {'Reviews':'trend','Social media':'trend','Cravings':'comfort','Healthy options':'health'},
+  q3: {'Familiar favorites':'comfort','New cuisines':'explorer','Balanced eating':'health','Food experiences':'trend'},
+  q4: {'Comfort food at home':'comfort','Explore new restaurants':'explorer','Cook something new':'trend','Visit a healthy cafe':'health'},
+  q5: {'Not much':'comfort','Sometimes':'health','Often':'trend',"I'll try anything":'explorer'}
+};
+
+const PERSONALITY = {
+  explorer:{emoji:'🌶️', title:'Flavor Explorer', desc:'You chase bold, new flavors and rarely order the same dish twice.'},
+  comfort:{emoji:'🍕', title:'Comfort Craver', desc:'Familiar, indulgent food is where your heart is.'},
+  health:{emoji:'🥗', title:'Health Hero', desc:'Balanced, nourishing meals top your list every time.'},
+  trend:{emoji:'🍣', title:'Trend Hunter', desc:'You eat with your eyes first and chase what\u2019s buzzing.'}
+};
+
+const FEATURES_LIST = [
+  {k:'reservations', label:'Reservations'},
+  {k:'ordering', label:'Ordering'},
+  {k:'catering', label:'Catering Requests'},
+  {k:'events', label:'Event Bookings'}
+];
+
+/* ========================= STATE ========================= */
+function initialState(){
+  return {
+    screen:'WELCOME',
+    pathChoice:null,
+    account:{firstName:'',lastName:'',email:'',password:'',photo:false},
+    a:{
+      type:'', flavors:[], flavorsExtra:[], cuisines:[], cuisinesExtra:[],
+      dietary:[], dietaryExtra:[], quiz:{q1:'',q2:'',q3:'',q4:'',q5:''}
+    },
+    b:{
+      type:'', profile:{name:'',bio:'',location:'',website:''}, specialty:[],
+      portfolio:{photos:[],videos:[],recipes:[],menus:[],serviceImages:[]}, audience:[]
+    },
+    c:{
+      type:'', profile:{businessName:'',contact:'',phone:'',email:'',address:''},
+      cuisine:[], cuisineExtra:[], categories:[], categoriesExtra:[],
+      media:{menu:[],photos:[],dishes:[]}, identity:[],
+      features:{reservations:false,ordering:false,catering:false,events:false},
+      integrations:[], matching:[]
+    }
+  };
+}
+let state = initialState();
+let history_ = [];
+
+/* ========================= HELPERS ========================= */
+function getByPath(obj, path){ if(!path) return undefined; return path.split('.').reduce((o,k)=> (o==null?o:o[k]), obj); }
+function setByPath(obj, path, val){ const parts=path.split('.'); let o=obj; for(let i=0;i<parts.length-1;i++){ o=o[parts[i]]; } o[parts[parts.length-1]]=val; }
+function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escapeAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function showNote(text){
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = text;
+  document.body.appendChild(t);
+  setTimeout(()=>t.classList.add('toast--out'), 1700);
+  setTimeout(()=>t.remove(), 2100);
+}
+
+/* ========================= NAVIGATION ========================= */
+const NAV_ORDER = {
+  A:['A_TYPE','A_FLAVORS','A_CUISINES','A_DIETARY','A_QUIZ','A_RESULT'],
+  B:['B_TYPE','B_PROFILE','B_SPECIALTY','B_PORTFOLIO','B_AUDIENCE','B_PREVIEW'],
+  C:['C_TYPE','C_PROFILE','C_CUISINE','C_MEDIA','C_IDENTITY','C_FEATURES','C_MATCHING','C_PREVIEW']
+};
+function fullOrder(){
+  const base = ['CREATE_ACCOUNT','PATH_SELECT'];
+  if(!state.pathChoice) return base;
+  return [...base, ...NAV_ORDER[state.pathChoice]];
+}
+function courseIndex(){ const order = fullOrder(); return order.indexOf(state.screen)+1; }
+function courseTotal(){ return fullOrder().length; }
+
+function nextScreenFor(s){
+  switch(s){
+    case 'WELCOME': return 'CREATE_ACCOUNT';
+    case 'CREATE_ACCOUNT': return 'PATH_SELECT';
+    case 'PATH_SELECT': return state.pathChoice==='A' ? 'A_TYPE' : state.pathChoice==='B' ? 'B_TYPE' : 'C_TYPE';
+    case 'A_TYPE': return 'A_FLAVORS';
+    case 'A_FLAVORS': return 'A_CUISINES';
+    case 'A_CUISINES': return 'A_DIETARY';
+    case 'A_DIETARY': return 'A_QUIZ';
+    case 'A_QUIZ': return 'A_RESULT';
+    case 'A_RESULT': return 'DASH_FOODLOVER';
+    case 'B_TYPE': return 'B_PROFILE';
+    case 'B_PROFILE': return 'B_SPECIALTY';
+    case 'B_SPECIALTY': return 'B_PORTFOLIO';
+    case 'B_PORTFOLIO': return 'B_AUDIENCE';
+    case 'B_AUDIENCE': return 'B_PREVIEW';
+    case 'B_PREVIEW': return 'DASH_CREATOR';
+    case 'C_TYPE': return 'C_PROFILE';
+    case 'C_PROFILE': return 'C_CUISINE';
+    case 'C_CUISINE': return 'C_MEDIA';
+    case 'C_MEDIA': return 'C_IDENTITY';
+    case 'C_IDENTITY': return 'C_FEATURES';
+    case 'C_FEATURES': return 'C_MATCHING';
+    case 'C_MATCHING': return 'C_PREVIEW';
+    case 'C_PREVIEW': return 'DASH_BUSINESS';
+    default: return s;
+  }
+}
+function canContinue(s){
+  switch(s){
+    case 'PATH_SELECT': return !!state.pathChoice;
+    case 'A_TYPE': return !!state.a.type;
+    case 'A_FLAVORS': return state.a.flavors.length>0;
+    case 'A_CUISINES': return state.a.cuisines.length>0;
+    case 'A_QUIZ': return ['q1','q2','q3','q4','q5'].every(k=>!!state.a.quiz[k]);
+    case 'B_TYPE': return !!state.b.type;
+    case 'B_SPECIALTY': return state.b.specialty.length>0;
+    case 'B_AUDIENCE': return state.b.audience.length>0;
+    case 'C_TYPE': return !!state.c.type;
+    case 'C_CUISINE': return state.c.cuisine.length>0 && state.c.categories.length>0;
+    case 'C_IDENTITY': return state.c.identity.length>0;
+    case 'C_MATCHING': return state.c.matching.length>0;
+    default: return true;
+  }
+}
+function continueLabel(s){
+  switch(s){
+    case 'A_RESULT': return 'Start Exploring';
+    case 'B_PREVIEW': return 'Launch Creator Profile';
+    case 'C_PREVIEW': return 'Launch Business Profile';
+    default: return 'Continue';
+  }
+}
+function goTo(next){ history_.push(state.screen); state.screen = next; render(); window.scrollTo(0,0); }
+function goBack(){ if(history_.length===0) return; state.screen = history_.pop(); render(); window.scrollTo(0,0); }
+function doNext(){ if(!canContinue(state.screen)) return; goTo(nextScreenFor(state.screen)); }
+function doRestart(){ state = initialState(); history_ = []; render(); window.scrollTo(0,0); }
+
+/* ========================= INTERACTION HANDLERS ========================= */
+function toggleChip(btn){
+  const group = btn.dataset.group, value = btn.dataset.value;
+  const maxAttr = btn.dataset.max; const max = maxAttr ? parseInt(maxAttr,10) : null;
+  const arr = getByPath(state, group);
+  const idx = arr.indexOf(value);
+  if(idx>=0){ arr.splice(idx,1); }
+  else{
+    if(max && arr.length>=max) return;
+    if(group==='a.dietary'){
+      if(value==='No Restrictions'){ arr.length = 0; }
+      else{ const nr = arr.indexOf('No Restrictions'); if(nr>=0) arr.splice(nr,1); }
+    }
+    arr.push(value);
+  }
+  render();
+}
+function addCustom(btn){
+  const group = btn.dataset.group, extra = btn.dataset.extra, inputId = btn.dataset.input;
+  const maxAttr = btn.dataset.max; const max = maxAttr ? parseInt(maxAttr,10) : null;
+  const input = document.getElementById(inputId);
+  if(!input) return;
+  const val = input.value.trim();
+  input.value = '';
+  if(!val){ render(); return; }
+  const arr = getByPath(state, group);
+  const extraArr = extra ? getByPath(state, extra) : null;
+  if(extraArr && !arr.includes(val) && !extraArr.includes(val)) extraArr.push(val);
+  if(!arr.includes(val) && !(max && arr.length>=max)) arr.push(val);
+  render();
+}
+function selectSingle(btn){ setByPath(state, btn.dataset.group, btn.dataset.value); render(); }
+function toggleBool(btn){ const p = btn.dataset.path; setByPath(state, p, !getByPath(state,p)); render(); }
+function addMockFile(btn){ const arr = getByPath(state, btn.dataset.path); arr.push(`${btn.dataset.prefix}_${arr.length+1}.jpg`); render(); }
+function removeMockFile(btn){ const arr = getByPath(state, btn.dataset.path); arr.splice(parseInt(btn.dataset.index,10),1); render(); }
+
+/* ========================= REUSABLE RENDER BITS ========================= */
+function chipGroup(opts){
+  const selected = getByPath(state, opts.groupPath);
+  const extraList = opts.extra ? getByPath(state, opts.extra) : [];
+  const seen = new Set(); const list = [];
+  [...opts.options, ...extraList].forEach(o=>{ if(!seen.has(o)){ seen.add(o); list.push(o); } });
+  const atMax = !!(opts.max && selected.length>=opts.max);
+  const chipsHtml = list.map(label=>{
+    const on = selected.includes(label);
+    if(!on && atMax){ return `<span class="chip chip--off">${escapeHtml(label)}</span>`; }
+    return `<button type="button" class="chip ${on?'chip--on':''}" data-action="toggle-chip" data-group="${opts.groupPath}" data-value="${escapeAttr(label)}" data-max="${opts.max||''}">${on?'\u2713 ':''}${escapeHtml(label)}</button>`;
+  }).join('');
+  let customHtml = '';
+  if(opts.custom){
+    customHtml = `<div class="custom-row">
+      <input type="text" id="${opts.customInputId}" placeholder="${escapeAttr(opts.placeholder||'Add your own\u2026')}" maxlength="28" />
+      <button type="button" class="btn-add" data-action="add-custom" data-group="${opts.groupPath}" data-extra="${opts.extra||''}" data-input="${opts.customInputId}" data-max="${opts.max||''}">+ Add</button>
+    </div>`;
+  }
+  const counter = opts.max ? `<div class="counter">${selected.length} / ${opts.max} selected</div>` : (selected.length ? `<div class="counter">${selected.length} selected</div>` : '');
+  return `<div class="chips">${chipsHtml}</div>${customHtml}${counter}`;
+}
+
+function cardOpts(options, groupPath, currentValue){
+  return `<div class="cards">${options.map(o=>`
+    <button type="button" class="card-opt ${currentValue===o.v?'card-opt--on':''}" data-action="select-single" data-group="${groupPath}" data-value="${escapeAttr(o.v)}">
+      <span class="card-opt__emoji">${o.e}</span>
+      <span class="card-opt__title">${escapeHtml(o.v)}</span>
+      ${o.d? `<span class="card-opt__desc">${escapeHtml(o.d)}</span>` : ''}
+    </button>`).join('')}</div>`;
+}
+
+function uploadZone(label, path, prefix){
+  const files = getByPath(state, path);
+  return `<div class="upload-zone">
+    <div class="upload-zone__head"><span>${escapeHtml(label)}</span>
+      <button type="button" class="btn-add" data-action="add-mock-file" data-path="${path}" data-prefix="${prefix}">+ Add sample</button>
+    </div>
+    <div class="file-tags">${
+      files.length
+        ? files.map((f,i)=>`<span class="file-tag">${escapeHtml(f)} <button type="button" data-action="remove-mock-file" data-path="${path}" data-index="${i}">\u2715</button></span>`).join('')
+        : '<span class="hint">No files yet \u2014 placeholder only for this demo.</span>'
+    }</div>
+  </div>`;
+}
+
+function switchRow(label, path){
+  const on = !!getByPath(state, path);
+  return `<div class="switch-row">
+    <span class="switch-row__label">${escapeHtml(label)}</span>
+    <button type="button" class="switch ${on?'switch--on':''}" data-action="toggle-bool" data-path="${path}"><span class="switch__knob"></span></button>
+  </div>`;
+}
+
+function navBar(){
+  const s = state.screen;
+  const showBack = history_.length>0;
+  const showSkip = s==='A_DIETARY';
+  const canGo = canContinue(s);
+  return `<div class="nav">
+    <button type="button" class="btn btn--ghost" data-action="back" ${showBack?'':'style="visibility:hidden"'}>\u2190 Back</button>
+    <div class="nav__right">
+      ${showSkip? `<button type="button" class="btn btn--text" data-action="next">Skip</button>` : ''}
+      <button type="button" class="btn btn--primary" data-action="next" ${canGo?'':'disabled'}>${continueLabel(s)}</button>
+    </div>
+  </div>`;
+}
+
+function shellStep(title, subtitle, bodyHtml){
+  const idx = courseIndex(), total = courseTotal();
+  const pct = total ? Math.round((idx/total)*100) : 0;
+  return `<div class="stage"><div class="menu">
+    <span class="brandmark">FUZO</span>
+    <div class="menu__header">
+      <div class="stamp">${idx}</div>
+      <div class="menu__headtext">
+        <div class="eyebrow">Course ${idx} of ${total}</div>
+        <div class="track"><div class="track__fill" style="width:${pct}%"></div></div>
+      </div>
+    </div>
+    <div class="content">
+      <h1 class="title serif">${title}</h1>
+      ${subtitle? `<p class="subtitle">${subtitle}</p>` : ''}
+      ${bodyHtml}
+    </div>
+    ${navBar()}
+  </div></div>`;
+}
+
+/* ========================= SCREENS ========================= */
+function screenWelcome(){
+  return `<div class="stage stage--intro"><div class="menu menu--intro">
+    <div class="intro-mark">FUZO</div>
+    <h1 class="intro-title">Food, personalized.</h1>
+    <p class="intro-sub">Discover food experiences, connect with creators, and explore local food businesses tailored to your taste.</p>
+    <div class="intro-cta">
+      <button type="button" class="btn btn--primary btn--wide" data-action="start">Get Started</button>
+      <button type="button" class="btn btn--ghost btn--wide" data-action="noop">Log In</button>
+    </div>
+  </div></div>`;
+}
+
+function screenCreateAccount(){
+  const d = state.account;
+  return shellStep('Tell us about yourself', 'A few basics to set up your FUZO account.', `
+    <div class="field-grid">
+      <label class="field"><span class="field__label">First name</span><input type="text" data-field="account.firstName" value="${escapeAttr(d.firstName)}" placeholder="Amara" /></label>
+      <label class="field"><span class="field__label">Last name</span><input type="text" data-field="account.lastName" value="${escapeAttr(d.lastName)}" placeholder="Singh" /></label>
+    </div>
+    <label class="field"><span class="field__label">Email</span><input type="email" data-field="account.email" value="${escapeAttr(d.email)}" placeholder="you@example.com" /></label>
+    <label class="field"><span class="field__label">Password</span><input type="password" data-field="account.password" value="${escapeAttr(d.password)}" placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" /></label>
+    <div class="photo-row">
+      <button type="button" class="photo-upload ${d.photo?'photo-upload--on':''}" data-action="toggle-bool" data-path="account.photo">${d.photo?'\u2713':'+'}</button>
+      <div><div class="field__label" style="margin-bottom:0">Profile photo</div><div class="hint">Optional \u2014 placeholder only in this demo.</div></div>
+    </div>
+  `);
+}
+
+function screenPathSelect(){
+  const opts = [
+    {v:'A', e:'🍽️', d:'Explore restaurants, dishes, reviews and food experiences.'},
+    {v:'B', e:'👨\u200d🍳', d:'Share your culinary expertise, recipes, reviews and food content.'},
+    {v:'C', e:'🏪', d:'Promote your food business and connect with food lovers.'}
+  ];
+  const titleMap = {A:'Discover Food', B:'Create & Inspire', C:'Grow My Food Business'};
+  const body = `<div class="cards">${opts.map(o=>`
+    <button type="button" class="card-opt ${state.pathChoice===o.v?'card-opt--on':''}" data-action="select-single" data-group="pathChoice" data-value="${o.v}">
+      <span class="card-opt__emoji">${o.e}</span>
+      <span class="card-opt__title">${titleMap[o.v]}</span>
+      <span class="card-opt__desc">${o.d}</span>
+    </button>`).join('')}</div>`;
+  return shellStep('How would you like to use FUZO?', 'Pick the path that fits you best \u2014 you can explore the others later.', body);
+}
+
+/* --- Path A: Discover Food --- */
+function screenA_Type(){
+  return shellStep('What describes you best?', '', cardOpts(A_TYPE_OPTS, 'a.type', state.a.type));
+}
+function screenA_Flavors(){
+  return shellStep('What flavors do you enjoy?', 'Select up to 5 \u2014 add your own if we missed one.',
+    chipGroup({options:FLAVORS, extra:'a.flavorsExtra', groupPath:'a.flavors', max:5, custom:true, customInputId:'flavorCustomInput', placeholder:'e.g. Buttery'}));
+}
+function screenA_Cuisines(){
+  return shellStep('Which cuisines do you enjoy?', 'Select up to 10 \u2014 add your own if we missed one.',
+    chipGroup({options:CUISINES, extra:'a.cuisinesExtra', groupPath:'a.cuisines', max:10, custom:true, customInputId:'cuisineCustomInput', placeholder:'e.g. Peruvian'}));
+}
+function screenA_Dietary(){
+  return shellStep('Dietary preferences', 'Optional \u2014 select any that apply, or skip.',
+    chipGroup({options:DIETARY, extra:'a.dietaryExtra', groupPath:'a.dietary', max:null, custom:true, customInputId:'dietaryCustomInput', placeholder:'e.g. Low-FODMAP'}));
+}
+function screenA_Quiz(){
+  const body = QUIZ_QUESTIONS.map((qq,i)=>`
+    <div class="quiz-q">
+      <div class="quiz-q__title">${i+1}. ${escapeHtml(qq.q)}</div>
+      <div class="quiz-q__opts">${qq.opts.map(o=>`<button type="button" class="chip ${state.a.quiz[qq.key]===o?'chip--on':''}" data-action="select-single" data-group="a.quiz.${qq.key}" data-value="${escapeAttr(o)}">${escapeHtml(o)}</button>`).join('')}</div>
+    </div>`).join('');
+  return shellStep('Food personality quiz', 'Five quick questions \u2014 answer how you actually eat, not how you wish you did.', body);
+}
+function computeResult(){
+  const tally = {comfort:0, explorer:0, health:0, trend:0};
+  Object.keys(QUIZ_MAP).forEach(qk=>{
+    const ans = state.a.quiz[qk]; const map = QUIZ_MAP[qk];
+    if(ans && map[ans]) tally[map[ans]]++;
+  });
+  let best='explorer', bestScore=-1;
+  Object.keys(tally).forEach(k=>{ if(tally[k]>bestScore){ best=k; bestScore=tally[k]; } });
+  return PERSONALITY[best];
+}
+function screenA_Result(){
+  const r = computeResult();
+  const flavors = state.a.flavors.length ? state.a.flavors.join(' \u00b7 ') : '\u2014';
+  const cuisines = state.a.cuisines.length ? state.a.cuisines.join(' \u00b7 ') : '\u2014';
+  const body = `
+    <div class="result-badge">
+      <div class="result-badge__emoji">${r.emoji}</div>
+      <div class="result-badge__title serif">${r.title}</div>
+      <div class="result-badge__desc">${r.desc}</div>
+    </div>
+    <div class="preview-block">
+      <div class="preview-row"><span class="preview-row__label">Top flavors</span><span class="preview-row__value">${escapeHtml(flavors)}</span></div>
+      <div class="preview-row"><span class="preview-row__label">Top cuisines</span><span class="preview-row__value">${escapeHtml(cuisines)}</span></div>
+    </div>`;
+  return shellStep('Your food personality', 'Here\u2019s your initial taste snapshot, based on what you told us.', body);
+}
+
+/* --- Path B: Create & Inspire --- */
+function screenB_Type(){
+  return shellStep('What best describes you?', '', cardOpts(B_TYPE_OPTS, 'b.type', state.b.type));
+}
+function screenB_Profile(){
+  const p = state.b.profile;
+  return shellStep('Creator profile', 'This is how food lovers will find and recognize you.', `
+    <label class="field"><span class="field__label">Creator name</span><input type="text" data-field="b.profile.name" value="${escapeAttr(p.name)}" placeholder="e.g. Spice Trail Maya" /></label>
+    <label class="field"><span class="field__label">Bio</span><textarea data-field="b.profile.bio" placeholder="Tell food lovers what you're about\u2026">${escapeHtml(p.bio)}</textarea></label>
+    <label class="field"><span class="field__label">Location</span><input type="text" data-field="b.profile.location" value="${escapeAttr(p.location)}" placeholder="Toronto, ON" /></label>
+    <label class="field"><span class="field__label">Website <span class="hint" style="display:inline">(optional)</span></span><input type="text" data-field="b.profile.website" value="${escapeAttr(p.website)}" placeholder="yourwebsite.com" /></label>
+  `);
+}
+function screenB_Specialty(){
+  const list = SPECIALTY_MAP[state.b.type] || [];
+  return shellStep('Your specialty', `For ${escapeHtml(state.b.type||'your creator type')}.`,
+    list.length ? chipGroup({options:list, groupPath:'b.specialty', max:null, custom:false}) : '<p class="hint">Go back and choose a creator type first.</p>');
+}
+function screenB_Portfolio(){
+  const body = uploadZone('Photos','b.portfolio.photos','photo') + uploadZone('Videos','b.portfolio.videos','video') +
+    uploadZone('Recipes','b.portfolio.recipes','recipe') + uploadZone('Sample Menus','b.portfolio.menus','menu') +
+    uploadZone('Service Images','b.portfolio.serviceImages','service');
+  return shellStep('Content & portfolio', 'Optional \u2014 add a few samples so people know what to expect.', body);
+}
+function screenB_Audience(){
+  return shellStep('Audience focus', 'Who do you create for?', chipGroup({options:AUDIENCE, groupPath:'b.audience', max:null, custom:false}));
+}
+function screenB_Preview(){
+  const p = state.b.profile;
+  const portfolioCount = ['photos','videos','recipes','menus','serviceImages'].reduce((sum,k)=>sum+state.b.portfolio[k].length,0);
+  const body = `<div class="preview-block">
+    <div class="preview-row"><span class="preview-row__label">Creator name</span><span class="preview-row__value">${escapeHtml(p.name||'\u2014')}</span></div>
+    <div class="preview-row"><span class="preview-row__label">Type</span><span class="preview-row__value">${escapeHtml(state.b.type||'\u2014')}</span></div>
+    <div class="preview-row"><span class="preview-row__label">Location</span><span class="preview-row__value">${escapeHtml(p.location||'\u2014')}</span></div>
+    <div class="preview-row"><span class="preview-row__label">Bio</span><span class="preview-row__value">${escapeHtml(p.bio||'\u2014')}</span></div>
+    <div class="preview-row"><span class="preview-row__label">Specialty</span><span class="preview-row__value">${escapeHtml(state.b.specialty.join(' \u00b7 ')||'\u2014')}</span></div>
+    <div class="preview-row"><span class="preview-row__label">Audience</span><span class="preview-row__value">${escapeHtml(state.b.audience.join(' \u00b7 ')||'\u2014')}</span></div>
+    <div class="preview-row"><span class="preview-row__label">Portfolio items</span><span class="preview-row__value">${portfolioCount} sample file(s) added</span></div>
+  </div>`;
+  return shellStep('Profile preview', 'See how your profile will appear on FUZO.', body);
+}
+
+/* --- Path C: Grow My Food Business --- */
+function screenC_Type(){
+  return shellStep('What type of business do you operate?', '', cardOpts(C_TYPE_OPTS, 'c.type', state.c.type));
+}
+function screenC_Profile(){
+  const p = state.c.profile;
+  return shellStep('Business profile', 'The basics food lovers and FUZO will use to reach you.', `
+    <label class="field"><span class="field__label">Business name</span><input type="text" data-field="c.profile.businessName" value="${escapeAttr(p.businessName)}" placeholder="e.g. Maya's Spice Trail Kitchen" /></label>
+    <label class="field"><span class="field__label">Owner / contact name</span><input type="text" data-field="c.profile.contact" value="${escapeAttr(p.contact)}" placeholder="Maya Singh" /></label>
+    <div class="field-grid">
+      <label class="field"><span class="field__label">Phone</span><input type="tel" data-field="c.profile.phone" value="${escapeAttr(p.phone)}" placeholder="(416) 555-0123" /></label>
+      <label class="field"><span class="field__label">Email</span><input type="email" data-field="c.profile.email" value="${escapeAttr(p.email)}" placeholder="hello@business.com" /></label>
+    </div>
+    <label class="field"><span class="field__label">Address</span><input type="text" data-field="c.profile.address" value="${escapeAttr(p.address)}" placeholder="123 Queen St W, Toronto, ON" /></label>
+  `);
+}
+function screenC_Cuisine(){
+  const body = `
+    <div class="label">Cuisine type</div>
+    ${chipGroup({options:CUISINES, extra:'c.cuisineExtra', groupPath:'c.cuisine', max:null, custom:true, customInputId:'bizCuisineCustomInput', placeholder:'e.g. Ethiopian'})}
+    <hr class="hr" />
+    <div class="label">Food categories</div>
+    ${chipGroup({options:FOOD_CATEGORIES, extra:'c.categoriesExtra', groupPath:'c.categories', max:null, custom:true, customInputId:'bizCategoryCustomInput', placeholder:'e.g. Brunch'})}
+  `;
+  return shellStep('Cuisine & offerings', 'Tell us what you serve and when.', body);
+}
+function screenC_Media(){
+  const body = uploadZone('Menu','c.media.menu','menu') + uploadZone('Photos','c.media.photos','photo') + uploadZone('Signature Dishes','c.media.dishes','dish');
+  return shellStep('Menu & media', 'Optional \u2014 add a few samples so customers know what to expect.', body);
+}
+function screenC_Identity(){
+  return shellStep('Business identity', 'What best describes your business? Select all that apply.', chipGroup({options:BUSINESS_IDENTITY, groupPath:'c.identity', max:null, custom:false}));
+}
+function screenC_Features(){
+  const body = FEATURES_LIST.map(f=>switchRow(f.label, `c.features.${f.k}`)).join('') +
+    `<div class="label">Integrations</div>${chipGroup({options:INTEGRATIONS, groupPath:'c.integrations', max:null, custom:false})}`;
+  return shellStep('Business features', 'Turn on what you offer, and connect any tools you already use.', body);
+}
+function screenC_Matching(){
+  return shellStep('Customer matching', 'Who should discover you?', chipGroup({options:CUSTOMER_MATCH, groupPath:'c.matching', max:null, custom:false}));
+}
+function screenC_Preview(){
+  const p = state.c.profile;
+  const featuresOn = FEATURES_LIST.filter(f=>state.c.features[f.k]).map(f=>f.label);
+  const body = `<div class="preview-block">
+    <div class="preview-row"><span class="preview-row__label">Business name</span><span class="preview-row__value">${escapeHtml(p.businessName||'\u2014')}</span></div>
+    <div class="preview-row"><span class="preview-row__label">Type</span><span class="preview-row__value">${escapeHtml(state.c.type||'\u2014')}</span></div>
+    <div class="preview-row"><span class="preview-row__label">Address</span><span class="preview-row__value">${escapeHtml(p.address||'\u2014')}</span></div>
+    <div class="preview-row"><span class="preview-row__label">Cuisine</span><span class="preview-row__value">${escapeHtml(state.c.cuisine.join(' \u00b7 ')||'\u2014')}</span></div>
+    <div class="preview-row"><span class="preview-row__label">Categories</span><span class="preview-row__value">${escapeHtml(state.c.categories.join(' \u00b7 ')||'\u2014')}</span></div>
+    <div class="preview-row"><span class="preview-row__label">Identity</span><span class="preview-row__value">${escapeHtml(state.c.identity.join(' \u00b7 ')||'\u2014')}</span></div>
+    <div class="preview-row"><span class="preview-row__label">Features on</span><span class="preview-row__value">${escapeHtml(featuresOn.join(' \u00b7 ')||'None yet')}</span></div>
+    <div class="preview-row"><span class="preview-row__label">Integrations</span><span class="preview-row__value">${escapeHtml(state.c.integrations.join(' \u00b7 ')||'\u2014')}</span></div>
+    <div class="preview-row"><span class="preview-row__label">Matching with</span><span class="preview-row__value">${escapeHtml(state.c.matching.join(' \u00b7 ')||'\u2014')}</span></div>
+  </div>`;
+  return shellStep('Business preview', 'Preview your public profile.', body);
+}
+
+/* --- Dashboards --- */
+function dashWrap(eyebrow, title, sub, bodyHtml){
+  return `<div class="stage"><div class="menu">
+    <span class="brandmark">FUZO</span>
+    <div class="dash-head">
+      <div class="dash-head__eyebrow">${eyebrow}</div>
+      <h1 class="dash-head__title serif">${title}</h1>
+      <p class="dash-head__sub">${sub}</p>
+    </div>
+    <div class="dash-body">
+      ${bodyHtml}
+      <div class="dash-restart"><button type="button" class="btn btn--text" data-action="restart">\u21ba Restart demo</button></div>
+    </div>
+  </div></div>`;
+}
+function screenDashFoodlover(){
+  const topFlavor = state.a.flavors[0] || 'great';
+  const topCuisine = state.a.cuisines[0] || 'local';
+  const body = `
+    <div class="feed-section"><div class="feed-section__title">Recommended for You</div>
+      <div class="feed-card"><div class="feed-card__title">Because you love ${escapeHtml(topFlavor)} flavors</div><div class="feed-card__sub">A curated set of dishes matched to your taste</div></div></div>
+    <div class="feed-section"><div class="feed-section__title">Trending Nearby</div>
+      <div class="feed-card"><div class="feed-card__title">Popular this week near you</div><div class="feed-card__sub">What food lovers around you are loving right now</div></div></div>
+    <div class="feed-section"><div class="feed-section__title">Hidden Gems</div>
+      <div class="feed-card"><div class="feed-card__title">Under-the-radar spots</div><div class="feed-card__sub">Small places worth the detour</div></div></div>
+    <div class="feed-section"><div class="feed-section__title">Based on Your Taste</div>
+      <div class="feed-card"><div class="feed-card__title">More ${escapeHtml(topCuisine)} food, your way</div><div class="feed-card__sub">Tailored to your flavor and cuisine picks</div></div></div>`;
+  return dashWrap('Personalized feed', 'Welcome to FUZO', 'Your feed updates as you explore, rate, and save.', body);
+}
+function screenDashCreator(){
+  const showBookings = ['Private Chef','Catering Chef','Cooking Instructor'].includes(state.b.type);
+  const cards = [
+    {n:'1,204', l:'Profile Views'},
+    {n:'312', l:'Followers'},
+    {n:'87%', l:'Content Performance'}
+  ];
+  if(showBookings) cards.push({n:'5', l:'Bookings'});
+  const body = `<div class="stat-grid">${cards.map(c=>`<div class="stat-card"><div class="stat-card__num">${c.n}</div><div class="stat-card__label">${c.l}</div></div>`).join('')}</div>`;
+  return dashWrap('Creator dashboard', `Welcome, ${escapeHtml(state.b.profile.name || state.account.firstName || 'Creator')}`, 'Sample stats \u2014 your real numbers start as soon as you publish.', body);
+}
+function screenDashBusiness(){
+  const cards = [
+    {n:'2,481', l:'Profile Views'},
+    {n:'416', l:'Customer Engagement'},
+    {n:'58', l:'Reservations'},
+    {n:'132', l:'Orders'},
+    {n:'4.7\u2605', l:'Reviews'}
+  ];
+  const body = `<div class="stat-grid">${cards.map(c=>`<div class="stat-card"><div class="stat-card__num">${c.n}</div><div class="stat-card__label">${c.l}</div></div>`).join('')}</div>`;
+  return dashWrap('Business dashboard', escapeHtml(state.c.profile.businessName || 'Your Business'), 'Sample stats \u2014 your real numbers start as soon as you publish.', body);
+}
+
+/* ========================= ROUTER ========================= */
+function screenHtml(s){
+  switch(s){
+    case 'WELCOME': return screenWelcome();
+    case 'CREATE_ACCOUNT': return screenCreateAccount();
+    case 'PATH_SELECT': return screenPathSelect();
+    case 'A_TYPE': return screenA_Type();
+    case 'A_FLAVORS': return screenA_Flavors();
+    case 'A_CUISINES': return screenA_Cuisines();
+    case 'A_DIETARY': return screenA_Dietary();
+    case 'A_QUIZ': return screenA_Quiz();
+    case 'A_RESULT': return screenA_Result();
+    case 'B_TYPE': return screenB_Type();
+    case 'B_PROFILE': return screenB_Profile();
+    case 'B_SPECIALTY': return screenB_Specialty();
+    case 'B_PORTFOLIO': return screenB_Portfolio();
+    case 'B_AUDIENCE': return screenB_Audience();
+    case 'B_PREVIEW': return screenB_Preview();
+    case 'C_TYPE': return screenC_Type();
+    case 'C_PROFILE': return screenC_Profile();
+    case 'C_CUISINE': return screenC_Cuisine();
+    case 'C_MEDIA': return screenC_Media();
+    case 'C_IDENTITY': return screenC_Identity();
+    case 'C_FEATURES': return screenC_Features();
+    case 'C_MATCHING': return screenC_Matching();
+    case 'C_PREVIEW': return screenC_Preview();
+    case 'DASH_FOODLOVER': return screenDashFoodlover();
+    case 'DASH_CREATOR': return screenDashCreator();
+    case 'DASH_BUSINESS': return screenDashBusiness();
+    default: return screenWelcome();
+  }
+}
+function render(){
+  document.getElementById('app').innerHTML = screenHtml(state.screen);
+}
+
+/* ========================= EVENTS ========================= */
+document.getElementById('app').addEventListener('click', function(e){
+  const btn = e.target.closest('[data-action]');
+  if(!btn) return;
+  switch(btn.dataset.action){
+    case 'toggle-chip': toggleChip(btn); break;
+    case 'add-custom': addCustom(btn); break;
+    case 'select-single': selectSingle(btn); break;
+    case 'toggle-bool': toggleBool(btn); break;
+    case 'add-mock-file': addMockFile(btn); break;
+    case 'remove-mock-file': removeMockFile(btn); break;
+    case 'next': doNext(); break;
+    case 'back': goBack(); break;
+    case 'start': goTo('CREATE_ACCOUNT'); break;
+    case 'restart': doRestart(); break;
+    case 'noop': showNote('Log in isn\u2019t part of this onboarding demo.'); break;
+  }
+});
+document.getElementById('app').addEventListener('input', function(e){
+  const t = e.target;
+  if(t.matches('input[data-field], textarea[data-field]')){
+    setByPath(state, t.dataset.field, t.value);
+  }
+});
+document.getElementById('app').addEventListener('keydown', function(e){
+  if(e.key==='Enter' && e.target.matches('.custom-row input')){
+    e.preventDefault();
+    const row = e.target.closest('.custom-row');
+    const addBtn = row.querySelector('[data-action="add-custom"]');
+    if(addBtn) addCustom(addBtn);
+  }
+});
+
+render();
+</script>
+</body>
+</html>

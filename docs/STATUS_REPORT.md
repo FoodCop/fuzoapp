@@ -103,5 +103,17 @@ Once local validation is completed to your liking tomorrow, we will:
 ## 🔗 Share A Link Flow (Media Creation Separation)
 - **Decoupled Creation Modes:** Separated the ambiguous "A Video" mode in the Unified Creation Modal into two distinct, clear flows: "A Video" (for local file uploads) and "Share A Link" (for external media imports).
 - **Streamlined Link Extraction:** When users select "Share A Link", the AI Trim Studio mounts in a dedicated `link` mode displaying only the YouTube URL input.
-- **Bypass Automation (Zero-LLM):** Clicking "Analyze Link" instantly bypasses manual Identity and Story configuration steps, and completely bypasses the Gemini LLM. The system parses the YouTube metadata (oEmbed/API), applies the Fuzo culinary taxonomy (cuisines/vibes) via direct local heuristics, and drops the user straight into the Review & Save screen instantly without network rate-limit vulnerabilities.
+- **Status:** ✅ Completed, committed, and pushed to git.
+
+## 🚀 Taste Profile Hub (Onboarding V2)
+- **Decoupled Quiz Engine:** Replaced the legacy linear "Flavor Quiz" with a robust 5-module Taste Profile Hub (Dining, Discovery, Mood, Budget, Social).
+- **Data Capture Realignment:** Front-loaded essential data capture (Phone Number and Location/Country) to the "Initial Setup" phase, ensuring critical marketing/analytics retention even if the user skips the Taste Profile.
+- **Persistence Model:** The 25-question matrix is aggregated into a single `taste_profile` JSON payload and persisted into the `onboarding_v2_metadata` column on the `public.users` table.
+- **Status:** ✅ Completed, committed, and pushed to git.
+
+## 🏆 Gamification & Rewards Engine
+- **Progression System:** Successfully integrated a comprehensive global XP, leveling, and rank progression system.
+- **Schema Optimization:** Prevented unnecessary relational table bloat by consolidating all granular user stats and badge unlocked states into a single `gamification_metadata` JSONB column on the `public.users` schema.
+- **Interactive Dashboard:** Replaced the static Rewards UI with a dynamic dashboard featuring Role Switchers (Food Explorer, Critic, Blogger, etc.), Badge Tracks with granular progress bars, and SVG rings for global XP tracking. The UI strictly adheres to the core Dark/Bold app aesthetic.
+- **Developer Tools:** Injected a standalone Demo Simulator panel to allow manual testing of XP actions, state increments, and unlock toasts directly in the UI.
 - **Status:** ✅ Completed, committed, and pushed to git.
