@@ -8,6 +8,7 @@ import { AuthService } from '../services/authService';
 import { getOAuthRedirectUrl, authDebugLog } from '../lib/oauthRedirect';
 import type { AuthUser } from '../types/auth';
 import TasteProfileFlow from './TasteProfileFlow';
+import ClientOnboardingFlow from './ClientOnboardingFlow';
 import type { OnboardingV2Payload } from '../types/onboarding';
 
 const AUTH_ONBOARDING_DATA = [
@@ -39,6 +40,8 @@ export const AuthView = ({
 }) => {
   const [step, setStep] = useState<'welcome' | 'signin' | 'signup' | 'onboarding'>(initialStep);
   const [onboardingStep, setOnboardingStep] = useState(0);
+  const [onboardingPhase, setOnboardingPhase] = useState<'client_flow' | 'taste_profile'>('client_flow');
+  const [clientPayload, setClientPayload] = useState<any>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -106,7 +109,39 @@ export const AuthView = ({
 
   if (step === 'onboarding') {
     if (useOnboardingV2) {
-      return <TasteProfileFlow onComplete={onComplete} />;
+      if (onboardingPhase === 'client_flow') {
+        return (
+          <ClientOnboardingFlow 
+            onComplete={(payload, launchTasteProfile) => {
+              if (launchTasteProfile) {
+                setClientPayload(payload);
+                setOnboardingPhase('taste_profile');
+              } else {
+                if (supabase) {
+                  supabase.auth.updateUser({
+                    data: { onboarding_completed: true, clientPayload: payload }
+                  });
+                }
+                onComplete(payload);
+              }
+            }} 
+          />
+        );
+      } else {
+        return (
+          <TasteProfileFlow 
+            onComplete={async (tasteProfileData) => {
+              const combinedPayload = { ...clientPayload, tasteProfile: tasteProfileData };
+              if (supabase) {
+                await supabase.auth.updateUser({
+                  data: { onboarding_completed: true, clientPayload: combinedPayload }
+                });
+              }
+              onComplete(combinedPayload);
+            }} 
+          />
+        );
+      }
     }
 
     const current = AUTH_ONBOARDING_DATA[onboardingStep];
