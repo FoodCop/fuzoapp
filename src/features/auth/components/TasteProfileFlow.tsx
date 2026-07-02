@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronRight, Check, ArrowRight } from 'lucide-react';
-import { TASTE_PROFILE_MODULES, type TasteProfileModule } from '../constants/tasteProfileData';
+import { TASTE_PROFILE_MODULES } from '../constants/onboardingV2Data';
+import type { TasteProfileModule } from '../types/onboarding';
 
 interface TasteProfileFlowProps {
   onComplete: (tasteProfileData: any) => void;
@@ -13,7 +14,7 @@ export const TasteProfileFlow = ({
   mode = 'live',
 }: TasteProfileFlowProps) => {
   const [phase, setPhase] = useState<'hub' | 'module'>('hub');
-  const [activeModuleId, setActiveModuleId] = useState<string>('');
+  const [activeModuleId, setActiveModuleId] = useState<number | null>(null);
   const [moduleQuestionIndex, setModuleQuestionIndex] = useState(0);
   const [tasteProfileAnswers, setTasteProfileAnswers] = useState<Record<string, Record<string, any>>>({});
 
@@ -210,7 +211,7 @@ export const TasteProfileFlow = ({
                 );
               })()}
             </motion.div>
-          )}
+          ) : null}
         </AnimatePresence>
       </div>
     </div>

@@ -169,10 +169,11 @@ export const AuthOrchestrator: React.FC<AuthOrchestratorProps> = ({
           </div>
         </div>
 
-        <TasteProfileFlow
-          mode="demo"
+        <AuthView
+          initialStep="onboarding"
+          useOnboardingV2={true}
           onComplete={(payload) => {
-            setDemoPayload(payload);
+            if (payload) setDemoPayload(payload);
           }}
         />
 
